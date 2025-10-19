@@ -3,16 +3,19 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Product } from '../types/product'
 import { useCart } from '../contexts/CartContext'
+import { useAuth } from '../contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, ShoppingCart, Package } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Package, MessageCircle } from 'lucide-react'
 import { showSuccess } from '../utils/toast'
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [startingChat, setStartingChat] = useState(false)
   const { addToCart } = useCart()
+  const { user } = useAuth()
 
   useEffect(() => {
     if (id) {
@@ -61,6 +64,62 @@ const ProductDetail = () => {
     }
   }
 
+  const handleStartChat = async () => {
+    if (!user || !product) {
+      return
+    }
+
+    setStartingChat(true)
+
+    try {
+      // Verificar se já existe um chat para este produto, cliente e vendedor
+      const { data: existingChat, error: fetchError } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('client_id', user.id)
+        .eq('seller_id', product.seller_id)
+        .single()
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error checking existing chat:', fetchError)
+      }
+
+      let chatId = existingChat?.id
+
+      // Se não existe, criar um novo chat
+      if (!existingChat) {
+        const { data: newChat, error: createError } = await supabase
+          .from('chats')
+          .insert({
+            product_id: product.id,
+            client_id: user.id,
+            seller_id: product.seller_id
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating chat:', createError)
+          return
+        }
+
+        chatId = newChat.id
+        showSuccess('Chat iniciado com sucesso!')
+      } else {
+        showSuccess('Redirecionando para chat existente...')
+      }
+
+      // Redirecionar para a página do chat
+      window.location.href = `/chat/${chatId}`
+
+    } catch (error) {
+      console.error('Error starting chat:', error)
+    } finally {
+      setStartingChat(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -88,6 +147,8 @@ const ProductDetail = () => {
       </div>
     )
   }
+
+  const canChat = user && user.id !== product.seller_id
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -156,6 +217,36 @@ const ProductDetail = () => {
                     <ShoppingCart className="w-5 h-5 mr-2" />
                     {product.stock === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
                   </Button>
+
+                  {canChat && (
+                    <Button
+                      onClick={handleStartChat}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                      disabled={startingChat}
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      {startingChat ? 'Iniciando chat...' : 'Conversar com Vendedor'}
+                    </Button>
+                  )}
+
+                  {!canChat && user && (
+                    <p className="text-sm text-gray-500 text-center">
+                      Você não pode conversar sobre seus próprios produtos
+                    </p>
+                  )}
+
+                  {!user && (
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        <Link to="/login" className="underline hover:text-blue-800">
+                          Faça login
+                        </Link>{' '}
+                        para conversar com o vendedor
+                      </p>
+                    </div>
+                  )}
 
                   {product.stock <= 5 && product.stock > 0 && (
                     <p className="text-sm text-orange-600 text-center">

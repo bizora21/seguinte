@@ -15,6 +15,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmed from "./pages/OrderConfirmed";
 import MyOrders from "./pages/MyOrders";
+import MyChats from "./pages/MyChats";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ const App = () => (
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/pedido-confirmado" element={<OrderConfirmed />} />
                   <Route path="/meus-pedidos" element={<MyOrders />} />
+                  <Route path="/meus-chats" element={<MyChats />} />
+                  <Route path="/chat/:chatId" element={<Chat />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

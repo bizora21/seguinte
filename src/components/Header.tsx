@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ShoppingBag, Package } from 'lucide-react'
+import { Plus, ShoppingBag, Package, MessageCircle } from 'lucide-react'
 import CartButton from './CartButton'
 
 const Header = () => {
@@ -47,18 +47,36 @@ const Header = () => {
                   <ShoppingBag className="w-4 h-4 mr-2" />
                   Meus Pedidos
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/meus-chats')}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Meus Chats
+                </Button>
               </>
             )}
 
             {user?.profile?.role === 'cliente' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/meus-pedidos')}
-              >
-                <Package className="w-4 h-4 mr-2" />
-                Meus Pedidos
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/meus-pedidos')}
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Meus Pedidos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/meus-chats')}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Minhas Conversas
+                </Button>
+              </>
             )}
             
             {user ? (
