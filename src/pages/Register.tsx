@@ -38,7 +38,7 @@ const Register = () => {
     if (error) {
       showError('Erro ao criar conta: ' + error.message)
     } else {
-      showSuccess('Conta criada com sucesso! Verifique seu email para confirmar.')
+      showSuccess('Conta criada com sucesso! Você já pode fazer login.')
       navigate('/login')
     }
 
@@ -75,7 +75,8 @@ const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
               />
             </div>
             <div className="space-y-2">
@@ -86,7 +87,7 @@ const Register = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                placeholder="••••••••"
+                placeholder="Digite a senha novamente"
               />
             </div>
             <div className="space-y-2">

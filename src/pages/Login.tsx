@@ -24,7 +24,9 @@ const Login = () => {
       showError('Erro ao fazer login: ' + error.message)
     } else {
       showSuccess('Login realizado com sucesso!')
-      navigate('/')
+      setTimeout(() => {
+        navigate('/')
+      }, 1000)
     }
 
     setLoading(false)

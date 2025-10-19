@@ -41,6 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email)
+      
       if (session?.user) {
         await fetchProfile(session.user)
       } else {
@@ -54,19 +56,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (authUser: User) => {
     try {
-      const { data: profile } = await supabase
+      console.log('Fetching profile for user:', authUser.id)
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single()
 
-      setUser({
-        id: authUser.id,
-        email: authUser.email!,
-        profile: profile
-      })
+      if (error) {
+        console.error('Error fetching profile:', error)
+        setUser({
+          id: authUser.id,
+          email: authUser.email!
+        })
+      } else {
+        console.log('Profile found:', profile)
+        setUser({
+          id: authUser.id,
+          email: authUser.email!,
+          profile: profile
+        })
+      }
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error)
+      console.error('Error in fetchProfile:', error)
       setUser({
         id: authUser.id,
         email: authUser.email!
@@ -77,40 +89,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting sign in for:', email)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
+    
+    if (error) {
+      console.error('Sign in error:', error)
+    } else {
+      console.log('Sign in successful')
+    }
+    
     return { error }
   }
 
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password
-    })
+    console.log('Attempting sign up for:', email, 'role:', role)
+    
+    try {
+      // 1. Criar usuário no auth
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password
+      })
 
-    if (data.user && !error) {
-      // Criar perfil na tabela profiles
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
+      if (authError) {
+        console.error('Auth sign up error:', authError)
+        return { error: authError }
+      }
+
+      if (data.user) {
+        console.log('User created in auth:', data.user.id)
+        
+        // 2. Criar perfil na tabela profiles
+        const profileData = {
           id: data.user.id,
           email: email,
           role: role,
           store_name: role === 'vendedor' ? storeName : null
-        })
+        }
+        
+        console.log('Creating profile with data:', profileData)
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert(profileData)
 
-      if (profileError) {
-        console.error('Erro ao criar perfil:', profileError)
-        return { error: profileError }
+        if (profileError) {
+          console.error('Profile creation error:', profileError)
+          // Tentar deletar o usuário do auth se o perfil falhar
+          await supabase.auth.admin.deleteUser(data.user.id)
+          return { error: profileError }
+        }
+        
+        console.log('Profile created successfully')
       }
-    }
 
-    return { error }
+      return { error: null }
+    } catch (error) {
+      console.error('Sign up error:', error)
+      return { error }
+    }
   }
 
   const signOut = async () => {
+    console.log('Signing out')
     await supabase.auth.signOut()
   }
 
