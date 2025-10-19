@@ -21,17 +21,6 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validações
-    if (!email.trim() || !password.trim()) {
-      showError('Preencha todos os campos obrigatórios')
-      return
-    }
-
-    if (password.length < 6) {
-      showError('A senha deve ter pelo menos 6 caracteres')
-      return
-    }
-
     if (password !== confirmPassword) {
       showError('As senhas não coincidem')
       return
@@ -44,35 +33,16 @@ const Register = () => {
 
     setLoading(true)
 
-    try {
-      const { error } = await signUp(email, password, role, storeName)
+    const { error } = await signUp(email, password, role, storeName)
 
-      if (error) {
-        if (error.message.includes('already registered')) {
-          showError('Este email já está cadastrado. Tente fazer login.')
-        } else {
-          showError('Erro ao criar conta: ' + error.message)
-        }
-      } else {
-        showSuccess('Conta criada com sucesso! Verifique seu email para confirmar o registro.')
-        // Limpa o formulário
-        setEmail('')
-        setPassword('')
-        setConfirmPassword('')
-        setStoreName('')
-        setRole('cliente')
-        
-        // Redireciona após um breve delay
-        setTimeout(() => {
-          navigate('/login')
-        }, 2000)
-      }
-    } catch (error) {
-      console.error('Erro inesperado no registro:', error)
-      showError('Ocorreu um erro inesperado. Tente novamente.')
-    } finally {
-      setLoading(false)
+    if (error) {
+      showError('Erro ao criar conta: ' + error.message)
+    } else {
+      showSuccess('Conta criada com sucesso! Verifique seu email para confirmar.')
+      navigate('/login')
     }
+
+    setLoading(false)
   }
 
   return (
@@ -95,7 +65,6 @@ const Register = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="seu@email.com"
-                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -106,8 +75,7 @@ const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="Mínimo 6 caracteres"
-                disabled={loading}
+                placeholder="••••••••"
               />
             </div>
             <div className="space-y-2">
@@ -118,13 +86,12 @@ const Register = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                placeholder="Digite a senha novamente"
-                disabled={loading}
+                placeholder="••••••••"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Tipo de Conta</Label>
-              <Select value={role} onValueChange={(value: 'cliente' | 'vendedor') => setRole(value)} disabled={loading}>
+              <Select value={role} onValueChange={(value: 'cliente' | 'vendedor') => setRole(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo de conta" />
                 </SelectTrigger>
@@ -144,7 +111,6 @@ const Register = () => {
                   onChange={(e) => setStoreName(e.target.value)}
                   required
                   placeholder="Nome da sua loja"
-                  disabled={loading}
                 />
               </div>
             )}

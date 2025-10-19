@@ -28,18 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Verificar sessão inicial
     const getInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user) {
-          await fetchProfile(session.user)
-        } else {
-          setUser(null)
-          setLoading(false)
-        }
-      } catch (error) {
-        console.error('Erro ao verificar sessão inicial:', error)
-        setUser(null)
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user) {
+        await fetchProfile(session.user)
+      } else {
         setLoading(false)
       }
     }
@@ -48,15 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email)
-      
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (session?.user) {
         await fetchProfile(session.user)
-      } else if (event === 'SIGNED_OUT') {
+      } else {
         setUser(null)
         setLoading(false)
-      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-        await fetchProfile(session.user)
       }
     })
 
@@ -65,54 +54,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (authUser: User) => {
     try {
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
         .single()
 
-      if (error) {
-        console.error('Erro ao buscar perfil:', error)
-        // Se não encontrar perfil, cria um básico
-        if (error.code === 'PGRST116') {
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authUser.id,
-              email: authUser.email,
-              role: 'cliente'
-            })
-            .select()
-            .single()
-
-          if (insertError) {
-            console.error('Erro ao criar perfil básico:', insertError)
-            setUser({
-              id: authUser.id,
-              email: authUser.email!
-            })
-          } else {
-            setUser({
-              id: authUser.id,
-              email: authUser.email!,
-              profile: newProfile
-            })
-          }
-        } else {
-          setUser({
-            id: authUser.id,
-            email: authUser.email!
-          })
-        }
-      } else {
-        setUser({
-          id: authUser.id,
-          email: authUser.email!,
-          profile: profile
-        })
-      }
+      setUser({
+        id: authUser.id,
+        email: authUser.email!,
+        profile: profile
+      })
     } catch (error) {
-      console.error('Erro inesperado ao buscar perfil:', error)
+      console.error('Erro ao buscar perfil:', error)
       setUser({
         id: authUser.id,
         email: authUser.email!
@@ -123,67 +77,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-      return { error }
-    } catch (error) {
-      console.error('Erro no signIn:', error)
-      return { error }
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+    return { error }
   }
 
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
-    try {
-      // Primeiro cria o usuário no auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            role: role,
-            store_name: storeName
-          }
-        }
-      })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    })
 
-      if (error) {
-        console.error('Erro no signUp:', error)
-        return { error }
+    if (data.user && !error) {
+      // Criar perfil na tabela profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          email: email,
+          role: role,
+          store_name: role === 'vendedor' ? storeName : null
+        })
+
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError)
+        return { error: profileError }
       }
-
-      if (data.user) {
-        // Cria o perfil na tabela profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            role: role,
-            store_name: role === 'vendedor' ? storeName : null
-          })
-
-        if (profileError) {
-          console.error('Erro ao criar perfil:', profileError)
-          // Não retorna erro aqui para não bloquear o registro
-        }
-      }
-
-      return { error: null }
-    } catch (error) {
-      console.error('Erro inesperado no signUp:', error)
-      return { error }
     }
+
+    return { error }
   }
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut()
-    } catch (error) {
-      console.error('Erro no signOut:', error)
-    }
+    await supabase.auth.signOut()
   }
 
   const value = {

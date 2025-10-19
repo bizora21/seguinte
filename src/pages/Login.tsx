@@ -16,36 +16,18 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Validações
-    if (!email.trim() || !password.trim()) {
-      showError('Preencha todos os campos')
-      return
-    }
-
     setLoading(true)
 
-    try {
-      const { error } = await signIn(email, password)
+    const { error } = await signIn(email, password)
 
-      if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          showError('Email ou senha incorretos')
-        } else if (error.message.includes('Email not confirmed')) {
-          showError('Por favor, confirme seu email antes de fazer login')
-        } else {
-          showError('Erro ao fazer login: ' + error.message)
-        }
-      } else {
-        showSuccess('Login realizado com sucesso!')
-        // O redirecionamento será feito automaticamente pelo AuthContext
-      }
-    } catch (error) {
-      console.error('Erro inesperado no login:', error)
-      showError('Ocorreu um erro inesperado. Tente novamente.')
-    } finally {
-      setLoading(false)
+    if (error) {
+      showError('Erro ao fazer login: ' + error.message)
+    } else {
+      showSuccess('Login realizado com sucesso!')
+      navigate('/')
     }
+
+    setLoading(false)
   }
 
   return (
@@ -68,7 +50,6 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="seu@email.com"
-                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -80,7 +61,6 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                disabled={loading}
               />
             </div>
             <Button 
