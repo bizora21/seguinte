@@ -1,6 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
 
 const Header = () => {
   const { user, signOut } = useAuth()
@@ -16,10 +17,26 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">LojaRápida</h1>
+            <button
+              onClick={() => navigate('/')}
+              className="text-xl font-bold text-gray-900 hover:text-gray-700 transition-colors"
+            >
+              LojaRápida
+            </button>
           </div>
           
           <div className="flex items-center space-x-4">
+            {user?.profile?.role === 'vendedor' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/adicionar-produto')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Produto
+              </Button>
+            )}
+            
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">
