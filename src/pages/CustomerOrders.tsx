@@ -6,21 +6,25 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { ArrowLeft, Package, User, MapPin, Calendar } from 'lucide-react'
-import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
-import { showSuccess, showError } from '../utils/toast'
+import { ArrowLeft, Package, MapPin, Calendar } from 'lucide-react'
+import { getStatusInfo } from '../utils/orderStatus'
+import { showSuccess } from '../utils/toast'
 
-const SellerOrders = () => {
+const CustomerOrders = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user?.profile?.role === 'vendedor') {
+    if (user?.profile?.role === 'cliente') {
       fetchOrders()
+      setupRealtimeSubscription()
+    }
+
+    return () => {
+      // Cleanup subscription when component unmounts
+      supabase.channel('orders').unsubscribe()
     }
   }, [user])
 
@@ -38,7 +42,7 @@ const SellerOrders = () => {
             )
           )
         `)
-        .in('order_items.product.seller_id', [user!.id])
+        .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -53,31 +57,37 @@ const SellerOrders = () => {
     }
   }
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    setUpdatingStatus(orderId)
-    
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId)
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user!.id}`
+        },
+        (payload) => {
+          console.log('Order status updated:', payload)
+          
+          const updatedOrder = payload.new as OrderWithItems
+          
+          // Atualizar o pedido localmente
+          setOrders(prev => prev.map(order => 
+            order.id === updatedOrder.id 
+              ? { ...order, status: updatedOrder.status, updated_at: updatedOrder.updated_at }
+              : order
+          ))
 
-      if (error) {
-        showError('Erro ao atualizar status: ' + error.message)
-      } else {
-        showSuccess('Status atualizado com sucesso!')
-        
-        // Atualizar localmente para feedback imediato
-        setOrders(prev => prev.map(order => 
-          order.id === orderId ? { ...order, status: newStatus as any } : order
-        ))
-      }
-    } catch (error) {
-      showError('Erro inesperado ao atualizar status')
-      console.error('Update status error:', error)
-    } finally {
-      setUpdatingStatus(null)
-    }
+          // Mostrar notificação
+          const statusInfo = getStatusInfo(updatedOrder.status)
+          showSuccess(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`)
+        }
+      )
+      .subscribe()
+
+    console.log('Realtime subscription set up for orders')
   }
 
   const formatPrice = (price: number) => {
@@ -97,7 +107,7 @@ const SellerOrders = () => {
     }).format(new Date(dateString))
   }
 
-  if (user?.profile?.role !== 'vendedor') {
+  if (user?.profile?.role !== 'cliente') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
@@ -135,7 +145,7 @@ const SellerOrders = () => {
             Voltar
           </Button>
           <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
-          <p className="text-gray-600 mt-2">Visualize e gerencie os pedidos recebidos</p>
+          <p className="text-gray-600 mt-2">Acompanhe o status dos seus pedidos em tempo real</p>
         </div>
 
         {orders.length === 0 ? (
@@ -143,21 +153,26 @@ const SellerOrders = () => {
             <CardContent className="p-12 text-center">
               <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum pedido recebido ainda
+                Você ainda não fez nenhum pedido
               </h2>
-              <p className="text-gray-600">
-                Os clientes ainda não fizeram pedidos com seus produtos.
+              <p className="text-gray-600 mb-6">
+                Comece a comprar para ver seus pedidos aqui.
               </p>
+              <Button onClick={() => navigate('/')}>
+                Começar a Comprar
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-6">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status)
-              const nextStatuses = getNextStatuses(order.status)
               
               return (
-                <Card key={order.id}>
+                <Card key={order.id} className="relative overflow-hidden">
+                  {/* Indicador de atualização em tempo real */}
+                  <div className="absolute top-0 right-0 w-1 h-full bg-blue-500 opacity-75"></div>
+                  
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -167,35 +182,17 @@ const SellerOrders = () => {
                             <Calendar className="w-4 h-4 mr-1" />
                             {formatDate(order.created_at)}
                           </div>
-                          <div className="flex items-center">
-                            <User className="w-4 h-4 mr-1" />
-                            Cliente ID: {order.user_id.slice(0, 8)}
-                          </div>
+                          {order.updated_at !== order.created_at && (
+                            <div className="flex items-center text-blue-600">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full mr-1 animate-pulse"></span>
+                              Atualizado recentemente
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.icon} {statusInfo.label}
-                        </Badge>
-                        {nextStatuses.length > 0 && (
-                          <Select
-                            value=""
-                            onValueChange={(value) => updateOrderStatus(order.id, value)}
-                            disabled={updatingStatus === order.id}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Atualizar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {nextStatuses.map((status) => (
-                                <SelectItem key={status.value} value={status.value}>
-                                  {status.icon} {status.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
+                      <Badge className={statusInfo.color}>
+                        {statusInfo.icon} {statusInfo.label}
+                      </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -243,6 +240,36 @@ const SellerOrders = () => {
                       </div>
                     </div>
 
+                    {/* Timeline do Status */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium mb-3">Acompanhamento do Pedido</h4>
+                      <div className="flex items-center justify-between">
+                        {['pending', 'preparing', 'in_transit', 'delivered'].map((status, index) => {
+                          const isCompleted = ['pending', 'preparing', 'in_transit', 'delivered'].indexOf(order.status) >= index
+                          const isCurrent = order.status === status
+                          
+                          return (
+                            <div key={status} className="flex flex-col items-center flex-1">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                                isCompleted 
+                                  ? 'bg-green-500 text-white' 
+                                  : isCurrent 
+                                    ? 'bg-blue-500 text-white animate-pulse'
+                                    : 'bg-gray-300 text-gray-600'
+                              }`}>
+                                {isCompleted ? '✓' : index + 1}
+                              </div>
+                              <span className={`text-xs mt-1 text-center ${
+                                isCurrent ? 'text-blue-600 font-medium' : 'text-gray-600'
+                              }`}>
+                                {getStatusInfo(status as any).label}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
                     {/* Total do Pedido */}
                     <div className="flex justify-between items-center pt-4 border-t">
                       <span className="font-semibold">Total do Pedido:</span>
@@ -261,4 +288,4 @@ const SellerOrders = () => {
   )
 }
 
-export default SellerOrders
+export default CustomerOrders

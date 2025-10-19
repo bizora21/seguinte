@@ -12,7 +12,7 @@ export interface Order {
   id: string
   user_id: string
   total_amount: number
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+  status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled'
   delivery_address: string
   created_at: string
   updated_at: string
@@ -38,4 +38,11 @@ export interface OrderWithItems extends Order {
 
 export interface OrderFormData {
   delivery_address: string
+}
+
+export interface OrderStatusOption {
+  value: Order['status']
+  label: string
+  color: string
+  icon: string
 }
