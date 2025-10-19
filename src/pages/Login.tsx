@@ -18,18 +18,23 @@ const Login = () => {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    try {
+      const { error } = await signIn(email, password)
 
-    if (error) {
-      showError('Erro ao fazer login: ' + error.message)
-    } else {
-      showSuccess('Login realizado com sucesso!')
-      setTimeout(() => {
-        navigate('/')
-      }, 1000)
+      if (error) {
+        showError('Erro ao fazer login: ' + error.message)
+      } else {
+        showSuccess('Login realizado com sucesso!')
+        setTimeout(() => {
+          navigate('/')
+        }, 1000)
+      }
+    } catch (error) {
+      showError('Erro inesperado ao fazer login')
+      console.error('Login error:', error)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
@@ -76,7 +81,7 @@ const Login = () => {
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
               Não tem uma conta?{' '}
-              <Link to="/register" className="text-blue-600 hover:text-blue-500">
+              <Link to="/login" className="text-blue-600 hover:text-blue-500">
                 Cadastre-se
               </Link>
             </p>

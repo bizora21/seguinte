@@ -26,6 +26,11 @@ const Register = () => {
       return
     }
 
+    if (password.length < 6) {
+      showError('A senha deve ter pelo menos 6 caracteres')
+      return
+    }
+
     if (role === 'vendedor' && !storeName.trim()) {
       showError('Vendedores precisam informar o nome da loja')
       return
@@ -33,16 +38,21 @@ const Register = () => {
 
     setLoading(true)
 
-    const { error } = await signUp(email, password, role, storeName)
+    try {
+      const { error } = await signUp(email, password, role, storeName)
 
-    if (error) {
-      showError('Erro ao criar conta: ' + error.message)
-    } else {
-      showSuccess('Conta criada com sucesso! Você já pode fazer login.')
-      navigate('/login')
+      if (error) {
+        showError('Erro ao criar conta: ' + error.message)
+      } else {
+        showSuccess('Conta criada com sucesso! Faça login para continuar.')
+        navigate('/login')
+      }
+    } catch (error) {
+      showError('Erro inesperado ao criar conta')
+      console.error('Registration error:', error)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
