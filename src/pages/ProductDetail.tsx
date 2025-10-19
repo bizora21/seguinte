@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Product } from '../types/product'
+import { useCart } from '../contexts/CartContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { ArrowLeft, ShoppingCart, Package } from 'lucide-react'
@@ -11,6 +12,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const { addToCart } = useCart()
 
   useEffect(() => {
     if (id) {
@@ -47,8 +49,15 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (product) {
+      addToCart({
+        id: product.id,
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url,
+        stock: product.stock
+      })
       showSuccess(`${product.name} adicionado ao carrinho!`)
-      console.log('Produto adicionado ao carrinho:', product)
     }
   }
 

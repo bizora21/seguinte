@@ -1,7 +1,8 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Plus, ShoppingBag } from 'lucide-react'
+import CartButton from './CartButton'
 
 const Header = () => {
   const { user, signOut } = useAuth()
@@ -26,15 +27,27 @@ const Header = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            {user && <CartButton />}
+            
             {user?.profile?.role === 'vendedor' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/adicionar-produto')}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Produto
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/adicionar-produto')}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Produto
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/meus-pedidos')}
+                >
+                  <ShoppingBag className="w-4 h-4 mr-2" />
+                  Meus Pedidos
+                </Button>
+              </>
             )}
             
             {user ? (
