@@ -1,102 +1,175 @@
-import { Link } from 'react-router-dom'
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, MessageCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, ShoppingBag, Truck, Shield, CreditCard } from 'lucide-react'
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
+  const socialLinks = [
+    { icon: Facebook, href: '#', label: 'Facebook' },
+    { icon: Instagram, href: '#', label: 'Instagram' },
+    { icon: Twitter, href: '#', label: 'Twitter' },
+  ]
+
+  const footerSections = [
+    {
+      title: 'Institucional',
+      links: [
+        { name: 'Sobre Nós', href: '/sobre' },
+        { name: 'Como Funciona', href: '#' },
+        { name: 'Política de Privacidade', href: '#' },
+        { name: 'Termos de Uso', href: '#' },
+      ]
+    },
+    {
+      title: 'Para Clientes',
+      links: [
+        { name: 'Meus Pedidos', href: '/meus-pedidos' },
+        { name: 'Rastreamento', href: '#' },
+        { name: 'Trocas e Devoluções', href: '#' },
+        { name: 'Ajuda', href: '#' },
+      ]
+    },
+    {
+      title: 'Para Vendedores',
+      links: [
+        { name: 'Vender na LojaRápida', href: '/register' },
+        { name: 'Dashboard', href: '#' },
+        { name: 'Taxas e Comissões', href: '#' },
+        { name: 'Suporte ao Vendedor', href: '#' },
+      ]
+    },
+    {
+      title: 'Contato',
+      info: [
+        { icon: Mail, text: 'contato@lojarapida.mz' },
+        { icon: Phone, text: '+258 84 123 4567' },
+        { icon: MapPin, text: 'Maputo, Moçambique' },
+      ]
+    }
+  ]
+
+  const features = [
+    { icon: ShoppingBag, title: 'Variedade de Produtos', description: 'Encontre tudo em um lugar' },
+    { icon: Truck, title: 'Entrega Rápida', description: '5-10 dias úteis' },
+    { icon: Shield, title: 'Compra Segura', description: 'Pagamento na entrega' },
+    { icon: CreditCard, title: 'Pagamento Fácil', description: 'M-Pesa, eMola, dinheiro' },
+  ]
 
   return (
     <footer className="bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Logo e Descrição */}
-          <div className="col-span-1 md:col-span-2">
-            <h3 className="text-2xl font-bold mb-4 flex items-center">
-              <img src="/logo.svg" alt="LojaRápida" className="w-8 h-8 mr-2" />
-              LojaRápida
-            </h3>
-            <p className="text-gray-300 mb-6 max-w-md">
-              O maior marketplace de Moçambique. Conectamos vendedores e clientes em todo o país com entrega rápida e pagamento seguro.
-            </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="https://wa.me/258863181415" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="WhatsApp">
-                <MessageCircle className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
-
-          {/* Links Rápidos */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Links Rápidos</h4>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-gray-300 hover:text-white transition-colors">
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link to="/busca" className="text-gray-300 hover:text-white transition-colors">
-                  Buscar Produtos
-                </Link>
-              </li>
-              <li>
-                <Link to="/sobre" className="text-gray-300 hover:text-white transition-colors">
-                  Sobre Nós
-                </Link>
-              </li>
-              <li>
-                <Link to="/register" className="text-gray-300 hover:text-white transition-colors">
-                  Cadastre-se
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contato */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Contato</h4>
-            <ul className="space-y-3">
-              <li className="flex items-center text-gray-300">
-                <Mail className="w-4 h-4 mr-2" />
-                contato@lojarapida.co.mz
-              </li>
-              <li className="flex items-center text-gray-300">
-                <Phone className="w-4 h-4 mr-2" />
-                +258 86 318 1415
-              </li>
-              <li className="flex items-center text-gray-300">
-                <MapPin className="w-4 h-4 mr-2" />
-                Maputo, Moçambique
-              </li>
-              <li className="flex items-center text-gray-300">
-                🇲🇿 Atendemos todo Moçambique
-              </li>
-            </ul>
+      {/* Features Bar */}
+      <div className="border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="text-center"
+              >
+                <feature.icon className="w-8 h-8 mx-auto mb-2 text-green-400" />
+                <h4 className="font-semibold mb-1">{feature.title}</h4>
+                <p className="text-sm text-gray-400">{feature.description}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-800 mt-8 pt-8">
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+          {/* Logo e Descrição */}
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <h3 className="text-2xl font-bold mb-4 flex items-center">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-2">
+                  <ShoppingBag className="w-5 h-5 text-white" />
+                </div>
+                LojaRápida
+              </h3>
+              <p className="text-gray-300 mb-6 max-w-md">
+                O maior marketplace de Moçambique. Conectando vendedores locais com clientes em todo o país com segurança e confiança.
+              </p>
+              <div className="flex space-x-4">
+                {socialLinks.map((social, index) => (
+                  <motion.a
+                    key={index}
+                    href={social.href}
+                    aria-label={social.label}
+                    className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <social.icon className="w-5 h-5" />
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Footer Sections */}
+          {footerSections.map((section, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <h4 className="font-semibold text-lg mb-4">{section.title}</h4>
+              {section.links ? (
+                <ul className="space-y-2">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <a
+                        href={link.href}
+                        className="text-gray-300 hover:text-green-400 transition-colors"
+                      >
+                        {link.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="space-y-3">
+                  {section.info.map((info, infoIndex) => (
+                    <div key={infoIndex} className="flex items-center text-gray-300">
+                      <info.icon className="w-4 h-4 mr-2 text-green-400" />
+                      <span className="text-sm">{info.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Bar */}
+      <div className="border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © {currentYear} LojaRápida. Todos os direitos reservados. 🇲🇿
-            </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link to="/privacidade" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Política de Privacidade
-              </Link>
-              <Link to="/termos" className="text-gray-400 hover:text-white text-sm transition-colors">
-                Termos de Uso
-              </Link>
-            </div>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-gray-400 text-sm mb-4 md:mb-0"
+            >
+              © 2024 LojaRápida. Todos os direitos reservados. Feito com ❤️ em Moçambique 🇲🇿
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="flex items-center space-x-6 text-sm text-gray-400"
+            >
+              <span>Powered by</span>
+              <span className="text-green-400 font-semibold">LojaRápida Technologies</span>
+            </motion.div>
           </div>
         </div>
       </div>
