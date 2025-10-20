@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
 
@@ -25,72 +25,86 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Função para buscar perfil do usuário
+  const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        return null
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Unexpected error fetching profile:', error)
+      return null
+    }
+  }
+
+  // Função para criar AuthUser completo
+  const createAuthUser = async (authUser: User): Promise<AuthUser> => {
+    const profile = await fetchUserProfile(authUser.id)
+    
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      profile: profile
+    }
+  }
+
+  // Inicialização da autenticação
   useEffect(() => {
-    // Verificar sessão inicial
+    let mounted = true
+
     const initializeAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         
-        if (session?.user) {
-          await fetchProfile(session.user)
-        } else {
+        if (session?.user && mounted) {
+          const authUser = await createAuthUser(session.user)
+          setUser(authUser)
+        } else if (mounted) {
           setUser(null)
-          setLoading(false)
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
-        setUser(null)
-        setLoading(false)
+        if (mounted) setUser(null)
+      } finally {
+        if (mounted) setLoading(false)
       }
     }
 
     initializeAuth()
 
     // Escutar mudanças na autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        await fetchProfile(session.user)
-      } else {
-        setUser(null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return
+
+        console.log('Auth state change:', event, session?.user?.email)
+
+        if (session?.user) {
+          const authUser = await createAuthUser(session.user)
+          setUser(authUser)
+        } else {
+          setUser(null)
+        }
         setLoading(false)
       }
-    })
+    )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const fetchProfile = async (authUser: User) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single()
-
-      if (error) {
-        console.error('Profile fetch error:', error)
-        setUser({
-          id: authUser.id,
-          email: authUser.email!
-        })
-      } else {
-        setUser({
-          id: authUser.id,
-          email: authUser.email!,
-          profile: profile
-        })
-      }
-    } catch (error) {
-      console.error('Unexpected error in fetchProfile:', error)
-      setUser({
-        id: authUser.id,
-        email: authUser.email!
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Função de login
   const signIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -99,17 +113,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (error) {
-        return { error }
+        console.error('Sign in error:', error)
+        return { error: error.message }
       }
 
       if (data.user) {
-        // Buscar o perfil do usuário para determinar o redirecionamento
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-
+        // Buscar perfil para determinar redirecionamento
+        const profile = await fetchUserProfile(data.user.id)
+        
         let redirectTo = '/produtos'
         
         if (profile?.role === 'vendedor') {
@@ -121,23 +132,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: null, redirectTo }
       }
 
-      return { error: new Error('Falha no login') }
+      return { error: 'Falha no login' }
     } catch (error) {
-      console.error('Sign in error:', error)
-      return { error }
+      console.error('Unexpected sign in error:', error)
+      return { error: 'Erro inesperado ao fazer login' }
     }
   }
 
+  // Função de registro
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
     try {
-      // 1. Criar usuário no auth
+      // 1. Criar usuário no Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password
       })
 
       if (authError) {
-        return { error: authError }
+        console.error('Auth signup error:', authError)
+        return { error: authError.message }
       }
 
       if (data.user) {
@@ -154,28 +167,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .insert(profileData)
 
         if (profileError) {
-          return { error: profileError }
+          console.error('Profile creation error:', profileError)
+          return { error: 'Erro ao criar perfil do usuário' }
         }
         
         return { error: null }
       }
 
-      return { error: new Error('Failed to create user') }
+      return { error: 'Falha ao criar usuário' }
     } catch (error) {
       console.error('Unexpected signup error:', error)
-      return { error }
+      return { error: 'Erro inesperado ao criar conta' }
     }
   }
 
+  // Função de logout
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
+      setUser(null)
     } catch (error) {
       console.error('Sign out error:', error)
     }
   }
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     signIn,

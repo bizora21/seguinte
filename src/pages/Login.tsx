@@ -28,17 +28,17 @@ const Login = () => {
       const { error, redirectTo } = await signIn(email, password)
 
       if (error) {
-        showError('Erro ao fazer login: ' + error.message)
+        showError(error)
       } else {
         const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
         showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
         
         // Redirecionamento baseado no role
-        setTimeout(() => {
-          if (redirectTo) {
+        if (redirectTo) {
+          setTimeout(() => {
             navigate(redirectTo)
-          }
-        }, 1000)
+          }, 1000)
+        }
       }
     } catch (error) {
       showError('Erro inesperado ao fazer login')
@@ -46,6 +46,12 @@ const Login = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Tenta login como cliente por padrão se o usuário pressionar Enter
+    handleLogin('cliente')
   }
 
   return (
@@ -59,7 +65,7 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -70,6 +76,7 @@ const Login = () => {
                   required
                   placeholder="seu@email.com"
                   className="h-11"
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -82,9 +89,10 @@ const Login = () => {
                   required
                   placeholder="••••••••"
                   className="h-11"
+                  disabled={loading}
                 />
               </div>
-            </div>
+            </form>
 
             <div className="space-y-3">
               <Label className="text-sm font-medium text-gray-700">Como deseja entrar?</Label>

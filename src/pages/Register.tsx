@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 
 const Register = () => {
@@ -42,7 +43,7 @@ const Register = () => {
       const { error } = await signUp(email, password, role, storeName)
 
       if (error) {
-        showError('Erro ao criar conta: ' + error.message)
+        showError(error)
       } else {
         showSuccess('Conta criada com sucesso! Faça login para continuar.')
         navigate('/login')
@@ -75,6 +76,7 @@ const Register = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="seu@email.com"
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -87,6 +89,7 @@ const Register = () => {
                 required
                 placeholder="Mínimo 6 caracteres"
                 minLength={6}
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -98,11 +101,12 @@ const Register = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 placeholder="Digite a senha novamente"
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Tipo de Conta</Label>
-              <Select value={role} onValueChange={(value: 'cliente' | 'vendedor') => setRole(value)}>
+              <Select value={role} onValueChange={(value: 'cliente' | 'vendedor') => setRole(value)} disabled={loading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tipo de conta" />
                 </SelectTrigger>
@@ -122,6 +126,7 @@ const Register = () => {
                   onChange={(e) => setStoreName(e.target.value)}
                   required
                   placeholder="Nome da sua loja"
+                  disabled={loading}
                 />
               </div>
             )}
