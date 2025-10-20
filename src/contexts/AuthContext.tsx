@@ -48,8 +48,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email)
-      
       if (session?.user) {
         await fetchProfile(session.user)
       } else {
@@ -105,19 +103,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Buscar o perfil do usuário para determinar o redirecionamento estratégico
+        // Buscar o perfil do usuário para determinar o redirecionamento
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
 
-        let redirectTo = '/produtos' // MUDANÇA ESTRATÉGICA: Página principal de exploração
+        let redirectTo = '/produtos'
         
         if (profile?.role === 'vendedor') {
           redirectTo = '/dashboard'
         } else if (profile?.role === 'cliente') {
-          redirectTo = '/produtos' // Clientes vão para área de exploração de produtos
+          redirectTo = '/produtos'
         }
 
         return { error: null, redirectTo }
@@ -132,8 +130,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
     try {
-      console.log('Starting signup process for:', email)
-      
       // 1. Criar usuário no auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
@@ -141,13 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (authError) {
-        console.error('Auth signup error:', authError)
         return { error: authError }
       }
 
       if (data.user) {
-        console.log('User created successfully:', data.user.id)
-        
         // 2. Criar perfil na tabela profiles
         const profileData = {
           id: data.user.id,
@@ -156,20 +149,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           store_name: role === 'vendedor' ? storeName : null
         }
         
-        console.log('Creating profile:', profileData)
-        
         const { error: profileError } = await supabase
           .from('profiles')
           .insert(profileData)
 
         if (profileError) {
-          console.error('Profile creation error:', profileError)
-          // Limpar usuário do auth se perfil falhar
-          await supabase.auth.admin.deleteUser(data.user.id)
           return { error: profileError }
         }
         
-        console.log('Profile created successfully')
         return { error: null }
       }
 

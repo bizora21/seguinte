@@ -33,7 +33,7 @@ const Login = () => {
         const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
         showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
         
-        // Redirecionamento inteligente baseado no role do usuário
+        // Redirecionamento baseado no role
         setTimeout(() => {
           if (redirectTo) {
             navigate(redirectTo)
