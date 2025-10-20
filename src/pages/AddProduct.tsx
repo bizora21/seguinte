@@ -8,18 +8,18 @@ import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 import { showSuccess, showError } from '../utils/toast'
-import { ProductFormData } from '../types/product'
 import { ArrowLeft } from 'lucide-react'
+import ImageUpload from '../components/ImageUpload'
 
 const AddProduct = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    image_url: '',
+    images: [] as string[],
     stock: ''
   })
 
@@ -52,11 +52,21 @@ const AddProduct = () => {
     }))
   }
 
+  const handleImagesChange = (images: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // Usar a primeira imagem como image_url principal
+      const imageUrl = formData.images.length > 0 ? formData.images[0] : null
+
       const { error } = await supabase
         .from('products')
         .insert({
@@ -64,7 +74,7 @@ const AddProduct = () => {
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price),
-          image_url: formData.image_url || null,
+          image_url: imageUrl,
           stock: parseInt(formData.stock)
         })
 
@@ -76,7 +86,7 @@ const AddProduct = () => {
           name: '',
           description: '',
           price: '',
-          image_url: '',
+          images: [],
           stock: ''
         })
       }
@@ -139,7 +149,7 @@ const AddProduct = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Preço (R$) *</Label>
+                  <Label htmlFor="price">Preço (MZN) *</Label>
                   <Input
                     id="price"
                     name="price"
@@ -169,17 +179,15 @@ const AddProduct = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="image_url">URL da Imagem</Label>
-                <Input
-                  id="image_url"
-                  name="image_url"
-                  type="url"
-                  value={formData.image_url}
-                  onChange={handleInputChange}
-                  placeholder="https://exemplo.com/imagem.jpg"
+                <Label>Imagens do Produto</Label>
+                <ImageUpload
+                  value={formData.images}
+                  onChange={handleImagesChange}
+                  maxImages={2}
+                  maxSizeMB={1}
                 />
                 <p className="text-sm text-gray-500">
-                  Deixe em branco para usar uma imagem padrão
+                  Adicione até 2 imagens. Máximo 1MB por imagem. A primeira imagem será a principal.
                 </p>
               </div>
 

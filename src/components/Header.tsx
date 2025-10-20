@@ -1,10 +1,11 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ShoppingBag, Package, MessageCircle, Search, Store, LayoutDashboard, ShoppingBag as ShoppingCartIcon } from 'lucide-react'
+import { Plus, ShoppingBag, Package, MessageCircle, Search, Store, LayoutDashboard, ShoppingCart as ShoppingCartIcon } from 'lucide-react'
 import CartButton from './CartButton'
 import { motion } from 'framer-motion'
 import Logo from './Logo'
+import CategoryMenu from './CategoryMenu'
 
 const Header = () => {
   const { user, signOut } = useAuth()
@@ -30,6 +31,8 @@ const Header = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <CategoryMenu />
+            
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"

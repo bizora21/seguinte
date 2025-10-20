@@ -26,6 +26,7 @@ import Chat from "./pages/Chat";
 import SearchResults from "./pages/SearchResults";
 import StorePage from "./pages/StorePage";
 import About from "./pages/About";
+import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
                   <Route path="/busca" element={<SearchResults />} />
                   <Route path="/loja/:sellerId" element={<StorePage />} />
                   <Route path="/sobre" element={<About />} />
+                  <Route path="/blog" element={<Blog />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
