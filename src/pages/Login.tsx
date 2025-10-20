@@ -34,11 +34,9 @@ const Login = () => {
         const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
         showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
         
-        // Redirecionamento baseado no role
+        // Redirecionamento imediato
         if (redirectTo) {
-          setTimeout(() => {
-            navigate(redirectTo)
-          }, 1000)
+          navigate(redirectTo, { replace: true })
         }
       }
     } catch (error) {

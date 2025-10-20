@@ -86,10 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return
 
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
           const authUser = await createAuthUser(session.user)
           setUser(authUser)
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
         }
         setLoading(false)
@@ -125,6 +125,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (profile?.role === 'cliente') {
           redirectTo = '/produtos'
         }
+
+        // Criar usuário localmente para uso imediato
+        const authUser = {
+          id: data.user.id,
+          email: data.user.email || '',
+          profile: profile
+        }
+        setUser(authUser)
 
         return { error: null, redirectTo }
       }

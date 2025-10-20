@@ -2,7 +2,7 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -51,15 +52,71 @@ const App = () => (
                   <Route path="/produtos" element={<ProductsPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/adicionar-produto" element={<AddProduct />} />
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute requiredRole="vendedor">
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/adicionar-produto" 
+                    element={
+                      <ProtectedRoute requiredRole="vendedor">
+                        <AddProduct />
+                      </ProtectedRoute>
+                    } 
+                  />
                   <Route path="/produto/:id" element={<ProductDetail />} />
-                  <Route path="/carrinho" element={<Cart />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/pedido-confirmado" element={<OrderConfirmed />} />
-                  <Route path="/meus-pedidos" element={<MyOrders />} />
-                  <Route path="/meus-chats" element={<MyChats />} />
-                  <Route path="/chat/:chatId" element={<Chat />} />
+                  <Route 
+                    path="/carrinho" 
+                    element={
+                      <ProtectedRoute>
+                        <Cart />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/checkout" 
+                    element={
+                      <ProtectedRoute>
+                        <Checkout />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/pedido-confirmado" 
+                    element={
+                      <ProtectedRoute>
+                        <OrderConfirmed />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/meus-pedidos" 
+                    element={
+                      <ProtectedRoute>
+                        <MyOrders />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/meus-chats" 
+                    element={
+                      <ProtectedRoute>
+                        <MyChats />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/chat/:chatId" 
+                    element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    } 
+                  />
                   <Route path="/busca" element={<SearchResults />} />
                   <Route path="/loja/:sellerId" element={<StorePage />} />
                   <Route path="/sobre" element={<About />} />
