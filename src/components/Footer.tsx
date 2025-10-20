@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react'
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, MessageCircle } from 'lucide-react'
 
 const Footer = () => {
   const currentYear = new Date().getFullYear()
@@ -10,20 +10,25 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo e Descrição */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="text-2xl font-bold mb-4">LojaRápida</h3>
+            <h3 className="text-2xl font-bold mb-4 flex items-center">
+              <img src="/logo.svg" alt="LojaRápida" className="w-8 h-8 mr-2" />
+              LojaRápida
+            </h3>
             <p className="text-gray-300 mb-6 max-w-md">
-              A plataforma que conecta pequenos vendedores com clientes em todo o Brasil. 
-              Compre e venda de forma simples, rápida e segura.
+              O maior marketplace de Moçambique. Conectamos vendedores e clientes em todo o país com entrega rápida e pagamento seguro.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
                 <Instagram className="w-5 h-5" />
+              </a>
+              <a href="https://wa.me/258863181415" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="WhatsApp">
+                <MessageCircle className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -61,15 +66,18 @@ const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-center text-gray-300">
                 <Mail className="w-4 h-4 mr-2" />
-                contato@lojarapida.com.br
+                contato@lojarapida.co.mz
               </li>
               <li className="flex items-center text-gray-300">
                 <Phone className="w-4 h-4 mr-2" />
-                (11) 3000-0000
+                +258 86 318 1415
               </li>
               <li className="flex items-center text-gray-300">
                 <MapPin className="w-4 h-4 mr-2" />
-                São Paulo, SP
+                Maputo, Moçambique
+              </li>
+              <li className="flex items-center text-gray-300">
+                🇲🇿 Atendemos todo Moçambique
               </li>
             </ul>
           </div>
@@ -79,7 +87,7 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              © {currentYear} LojaRápida. Todos os direitos reservados.
+              © {currentYear} LojaRápida. Todos os direitos reservados. 🇲🇿
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link to="/privacidade" className="text-gray-400 hover:text-white text-sm transition-colors">

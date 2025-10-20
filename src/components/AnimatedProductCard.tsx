@@ -15,9 +15,9 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
   const { addToCart } = useCart()
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
@@ -78,7 +78,7 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
           </Link>
           <Button
             onClick={handleAddToCart}
-            className="w-full"
+            className="w-full bg-green-600 hover:bg-green-700"
             disabled={product.stock === 0}
           >
             <ShoppingCart className="w-4 h-4 mr-2" />

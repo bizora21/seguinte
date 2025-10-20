@@ -7,6 +7,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import HomeButton from "./components/HomeButton";
+import Chatbot from "./components/Chatbot";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -49,11 +51,12 @@ const App = () => (
                   <Route path="/busca" element={<SearchResults />} />
                   <Route path="/loja/:sellerId" element={<StorePage />} />
                   <Route path="/sobre" element={<About />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />
+              <HomeButton />
+              <Chatbot />
             </div>
             <Toaster />
             <Sonner />

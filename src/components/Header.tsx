@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, ShoppingBag, Package, MessageCircle, Search, Store } from 'lucide-react'
 import CartButton from './CartButton'
 import { motion } from 'framer-motion'
+import Logo from './Logo'
 
 const Header = () => {
   const { user, signOut } = useAuth()
@@ -21,11 +22,10 @@ const Header = () => {
           <div className="flex items-center">
             <motion.button
               onClick={() => navigate('/')}
-              className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              LojaRápida
+              <Logo size="md" />
             </motion.button>
           </div>
           
@@ -35,6 +35,7 @@ const Header = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/busca')}
+                className="text-gray-600 hover:text-gray-900"
               >
                 <Search className="w-4 h-4 mr-2" />
                 Buscar
@@ -50,6 +51,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/adicionar-produto')}
+                    className="border-green-600 text-green-600 hover:bg-green-50"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Produto
@@ -60,6 +62,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/meus-pedidos')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     Meus Pedidos
@@ -70,6 +73,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/meus-chats')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Meus Chats
@@ -80,6 +84,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate(`/loja/${user.id}`)}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <Store className="w-4 h-4 mr-2" />
                     Minha Loja
@@ -95,6 +100,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/meus-pedidos')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <Package className="w-4 h-4 mr-2" />
                     Meus Pedidos
@@ -105,6 +111,7 @@ const Header = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => navigate('/meus-chats')}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Minhas Conversas
@@ -128,6 +135,7 @@ const Header = () => {
                     variant="outline" 
                     size="sm"
                     onClick={handleSignOut}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     Sair
                   </Button>
@@ -140,15 +148,16 @@ const Header = () => {
                     variant="ghost" 
                     size="sm"
                     onClick={() => navigate('/login')}
+                    className="text-gray-600 hover:text-gray-900"
                   >
                     Login
                   </Button>
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button 
-                    variant="default" 
                     size="sm"
                     onClick={() => navigate('/register')}
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     Cadastro
                   </Button>

@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button'
 import { Search, Filter, ArrowLeft } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import SearchBar from '../components/SearchBar'
+import CategoryFilter from '../components/CategoryFilter'
 
 const SearchResults = () => {
   const [searchParams] = useSearchParams()
@@ -28,7 +29,13 @@ const SearchResults = () => {
     try {
       let supabaseQuery = supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          category:categories (
+            name,
+            slug
+          )
+        `)
 
       // Aplicar filtros
       if (query) {
@@ -38,7 +45,7 @@ const SearchResults = () => {
       }
 
       if (category !== 'todos') {
-        supabaseQuery = supabaseQuery.eq('category', category)
+        supabaseQuery = supabaseQuery.eq('categories.slug', category)
       }
 
       if (maxPrice) {
@@ -83,12 +90,19 @@ const SearchResults = () => {
     }
   }
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-MZ', {
+      style: 'currency',
+      currency: 'MZN'
+    }).format(price)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
         </div>
       </div>
@@ -96,34 +110,39 @@ const SearchResults = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <Button
             variant="ghost"
             onClick={() => window.history.back()}
-            className="mb-4"
+            className="mb-4 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
           </Button>
           
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Resultados da Busca
             </h1>
             
             {query && (
               <p className="text-lg text-gray-600 mb-4">
-                Buscando por: <span className="font-semibold">&quot;{query}&quot;</span>
+                Buscando por: <span className="font-semibold text-green-600">&quot;{query}&quot;</span>
               </p>
             )}
             
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-8">
               <SearchBar />
             </div>
           </div>
+        </div>
+
+        {/* Filtro de Categorias */}
+        <div className="mb-8">
+          <CategoryFilter selectedCategory={category} />
         </div>
 
         {/* Filtros Ativos */}
@@ -138,18 +157,18 @@ const SearchResults = () => {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {query && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
                     Busca: {query}
                   </span>
                 )}
                 {category !== 'todos' && (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                     Categoria: {category}
                   </span>
                 )}
                 {maxPrice && (
                   <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-                    Preço Máximo: R$ {parseFloat(maxPrice).toFixed(2)}
+                    Preço Máximo: {formatPrice(parseFloat(maxPrice))}
                   </span>
                 )}
               </div>

@@ -10,14 +10,14 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="p-0">
         <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-gray-100">
           {product.image_url ? (
@@ -52,7 +52,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Link to={`/produto/${product.id}`} className="w-full">
-          <Button className="w-full" variant="outline">
+          <Button className="w-full bg-green-600 hover:bg-green-700">
             <Eye className="w-4 h-4 mr-2" />
             Ver Detalhes
           </Button>
