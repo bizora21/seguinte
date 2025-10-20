@@ -139,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: 'Falha no login' }
     } catch (error) {
-      console.error('Unexpected sign in error:', error)
       return { error: 'Erro inesperado ao fazer login' }
     }
   }
@@ -179,7 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: 'Falha ao criar usuário' }
     } catch (error) {
-      console.error('Unexpected signup error:', error)
       return { error: 'Erro inesperado ao criar conta' }
     }
   }
