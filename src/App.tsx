@@ -13,6 +13,7 @@ import Chatbot from "./components/Chatbot";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ProductsPage from "./pages/ProductsPage";
 import Dashboard from "./pages/Dashboard";
 import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
@@ -41,6 +42,7 @@ const App = () => (
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/produtos" element={<ProductsPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/dashboard" element={<Dashboard />} />

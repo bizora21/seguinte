@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, ShoppingBag, Users, Package, Shield, Star, TrendingUp, MapPin, Clock, CheckCircle } from 'lucide-react'
+import { ArrowRight, ShoppingBag, Users, Package, Shield, Star, TrendingUp, MapPin, Clock, CheckCircle, Store } from 'lucide-react'
 
 const Index = () => {
   const navigate = useNavigate()
@@ -86,10 +86,11 @@ const Index = () => {
             >
               <Button 
                 size="lg" 
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/produtos')}
                 className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-3 text-lg"
               >
-                Começar a Vender
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                Explorar Produtos
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
@@ -273,14 +274,24 @@ const Index = () => {
             <p className="text-xl mb-8 text-green-100">
               Junte-se a milhares de vendedores e clientes que já confiam na LojaRápida
             </p>
-            <Button
-              size="lg"
-              onClick={() => navigate('/register')}
-              className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-3 text-lg"
-            >
-              Criar Conta Gratuita
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                onClick={() => navigate('/produtos')}
+                className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-3 text-lg"
+              >
+                <ShoppingBag className="mr-2 h-5 w-5" />
+                Explorar Produtos Agora
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/register')}
+                className="border-2 border-white text-white hover:bg-white hover:text-green-700 font-semibold px-8 py-3 text-lg"
+              >
+                Criar Conta Gratuita
+              </Button>
+            </div>
           </motion.div>
         </div>
       </section>

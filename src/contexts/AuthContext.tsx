@@ -105,19 +105,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Buscar o perfil do usuário para determinar o redirecionamento
+        // Buscar o perfil do usuário para determinar o redirecionamento estratégico
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
 
-        let redirectTo = '/'
+        let redirectTo = '/produtos' // MUDANÇA ESTRATÉGICA: Página principal de exploração
         
         if (profile?.role === 'vendedor') {
           redirectTo = '/dashboard'
         } else if (profile?.role === 'cliente') {
-          redirectTo = '/'
+          redirectTo = '/produtos' // Clientes vão para área de exploração de produtos
         }
 
         return { error: null, redirectTo }
