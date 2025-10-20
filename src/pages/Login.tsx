@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 import { User, Store } from 'lucide-react'
 
@@ -24,14 +25,19 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const { error } = await signIn(email, password)
+      const { error, redirectTo } = await signIn(email, password)
 
       if (error) {
         showError('Erro ao fazer login: ' + error.message)
       } else {
-        showSuccess(`Login realizado com sucesso! Bem-vindo ${role === 'vendedor' ? 'vendedor' : 'cliente'}.`)
+        const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
+        showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
+        
+        // Redirecionamento inteligente baseado no role do usuário
         setTimeout(() => {
-          navigate('/')
+          if (redirectTo) {
+            navigate(redirectTo)
+          }
         }, 1000)
       }
     } catch (error) {

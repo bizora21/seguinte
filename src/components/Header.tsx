@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
 import { useNavigate } from 'react-router-dom'
-import { Plus, ShoppingBag, Package, MessageCircle, Search, Store } from 'lucide-react'
+import { Plus, ShoppingBag, Package, MessageCircle, Search, Store, LayoutDashboard } from 'lucide-react'
 import CartButton from './CartButton'
 import { motion } from 'framer-motion'
 import Logo from './Logo'
@@ -46,6 +46,17 @@ const Header = () => {
             
             {user?.profile?.role === 'vendedor' && (
               <>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/dashboard')}
+                    className="border-green-600 text-green-600 hover:bg-green-50"
+                  >
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Button
                     variant="outline"

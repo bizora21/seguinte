@@ -6,7 +6,7 @@ import { AuthUser, Profile } from '../types/auth'
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any; redirectTo?: string }>
   signUp: (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -95,11 +95,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
-      return { error }
+
+      if (error) {
+        return { error }
+      }
+
+      if (data.user) {
+        // Buscar o perfil do usuário para determinar o redirecionamento
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        let redirectTo = '/'
+        
+        if (profile?.role === 'vendedor') {
+          redirectTo = '/dashboard'
+        } else if (profile?.role === 'cliente') {
+          redirectTo = '/'
+        }
+
+        return { error: null, redirectTo }
+      }
+
+      return { error: new Error('Falha no login') }
     } catch (error) {
       console.error('Sign in error:', error)
       return { error }

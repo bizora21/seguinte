@@ -13,6 +13,7 @@ import Chatbot from "./components/Chatbot";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
 import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -42,6 +43,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/adicionar-produto" element={<AddProduct />} />
                   <Route path="/produto/:id" element={<ProductDetail />} />
                   <Route path="/carrinho" element={<Cart />} />
