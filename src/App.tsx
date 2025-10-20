@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
+import AuthDebug from "./components/AuthDebug";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -65,6 +66,7 @@ const App = () => (
               <Footer />
               <BackToHomeButton />
               <Chatbot />
+              <AuthDebug />
             </div>
             <Toaster />
             <Sonner />
