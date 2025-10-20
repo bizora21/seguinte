@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -17,6 +18,9 @@ import OrderConfirmed from "./pages/OrderConfirmed";
 import MyOrders from "./pages/MyOrders";
 import MyChats from "./pages/MyChats";
 import Chat from "./pages/Chat";
+import SearchResults from "./pages/SearchResults";
+import StorePage from "./pages/StorePage";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,9 +31,9 @@ const App = () => (
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50 flex flex-col">
               <Header />
-              <main>
+              <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
@@ -42,10 +46,14 @@ const App = () => (
                   <Route path="/meus-pedidos" element={<MyOrders />} />
                   <Route path="/meus-chats" element={<MyChats />} />
                   <Route path="/chat/:chatId" element={<Chat />} />
+                  <Route path="/busca" element={<SearchResults />} />
+                  <Route path="/loja/:sellerId" element={<StorePage />} />
+                  <Route path="/sobre" element={<About />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
+              <Footer />
             </div>
             <Toaster />
             <Sonner />
