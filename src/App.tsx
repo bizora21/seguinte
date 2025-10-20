@@ -7,7 +7,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-import HomeButton from "./components/HomeButton";
+import PaymentBanner from "./components/PaymentBanner";
+import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -35,6 +36,7 @@ const App = () => (
           <BrowserRouter>
             <div className="min-h-screen bg-gray-50 flex flex-col">
               <Header />
+              <PaymentBanner />
               <main className="flex-1">
                 <Routes>
                   <Route path="/" element={<Index />} />
@@ -55,7 +57,7 @@ const App = () => (
                 </Routes>
               </main>
               <Footer />
-              <HomeButton />
+              <BackToHomeButton />
               <Chatbot />
             </div>
             <Toaster />

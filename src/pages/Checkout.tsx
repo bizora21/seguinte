@@ -9,7 +9,7 @@ import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 import { showSuccess, showError } from '../utils/toast'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CreditCard, Truck, Shield } from 'lucide-react'
 
 const Checkout = () => {
   const { items, clearCart, getCartTotal } = useCart()
@@ -21,9 +21,9 @@ const Checkout = () => {
   })
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
@@ -152,7 +152,7 @@ const Checkout = () => {
                     value={formData.delivery_address}
                     onChange={handleInputChange}
                     required
-                    placeholder="Rua, número, bairro, cidade, estado, CEP"
+                    placeholder="Rua, número, bairro, cidade, província, CEP"
                     rows={3}
                   />
                 </div>
@@ -191,7 +191,7 @@ const Checkout = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Frete</span>
-                  <span>Grátis</span>
+                  <span className="text-green-600">Grátis</span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total</span>
@@ -199,10 +199,30 @@ const Checkout = () => {
                 </div>
               </div>
 
-              <div className="text-sm text-gray-600">
-                <p>• Pagamento na entrega</p>
-                <p>• Frete grátis para todo o Brasil</p>
-                <p>• Prazo de entrega: 5-10 dias úteis</p>
+              {/* Método de Pagamento */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center mb-2">
+                  <CreditCard className="w-5 h-5 text-blue-600 mr-2" />
+                  <span className="font-medium text-blue-900">Método de Pagamento</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Pagamento na Entrega (Dinheiro, M-Pesa, eMola, ou Cartão na entrega, conforme o vendedor)
+                </p>
+              </div>
+
+              <div className="space-y-2 text-sm text-gray-600">
+                <div className="flex items-center">
+                  <Truck className="w-4 h-4 mr-2" />
+                  <span>• Frete grátis para todo Moçambique</span>
+                </div>
+                <div className="flex items-center">
+                  <Shield className="w-4 h-4 mr-2" />
+                  <span>• Prazo de entrega: 5-10 dias úteis</span>
+                </div>
+                <div className="flex items-center">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  <span>• Pague apenas quando receber</span>
+                </div>
               </div>
             </CardContent>
           </Card>

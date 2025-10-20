@@ -1,7 +1,7 @@
 import { motion, Variants } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, ShoppingBag, Users, Truck, Shield } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, Users, Truck, Shield, MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const About = () => {
@@ -9,24 +9,24 @@ const About = () => {
 
   const features = [
     {
-      icon: <ShoppingBag className="w-8 h-8 text-blue-600" />,
+      icon: <ShoppingBag className="w-8 h-8 text-green-600" />,
       title: 'Variedade de Produtos',
-      description: 'Encontre tudo o que precisa em um só lugar, de eletrônicos a móveis.'
+      description: 'Encontre tudo o que precisa em um só lugar, de eletrônicos a móveis, com foco no mercado moçambicano.'
     },
     {
-      icon: <Users className="w-8 h-8 text-green-600" />,
-      title: 'Conecte Vendedores',
-      description: 'Plataforma que une pequenos vendedores com clientes em todo o Brasil.'
+      icon: <Users className="w-8 h-8 text-blue-600" />,
+      title: 'Conecte Vendedores Locais',
+      description: 'Plataforma que une pequenos vendedores moçambicanos com clientes em todo o território nacional.'
     },
     {
       icon: <Truck className="w-8 h-8 text-purple-600" />,
-      title: 'Entrega Rápida',
-      description: 'Frete grátis para todo o Brasil com entrega em 5-10 dias úteis.'
+      title: 'Entrega Rápida em Todo MZ',
+      description: 'Frete grátis para todo Moçambique com entrega em 5-10 dias úteis em Maputo, Matola, Beira e mais.'
     },
     {
       icon: <Shield className="w-8 h-8 text-red-600" />,
       title: 'Compra Segura',
-      description: 'Sua compra protegida com sistema de pagamento seguro e suporte.'
+      description: 'Sua compra protegida com sistema de pagamento na entrega, pague só quando receber seu produto.'
     }
   ]
 
@@ -56,7 +56,7 @@ const About = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="mb-6">
             <Button
@@ -79,8 +79,8 @@ const About = () => {
               Sobre a LojaRápida
             </h1>
             <p className="text-xl max-w-3xl mx-auto opacity-90">
-              A plataforma que está revolucionando o comércio online no Brasil, 
-              conectando pequenos vendedores com milhões de clientes.
+              A plataforma líder de e-commerce em Moçambique, 
+              conectando vendedores locais com clientes em todo o país com segurança e confiança.
             </p>
           </motion.div>
         </div>
@@ -97,20 +97,23 @@ const About = () => {
           {/* Nossa História */}
           <motion.div variants={itemVariants} className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Nossa História
+              Nossa Missão em Moçambique
             </h2>
             <div className="max-w-3xl mx-auto">
               <p className="text-lg text-gray-600 mb-4">
                 Fundada em 2024, a LojaRápida nasceu com uma missão clara: 
-                democratizar o acesso ao comércio online para pequenos e médios vendedores em todo o Brasil.
+                revolucionar o comércio eletrônico em Moçambique, oferecendo uma plataforma 
+                segura e acessível para todos os moçambicanos.
               </p>
               <p className="text-lg text-gray-600 mb-4">
-                Acreditamos que cada vendedor merece a oportunidade de mostrar seus produtos 
-                para um público maior, sem precisar investir fortunas em marketing e tecnologia.
+                Acreditamos no potencial dos pequenos e médios vendedores locais e 
+                queremos dar a eles as ferramentas necessárias para alcançar clientes 
+                em todo o território nacional, desde Maputo até Nampula.
               </p>
               <p className="text-lg text-gray-600">
-                Hoje, somos uma plataforma vibrante que conecta milhares de vendedores 
-                com clientes em busca de produtos únicos e de qualidade.
+                Com nosso sistema inovador de pagamento na entrega, garantimos que 
+                você só pague quando receber seu produto, tornando as compras online 
+                mais seguras e confiáveis para todos os moçambicanos.
               </p>
             </div>
           </motion.div>
@@ -118,7 +121,7 @@ const About = () => {
           {/* Nossos Valores */}
           <motion.div variants={itemVariants}>
             <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-              Nossos Valores
+              Por Que Escolher LojaRápida?
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {features.map((feature, index) => (
@@ -149,27 +152,76 @@ const About = () => {
           </motion.div>
 
           {/* Números */}
-          <motion.div variants={itemVariants} className="bg-blue-50 rounded-2xl p-12">
+          <motion.div variants={itemVariants} className="bg-green-50 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-              LojaRápida em Números
+              LojaRápida em Moçambique
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
               <div>
-                <div className="text-4xl font-bold text-blue-600 mb-2">10K+</div>
-                <div className="text-gray-600">Vendedores Ativos</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">10K+</div>
+                <div className="text-gray-600">Vendedores Locais</div>
               </div>
               <div>
                 <div className="text-4xl font-bold text-green-600 mb-2">50K+</div>
-                <div className="text-gray-600">Produtos Listados</div>
+                <div className="text-gray-600">Produtos Nacionais</div>
               </div>
               <div>
-                <div className="text-4xl font-bold text-purple-600 mb-2">100K+</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">100K+</div>
                 <div className="text-gray-600">Clientes Satisfeitos</div>
               </div>
               <div>
-                <div className="text-4xl font-bold text-red-600 mb-2">4.8</div>
+                <div className="text-4xl font-bold text-green-600 mb-2">4.8</div>
                 <div className="text-gray-600">Avaliação Média</div>
               </div>
+            </div>
+          </motion.div>
+
+          {/* Cobertura */}
+          <motion.div variants={itemVariants} className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Cobertura Nacional
+            </h2>
+            <div className="max-w-3xl mx-auto">
+              <p className="text-lg text-gray-600 mb-8">
+                Atendemos todas as províncias de Moçambique:
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Maputo</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Matola</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Beira</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Nampula</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Tete</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Quelimane</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Chimoio</span>
+                </div>
+                <div className="flex items-center justify-center p-3 bg-white rounded-lg shadow">
+                  <MapPin className="w-4 h-4 mr-2 text-green-600" />
+                  <span className="font-medium">Xai-Xai</span>
+                </div>
+              </div>
+              <p className="text-lg text-gray-600">
+                E muitas outras cidades em todo o território moçambicano! 🇲🇿
+              </p>
             </div>
           </motion.div>
 
@@ -180,13 +232,13 @@ const About = () => {
             </h2>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
               Junte-se a milhares de vendedores e clientes que já fazem parte da 
-              comunidade LojaRápida. Comece a comprar ou vender hoje mesmo!
+              comunidade LojaRápida. Comece a comprar ou vender hoje mesmo em todo Moçambique!
             </p>
             <div className="flex justify-center space-x-4">
               <Button
                 onClick={() => navigate('/register')}
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-green-600 hover:bg-green-700"
               >
                 Começar a Vender
               </Button>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Minus, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { Minus, Plus, Trash2, ArrowLeft, CreditCard, Truck } from 'lucide-react'
 import { showSuccess } from '../utils/toast'
 
 const Cart = () => {
@@ -11,9 +11,9 @@ const Cart = () => {
   const navigate = useNavigate()
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
@@ -164,7 +164,7 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Frete</span>
-                  <span>Grátis</span>
+                  <span className="text-green-600">Grátis</span>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between font-semibold text-lg">
@@ -172,6 +172,23 @@ const Cart = () => {
                     <span className="text-green-600">{formatPrice(getCartTotal())}</span>
                   </div>
                 </div>
+
+                {/* Método de Pagamento */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-center mb-2">
+                    <CreditCard className="w-4 h-4 text-blue-600 mr-2" />
+                    <span className="font-medium text-blue-900">Método de Pagamento</span>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Pagamento na Entrega (Dinheiro, M-Pesa, eMola, ou Cartão na entrega, conforme o vendedor)
+                  </p>
+                </div>
+
+                <div className="flex items-center text-sm text-gray-600">
+                  <Truck className="w-4 h-4 mr-2" />
+                  <span>Entrega em 5-10 dias úteis em todo Moçambique</span>
+                </div>
+
                 <Button
                   onClick={handleCheckout}
                   className="w-full"

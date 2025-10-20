@@ -6,7 +6,7 @@ import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, ShoppingCart, Package, MessageCircle } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Package, MessageCircle, CreditCard } from 'lucide-react'
 import { showSuccess } from '../utils/toast'
 
 const ProductDetail = () => {
@@ -44,9 +44,9 @@ const ProductDetail = () => {
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
@@ -191,8 +191,14 @@ const ProductDetail = () => {
                   {product.name}
                 </h1>
 
-                <div className="text-3xl font-bold text-green-600 mb-4">
-                  {formatPrice(product.price)}
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="text-3xl font-bold text-green-600">
+                    {formatPrice(product.price)}
+                  </div>
+                  <div className="flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                    <CreditCard className="w-4 h-4 mr-1" />
+                    Pagamento na entrega
+                  </div>
                 </div>
 
                 <div className="flex items-center text-sm text-gray-600 mb-4">

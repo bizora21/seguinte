@@ -6,6 +6,7 @@ import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Link, useNavigate } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
+import { User, Store } from 'lucide-react'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -14,8 +15,12 @@ const Login = () => {
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleLogin = async (role: 'cliente' | 'vendedor') => {
+    if (!email || !password) {
+      showError('Por favor, preencha email e senha')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -24,7 +29,7 @@ const Login = () => {
       if (error) {
         showError('Erro ao fazer login: ' + error.message)
       } else {
-        showSuccess('Login realizado com sucesso!')
+        showSuccess(`Login realizado com sucesso! Bem-vindo ${role === 'vendedor' ? 'vendedor' : 'cliente'}.`)
         setTimeout(() => {
           navigate('/')
         }, 1000)
@@ -39,55 +44,73 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">Entrar na LojaRápida</CardTitle>
-          <CardDescription className="text-center">
-            Faça login para acessar sua conta
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="seu@email.com"
-              />
+      <div className="w-full max-w-md">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center pb-6">
+            <CardTitle className="text-2xl font-bold text-gray-900">Área do Usuário</CardTitle>
+            <CardDescription className="text-gray-600">
+              Acesse sua conta na LojaRápida - O marketplace de Moçambique
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="seu@email.com"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="h-11"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
+
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-gray-700">Como deseja entrar?</Label>
+              <Button
+                onClick={() => handleLogin('cliente')}
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                disabled={loading}
+              >
+                <User className="w-5 h-5 mr-2" />
+                Entrar como Cliente
+              </Button>
+              <Button
+                onClick={() => handleLogin('vendedor')}
+                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium"
+                disabled={loading}
+              >
+                <Store className="w-5 h-5 mr-2" />
+                Entrar como Vendedor
+              </Button>
             </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Não tem uma conta?{' '}
-              <Link to="/login" className="text-blue-600 hover:text-blue-500">
-                Cadastre-se
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Não tem uma conta?{' '}
+                <Link to="/register" className="text-green-600 hover:text-green-500 font-medium">
+                  Cadastre-se
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
