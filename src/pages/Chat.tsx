@@ -48,10 +48,10 @@ const Chat = () => {
           product:products (
             name
           ),
-          client:auth.users!chats_client_id_fkey (
+          client_email:auth.users!chats_client_id_fkey (
             email
           ),
-          seller:auth.users!chats_seller_id_fkey (
+          seller_email:auth.users!chats_seller_id_fkey (
             email
           )
         `)
@@ -64,7 +64,20 @@ const Chat = () => {
         return
       }
 
-      setChat(data)
+      // Tratar os dados de forma segura
+      const chatData = data as any
+      const formattedChat: ChatWithDetails = {
+        id: chatData.id,
+        product_id: chatData.product_id,
+        client_id: chatData.client_id,
+        seller_id: chatData.seller_id,
+        created_at: chatData.created_at,
+        product: chatData.product,
+        client: { email: chatData.client_email },
+        seller: { email: chatData.seller_email }
+      }
+      
+      setChat(formattedChat)
     } catch (error) {
       console.error('Error fetching chat:', error)
     }
@@ -76,7 +89,7 @@ const Chat = () => {
         .from('messages')
         .select(`
           *,
-          sender:auth.users (
+          sender_email:auth.users (
             email
           )
         `)
@@ -86,7 +99,12 @@ const Chat = () => {
       if (error) {
         console.error('Error fetching messages:', error)
       } else {
-        setMessages(data || [])
+        const formattedMessages: MessageWithSender[] = (data || []).map((msg: any) => ({
+          ...msg,
+          sender: { email: msg.sender_email }
+        }))
+        
+        setMessages(formattedMessages)
         setLoading(false)
       }
     } catch (error) {

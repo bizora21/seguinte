@@ -34,10 +34,10 @@ const CustomerChats = () => {
           product:products (
             name
           ),
-          client:auth.users!chats_client_id_fkey (
+          client_email:auth.users!chats_client_id_fkey (
             email
           ),
-          seller:auth.users!chats_seller_id_fkey (
+          seller_email:auth.users!chats_seller_id_fkey (
             email
           )
         `)
@@ -49,7 +49,7 @@ const CustomerChats = () => {
       } else {
         // Buscar contagem de mensagens para cada chat
         const chatsWithCounts = await Promise.all(
-          (data || []).map(async (chat) => {
+          (data || []).map(async (chat: any) => {
             const { count } = await supabase
               .from('messages')
               .select('*', { count: 'exact', head: true })
@@ -57,6 +57,8 @@ const CustomerChats = () => {
             
             return {
               ...chat,
+              client: { email: chat.client_email },
+              seller: { email: chat.seller_email },
               _count: { messages: count || 0 }
             }
           })
