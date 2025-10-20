@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 import { User, Store } from 'lucide-react'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -101,16 +102,24 @@ const Login = () => {
                 className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 disabled={loading}
               >
-                <User className="w-5 h-5 mr-2" />
-                Entrar como Cliente
+                {loading ? (
+                  <LoadingSpinner size="sm" className="mr-2" />
+                ) : (
+                  <User className="w-5 h-5 mr-2" />
+                )}
+                {loading ? 'Entrando...' : 'Entrar como Cliente'}
               </Button>
               <Button
                 onClick={() => handleLogin('vendedor')}
                 className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium"
                 disabled={loading}
               >
-                <Store className="w-5 h-5 mr-2" />
-                Entrar como Vendedor
+                {loading ? (
+                  <LoadingSpinner size="sm" className="mr-2" />
+                ) : (
+                  <Store className="w-5 h-5 mr-2" />
+                )}
+                {loading ? 'Entrando...' : 'Entrar como Vendedor'}
               </Button>
             </div>
 

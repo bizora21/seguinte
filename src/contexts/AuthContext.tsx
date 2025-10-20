@@ -86,8 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return
 
-        console.log('Auth state change:', event, session?.user?.email)
-
         if (session?.user) {
           const authUser = await createAuthUser(session.user)
           setUser(authUser)
@@ -113,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (error) {
-        console.error('Sign in error:', error)
         return { error: error.message }
       }
 
@@ -149,7 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (authError) {
-        console.error('Auth signup error:', authError)
         return { error: authError.message }
       }
 
@@ -167,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .insert(profileData)
 
         if (profileError) {
-          console.error('Profile creation error:', profileError)
           return { error: 'Erro ao criar perfil do usuário' }
         }
         
