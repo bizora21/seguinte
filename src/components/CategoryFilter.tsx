@@ -3,13 +3,13 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Category } from '../types/category'
 import { Card, CardContent } from './ui/card'
-import { Smartphone, Shirt, Home, Ball, Book, Heart, Car, Gamepad2 } from 'lucide-react'
+import { Smartphone, Shirt, Home, Trophy, Book, Heart, Car, Gamepad2 } from 'lucide-react'
 
 const iconMap: Record<string, any> = {
   smartphone: Smartphone,
   shirt: Shirt,
   home: Home,
-  football: Ball,
+  football: Trophy,
   book: Book,
   heart: Heart,
   car: Car,
