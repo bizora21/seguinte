@@ -7,7 +7,7 @@ import ProductCard from '../components/ProductCard'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Store, Star, MessageCircle, ArrowLeft } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
 
@@ -85,7 +85,7 @@ const StorePage = () => {
     }
   }
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -95,13 +95,13 @@ const StorePage = () => {
     }
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         stiffness: 100,
         damping: 12
       }

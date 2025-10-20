@@ -7,7 +7,7 @@ import AnimatedProductCard from '../components/AnimatedProductCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Search, Plus, Star, TrendingUp, Users, ShoppingBag } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import SearchBar from '../components/SearchBar'
 
 const Index = () => {
@@ -40,7 +40,7 @@ const Index = () => {
     }
   }
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -50,13 +50,13 @@ const Index = () => {
     }
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         stiffness: 100,
         damping: 12
       }

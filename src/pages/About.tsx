@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { ArrowLeft, ShoppingBag, Users, Truck, Shield } from 'lucide-react'
@@ -30,7 +30,7 @@ const About = () => {
     }
   ]
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -40,13 +40,13 @@ const About = () => {
     }
   }
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 30, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         stiffness: 100,
         damping: 12
       }
@@ -126,7 +126,7 @@ const About = () => {
                   key={index}
                   variants={itemVariants}
                   whileHover={{ scale: 1.05 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  transition={{ type: 'spring' as const, stiffness: 300, damping: 20 }}
                 >
                   <Card className="h-full text-center hover:shadow-lg transition-shadow">
                     <CardHeader>
