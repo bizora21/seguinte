@@ -22,6 +22,7 @@ interface ProductWithSeller extends Product {
 const ProductsPage = () => {
   const [products, setProducts] = useState<ProductWithSeller[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
@@ -33,13 +34,15 @@ const ProductsPage = () => {
 
   const fetchProducts = async () => {
     setLoading(true)
+    setError(null)
+    
     try {
-      // 🔥 QUERY CORRIGIDA: Usar sintaxe correta para buscar dados do vendedor
+      // 🔥 QUERY CORRIGIDA: Usando a constraint correta products_seller_id_fkey
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          seller:profiles!fk_products_seller_id (
+          seller:profiles!products_seller_id_fkey (
             id,
             store_name,
             email
@@ -50,11 +53,13 @@ const ProductsPage = () => {
 
       if (error) {
         console.error('Error fetching products:', error)
+        setError('Não foi possível carregar os produtos. Tente novamente.')
       } else {
         setProducts(data || [])
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+      setError('Erro inesperado ao carregar produtos.')
     } finally {
       setLoading(false)
     }
@@ -62,7 +67,6 @@ const ProductsPage = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Implementar lógica de busca
     navigate(`/busca?q=${encodeURIComponent(searchQuery)}`)
   }
 
@@ -96,13 +100,37 @@ const ProductsPage = () => {
     }).format(price)
   }
 
+  // Estado de carregamento
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <p className="ml-3 text-gray-600">Carregando produtos...</p>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Estado de erro
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Package className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-red-600 mb-2">
+                Erro ao Carregar Produtos
+              </h2>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <Button onClick={fetchProducts} className="bg-green-600 hover:bg-green-700">
+                Tentar Novamente
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
