@@ -13,6 +13,6 @@ export interface ProductFormData {
   name: string
   description: string
   price: string
-  image_url: string
+  images: string[]
   stock: string
 }

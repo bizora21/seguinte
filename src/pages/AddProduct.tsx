@@ -59,8 +59,37 @@ const AddProduct = () => {
     }))
   }
 
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      showError('O nome do produto é obrigatório')
+      return false
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      showError('O preço deve ser maior que zero')
+      return false
+    }
+
+    if (!formData.stock || parseInt(formData.stock) < 0) {
+      showError('O estoque não pode ser negativo')
+      return false
+    }
+
+    if (formData.images.length === 0) {
+      showError('Adicione pelo menos uma imagem do produto')
+      return false
+    }
+
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -89,6 +118,11 @@ const AddProduct = () => {
           images: [],
           stock: ''
         })
+        
+        // Redirecionar para o dashboard após 2 segundos
+        setTimeout(() => {
+          navigate('/dashboard')
+        }, 2000)
       }
     } catch (error) {
       showError('Erro inesperado ao adicionar produto')
@@ -104,11 +138,11 @@ const AddProduct = () => {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
+            Voltar para Dashboard
           </Button>
           <h1 className="text-3xl font-bold text-gray-900">Adicionar Novo Produto</h1>
           <p className="text-gray-600 mt-2">Preencha as informações do produto abaixo</p>
@@ -132,6 +166,7 @@ const AddProduct = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="Ex: iPhone 15 Pro"
+                  disabled={loading}
                 />
               </div>
 
@@ -144,6 +179,7 @@ const AddProduct = () => {
                   onChange={handleInputChange}
                   placeholder="Descreva o produto, suas características, etc."
                   rows={3}
+                  disabled={loading}
                 />
               </div>
 
@@ -160,6 +196,7 @@ const AddProduct = () => {
                     onChange={handleInputChange}
                     required
                     placeholder="0.00"
+                    disabled={loading}
                   />
                 </div>
 
@@ -174,12 +211,13 @@ const AddProduct = () => {
                     onChange={handleInputChange}
                     required
                     placeholder="0"
+                    disabled={loading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Imagens do Produto</Label>
+                <Label>Imagens do Produto *</Label>
                 <ImageUpload
                   value={formData.images}
                   onChange={handleImagesChange}
@@ -187,17 +225,27 @@ const AddProduct = () => {
                   maxSizeMB={1}
                 />
                 <p className="text-sm text-gray-500">
-                  Adicione até 2 imagens. Máximo 1MB por imagem. A primeira imagem será a principal.
+                  Adicione até 2 imagens. A primeira imagem será a principal do produto.
                 </p>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Adicionando...' : 'Adicionar Produto'}
-              </Button>
+              <div className="flex space-x-4">
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={loading}
+                >
+                  {loading ? 'Adicionando...' : 'Adicionar Produto'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/dashboard')}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>

@@ -53,10 +53,39 @@ const ImageUpload = ({
       return
     }
 
+    // Validação dos arquivos
+    const validFiles: File[] = []
+    const errors: string[] = []
+
+    for (const file of acceptedFiles) {
+      // Verificar tipo do arquivo
+      if (!file.type.startsWith('image/')) {
+        errors.push(`${file.name} não é uma imagem válida`)
+        continue
+      }
+
+      // Verificar tamanho
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        errors.push(`${file.name} é maior que ${maxSizeMB}MB`)
+        continue
+      }
+
+      validFiles.push(file)
+    }
+
+    if (errors.length > 0) {
+      showError(errors.join('\n'))
+      return
+    }
+
+    if (validFiles.length === 0) {
+      return
+    }
+
     setUploading(true)
     const newUrls: string[] = []
 
-    for (const file of acceptedFiles) {
+    for (const file of validFiles) {
       if (newUrls.length + value.length >= maxImages) break
 
       const url = await uploadImage(file)
@@ -73,7 +102,7 @@ const ImageUpload = ({
     }
 
     setUploading(false)
-  }, [value, onChange, maxImages])
+  }, [value, onChange, maxImages, maxSizeMB])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -157,6 +186,10 @@ const ImageUpload = ({
           </Card>
         )}
       </div>
+      
+      <p className="text-sm text-gray-600">
+        Envie até {maxImages} imagens. Formato: JPG, PNG. Tamanho máximo: {maxSizeMB}MB por imagem.
+      </p>
     </div>
   )
 }
