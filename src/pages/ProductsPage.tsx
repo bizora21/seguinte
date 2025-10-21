@@ -34,12 +34,12 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     setLoading(true)
     try {
-      // 🔥 QUERY CORRETA: Buscar todos os produtos sem restrição de usuário
+      // 🔥 QUERY CORRIGIDA: Usar sintaxe correta para buscar dados do vendedor
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          seller:profiles!products_seller_id_fkey (
+          seller:profiles!fk_products_seller_id (
             id,
             store_name,
             email
