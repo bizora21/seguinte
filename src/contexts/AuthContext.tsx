@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', userId)
         .single()
-        .throwOnError() // Lança erro automaticamente
+        .throwOnError()
 
       if (error) {
         console.error('Error fetching user profile:', error)
@@ -65,11 +65,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         if (!mounted) return
 
-        // Lidar com diferentes eventos de autenticação
         switch (event) {
           case 'SIGNED_IN':
             if (session?.user) {
-              // Criar usuário com perfil
               createAuthUser(session.user).then(authUser => {
                 if (mounted) {
                   setUser(authUser)
@@ -91,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             break
             
           case 'TOKEN_REFRESHED':
-            // Token atualizado, não precisa buscar perfil novamente
             if (session?.user && mounted) {
               setUser(prev => prev ? {
                 ...prev,
@@ -156,10 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [])
 
-  // Função de login otimizada
+  // Função de login otimizada com REDIRECIONAMENTO CORRIGIDO
   const signIn = async (email: string, password: string) => {
     try {
-      // Login sem esperar pelo perfil (feedback imediato)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -173,15 +169,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Buscar perfil em background para determinar redirecionamento
         const profile = await fetchUserProfile(data.user.id)
         
-        let redirectTo = '/produtos'
+        // 🔥 CORREÇÃO: Redirecionamento correto baseado no role
+        let redirectTo = '/'  // Página principal com produtos
         
         if (profile?.role === 'vendedor') {
-          redirectTo = '/dashboard'
+          redirectTo = '/dashboard'  // Vendedores vão para o dashboard
         } else if (profile?.role === 'cliente') {
-          redirectTo = '/produtos'
+          redirectTo = '/'  // 🔥 CLIENTES VÃO PARA A HOME COM PRODUTOS
         }
 
-        // O listener de auth state change vai atualizar o usuário automaticamente
         return { error: null, redirectTo }
       }
 
@@ -194,7 +190,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Função de registro otimizada
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
     try {
-      // 1. Criar usuário no Supabase Auth
       const { data, error: authError } = await supabase.auth.signUp({
         email,
         password
@@ -205,7 +200,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // 2. Criar perfil na tabela profiles
         const profileData = {
           id: data.user.id,
           email: email,
