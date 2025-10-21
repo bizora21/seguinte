@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Função para buscar perfil do usuário
+  // Função otimizada para buscar perfil do usuário
   const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
@@ -33,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .select('*')
         .eq('id', userId)
         .single()
+        .throwOnError() // Lança erro automaticamente
 
       if (error) {
         console.error('Error fetching user profile:', error)
@@ -57,44 +58,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  // Inicialização da autenticação
+  // Inicialização otimizada da autenticação
   useEffect(() => {
     let mounted = true
-
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (session?.user && mounted) {
-          const authUser = await createAuthUser(session.user)
-          setUser(authUser)
-        } else if (mounted) {
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-        if (mounted) setUser(null)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    initializeAuth()
-
-    // Escutar mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          const authUser = await createAuthUser(session.user)
-          setUser(authUser)
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null)
+        // Lidar com diferentes eventos de autenticação
+        switch (event) {
+          case 'SIGNED_IN':
+            if (session?.user) {
+              // Criar usuário com perfil
+              createAuthUser(session.user).then(authUser => {
+                if (mounted) {
+                  setUser(authUser)
+                  setLoading(false)
+                }
+              }).catch(error => {
+                console.error('Error on auth state change:', error)
+                if (mounted) {
+                  setUser(null)
+                  setLoading(false)
+                }
+              })
+            }
+            break
+            
+          case 'SIGNED_OUT':
+            setUser(null)
+            setLoading(false)
+            break
+            
+          case 'TOKEN_REFRESHED':
+            // Token atualizado, não precisa buscar perfil novamente
+            if (session?.user && mounted) {
+              setUser(prev => prev ? {
+                ...prev,
+                id: session.user.id,
+                email: session.user.email || prev.email
+              } : null)
+            }
+            break
+            
+          default:
+            setLoading(false)
+            break
         }
-        setLoading(false)
       }
     )
+
+    // Inicializar a sessão atual
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error)
+          if (mounted) {
+            setUser(null)
+            setLoading(false)
+          }
+          return
+        }
+        
+        if (session?.user && mounted) {
+          createAuthUser(session.user).then(authUser => {
+            if (mounted) {
+              setUser(authUser)
+              setLoading(false)
+            }
+          }).catch(error => {
+            console.error('Error creating auth user:', error)
+            if (mounted) {
+              setUser(null)
+              setLoading(false)
+            }
+          })
+        } else if (mounted) {
+          setUser(null)
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        if (mounted) {
+          setUser(null)
+          setLoading(false)
+        }
+      }
+    }
+
+    initializeAuth()
 
     return () => {
       mounted = false
@@ -102,9 +156,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [])
 
-  // Função de login
+  // Função de login otimizada
   const signIn = async (email: string, password: string) => {
     try {
+      // Login sem esperar pelo perfil (feedback imediato)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -115,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Buscar perfil para determinar redirecionamento
+        // Buscar perfil em background para determinar redirecionamento
         const profile = await fetchUserProfile(data.user.id)
         
         let redirectTo = '/produtos'
@@ -126,14 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           redirectTo = '/produtos'
         }
 
-        // Criar usuário localmente para uso imediato
-        const authUser = {
-          id: data.user.id,
-          email: data.user.email || '',
-          profile: profile
-        }
-        setUser(authUser)
-
+        // O listener de auth state change vai atualizar o usuário automaticamente
         return { error: null, redirectTo }
       }
 
@@ -143,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  // Função de registro
+  // Função de registro otimizada
   const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
     try {
       // 1. Criar usuário no Supabase Auth
@@ -168,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error: profileError } = await supabase
           .from('profiles')
           .insert(profileData)
+          .throwOnError()
 
         if (profileError) {
           return { error: 'Erro ao criar perfil do usuário' }

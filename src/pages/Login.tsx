@@ -13,37 +13,43 @@ import LoadingSpinner from '../components/LoadingSpinner'
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signIn } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { signIn, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
   const handleLogin = async (role: 'cliente' | 'vendedor') => {
+    // Validação inicial
     if (!email || !password) {
       showError('Por favor, preencha email e senha')
       return
     }
 
-    setLoading(true)
+    // Feedback visual imediato
+    setIsSubmitting(true)
 
     try {
+      // Chamar API otimizada
       const { error, redirectTo } = await signIn(email, password)
 
       if (error) {
         showError(error)
-      } else {
-        const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
-        showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
-        
-        // Redirecionamento imediato
-        if (redirectTo) {
-          navigate(redirectTo, { replace: true })
-        }
+        return
+      }
+
+      // Sucesso - mostrar feedback e redirecionar
+      const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
+      showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
+      
+      // Redirecionamento imediato
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true })
       }
     } catch (error) {
       showError('Erro inesperado ao fazer login')
       console.error('Login error:', error)
     } finally {
-      setLoading(false)
+      // Garantir que o loading seja desativado mesmo em caso de erro
+      setIsSubmitting(false)
     }
   }
 
@@ -53,10 +59,22 @@ const Login = () => {
     handleLogin('cliente')
   }
 
+  // Loading geral da aplicação (não do botão)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        <Card className="shadow-lg">
+        <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-bold text-gray-900">Área do Usuário</CardTitle>
             <CardDescription className="text-gray-600">
@@ -75,7 +93,8 @@ const Login = () => {
                   required
                   placeholder="seu@email.com"
                   className="h-11"
-                  disabled={loading}
+                  disabled={isSubmitting}
+                  autoComplete="email"
                 />
               </div>
               <div className="space-y-2">
@@ -88,7 +107,8 @@ const Login = () => {
                   required
                   placeholder="••••••••"
                   className="h-11"
-                  disabled={loading}
+                  disabled={isSubmitting}
+                  autoComplete="current-password"
                 />
               </div>
             </form>
@@ -97,27 +117,37 @@ const Login = () => {
               <Label className="text-sm font-medium text-gray-700">Como deseja entrar?</Label>
               <Button
                 onClick={() => handleLogin('cliente')}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                disabled={loading}
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200"
+                disabled={isSubmitting}
               >
-                {loading ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
+                {isSubmitting ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Entrando...
+                  </>
                 ) : (
-                  <User className="w-5 h-5 mr-2" />
+                  <>
+                    <User className="w-5 h-5 mr-2" />
+                    Entrar como Cliente
+                  </>
                 )}
-                {loading ? 'Entrando...' : 'Entrar como Cliente'}
               </Button>
               <Button
                 onClick={() => handleLogin('vendedor')}
-                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium"
-                disabled={loading}
+                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium transition-all duration-200"
+                disabled={isSubmitting}
               >
-                {loading ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
+                {isSubmitting ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Entrando...
+                  </>
                 ) : (
-                  <Store className="w-5 h-5 mr-2" />
+                  <>
+                    <Store className="w-5 h-5 mr-2" />
+                    Entrar como Vendedor
+                  </>
                 )}
-                {loading ? 'Entrando...' : 'Entrar como Vendedor'}
               </Button>
             </div>
 
