@@ -34,6 +34,7 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     setLoading(true)
     try {
+      // 🔥 QUERY CORRETA: Buscar todos os produtos sem restrição de usuário
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -44,7 +45,7 @@ const ProductsPage = () => {
             email
           )
         `)
-        .gt('stock', 0)
+        .gt('stock', 0)  // Apenas produtos com estoque
         .order('created_at', { ascending: false })
 
       if (error) {
