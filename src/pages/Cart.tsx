@@ -194,7 +194,7 @@ const Cart = () => {
                   className="w-full"
                   size="lg"
                 >
-                  Finalizar Pedido
+                  Confirmar Endereço
                 </Button>
                 <Button
                   variant="outline"

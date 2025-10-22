@@ -29,7 +29,6 @@ import StorePage from "./pages/StorePage";
 import About from "./pages/About";
 import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
-import TestUpload from "./pages/TestUpload";
 
 const queryClient = new QueryClient();
 
@@ -69,14 +68,6 @@ const App = () => (
                       </ProtectedRoute>
                     } 
                   />
-                  <Route 
-                    path="/test-upload" 
-                    element={
-                      <ProtectedRoute requiredRole="vendedor">
-                        <TestUpload />
-                      </ProtectedRoute>
-                    } 
-                  />
                   <Route path="/produto/:id" element={<ProductDetail />} />
                   <Route 
                     path="/carrinho" 
@@ -95,7 +86,7 @@ const App = () => (
                     } 
                   />
                   <Route 
-                    path="/pedido-confirmado" 
+                    path="/encomenda-confirmada" 
                     element={
                       <ProtectedRoute>
                         <OrderConfirmed />

@@ -9,15 +9,23 @@ import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 import { showSuccess, showError } from '../utils/toast'
-import { ArrowLeft, CreditCard, Truck, Shield } from 'lucide-react'
+import { ArrowLeft, CreditCard, Truck, Shield, User, Phone, MapPin } from 'lucide-react'
+
+interface CheckoutFormData {
+  fullName: string
+  deliveryAddress: string
+  phone: string
+}
 
 const Checkout = () => {
   const { items, clearCart, getCartTotal } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    delivery_address: ''
+  const [formData, setFormData] = useState<CheckoutFormData>({
+    fullName: '',
+    deliveryAddress: '',
+    phone: ''
   })
 
   const formatPrice = (price: number) => {
@@ -35,6 +43,22 @@ const Checkout = () => {
     }))
   }
 
+  const validateForm = () => {
+    if (!formData.fullName.trim()) {
+      showError('Por favor, informe seu nome completo')
+      return false
+    }
+    if (!formData.deliveryAddress.trim()) {
+      showError('Por favor, informe o endereço de entrega')
+      return false
+    }
+    if (!formData.phone.trim()) {
+      showError('Por favor, informe seu contacto')
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -44,8 +68,7 @@ const Checkout = () => {
       return
     }
 
-    if (!formData.delivery_address.trim()) {
-      showError('Por favor, informe o endereço de entrega')
+    if (!validateForm()) {
       return
     }
 
@@ -58,7 +81,7 @@ const Checkout = () => {
         .insert({
           user_id: user.id,
           total_amount: getCartTotal(),
-          delivery_address: formData.delivery_address,
+          delivery_address: formData.deliveryAddress,
           status: 'pending'
         })
         .select()
@@ -89,7 +112,7 @@ const Checkout = () => {
       // 3. Limpar carrinho e redirecionar
       clearCart()
       showSuccess('Pedido confirmado com sucesso!')
-      navigate('/pedido-confirmado')
+      navigate('/encomenda-confirmada')
 
     } catch (error) {
       showError('Erro inesperado ao processar pedido')
@@ -133,27 +156,64 @@ const Checkout = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar para o carrinho
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Finalizar Pedido</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Confirmar Endereço</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Formulário de Endereço */}
           <Card>
             <CardHeader>
-              <CardTitle>Endereço de Entrega</CardTitle>
+              <CardTitle>Informações de Entrega</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="delivery_address">Endereço Completo *</Label>
-                  <Textarea
-                    id="delivery_address"
-                    name="delivery_address"
-                    value={formData.delivery_address}
+                  <Label htmlFor="fullName" className="flex items-center">
+                    <User className="w-4 h-4 mr-2" />
+                    Nome Completo *
+                  </Label>
+                  <Input
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
                     onChange={handleInputChange}
                     required
-                    placeholder="Rua, número, bairro, cidade, província, CEP"
+                    placeholder="Seu nome completo"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center">
+                    <Phone className="w-4 h-4 mr-2" />
+                    Contacto (Telefone) *
+                  </Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="+258 XX XXX XXXX"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryAddress" className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Endereço de Entrega *
+                  </Label>
+                  <Textarea
+                    id="deliveryAddress"
+                    name="deliveryAddress"
+                    value={formData.deliveryAddress}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="Rua, número, bairro, cidade, província"
                     rows={3}
+                    disabled={loading}
                   />
                 </div>
 
@@ -163,7 +223,7 @@ const Checkout = () => {
                   size="lg"
                   disabled={loading}
                 >
-                  {loading ? 'Processando...' : 'Confirmar Pedido'}
+                  {loading ? 'Processando...' : 'Confirmar Encomenda'}
                 </Button>
               </form>
             </CardContent>
