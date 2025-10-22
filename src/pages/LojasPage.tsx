@@ -4,13 +4,14 @@ import { supabase } from '../lib/supabase'
 import { Profile } from '../types/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Store, Star, Package, ArrowLeft, Search, MapPin } from 'lucide-react'
+import { Store, Star, Package, ArrowLeft, Search, MapPin, AlertTriangle } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { Input } from '../components/ui/input'
 
 const LojasPage = () => {
   const [sellers, setSellers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredSellers, setFilteredSellers] = useState<Profile[]>([])
   const navigate = useNavigate()
@@ -34,21 +35,45 @@ const LojasPage = () => {
 
   const fetchSellers = async () => {
     setLoading(true)
+    setError(null)
+    
     try {
+      console.log('🔍 Iniciando busca de vendedores...')
+      
+      // 🔥 QUERY CORRIGIDA: Buscar todos os perfis com role 'vendedor'
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'vendedor')
         .order('created_at', { ascending: false })
 
+      // 🔥 LOGGING DETALHADO PARA DIAGNÓSTICO
       if (error) {
-        console.error('Error fetching sellers:', error)
-      } else {
-        setSellers(data || [])
-        setFilteredSellers(data || [])
+        console.error('❌ Erro na query de vendedores:', error)
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
+        setError(`Erro ao carregar lojas: ${error.message}`)
+        return
       }
+
+      console.log('✅ Dados recebidos:', data)
+      console.log('✅ Quantidade de vendedores encontrados:', data?.length || 0)
+      
+      if (data && data.length > 0) {
+        console.log('✅ Primeiro vendedor:', data[0])
+        console.log('✅ Lista de IDs dos vendedores:', data.map(s => s.id))
+      }
+
+      setSellers(data || [])
+      setFilteredSellers(data || [])
+      
     } catch (error) {
-      console.error('Error fetching sellers:', error)
+      console.error('❌ Erro inesperado ao buscar vendedores:', error)
+      setError('Erro inesperado ao carregar lojas')
     } finally {
       setLoading(false)
     }
@@ -75,6 +100,10 @@ const LojasPage = () => {
         damping: 12
       }
     }
+  }
+
+  const handleRetry = () => {
+    fetchSellers()
   }
 
   if (loading) {
@@ -137,16 +166,44 @@ const LojasPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* 🔥 MENSAGEM DE ERRO */}
+        {error && (
+          <Card className="mb-8 border-red-200 bg-red-50">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <h3 className="font-semibold text-red-800">Erro ao carregar lojas</h3>
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+                <Button 
+                  onClick={handleRetry} 
+                  variant="outline" 
+                  size="sm"
+                  className="ml-auto border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  Tentar novamente
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Todas as Lojas
           </h2>
           <p className="text-gray-600">
             {filteredSellers.length} loja{filteredSellers.length !== 1 ? 's' : ''} disponível{filteredSellers.length !== 1 ? 'is' : ''}
+            {!error && sellers.length > 0 && (
+              <span className="ml-2 text-sm text-gray-500">
+                (Total no banco: {sellers.length})
+              </span>
+            )}
           </p>
         </div>
 
-        {filteredSellers.length === 0 ? (
+        {filteredSellers.length === 0 && !error ? (
           <Card>
             <CardContent className="p-12 text-center">
               <Store className="w-16 h-16 text-gray-400 mx-auto mb-4" />
