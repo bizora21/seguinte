@@ -96,13 +96,9 @@ const Chat = () => {
           
           const newMessage = payload.new as Message
           
-          // 🔥 CORREÇÃO CRUCIAL: Não filtrar por remetente
-          // TODOS os participantes do chat devem receber TODAS as mensagens
-          
           if (newMessage.sender_id !== user?.id) {
             console.log(`📬 Message from another user: ${newMessage.sender_id}`)
             
-            // Buscar informações completas do remetente APENAS se não for minha mensagem
             const { data: senderData } = await supabase
               .from('profiles')
               .select('email, store_name')
@@ -210,9 +206,13 @@ const Chat = () => {
                 <div>
                   <CardTitle className="text-lg flex items-center">
                     {otherUserType === 'seller' ? <Store className="w-5 h-5 mr-2" /> : <User className="w-5 h-5 mr-2" />}
-                    {otherUser.store_name || otherUser.email.split('@')[0]}
+                    {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
+                    {otherUser?.store_name || otherUser?.email?.split('@')[0] || 'Usuário'}
                   </CardTitle>
-                  <p className="text-sm text-gray-600">Sobre: {chat.product.name}</p>
+                  <p className="text-sm text-gray-600">
+                    {/* 🔥 CORREÇÃO: Verificação defensiva */}
+                    Sobre: {chat.product?.name || 'Produto'}
+                  </p>
                 </div>
               </div>
             </div>

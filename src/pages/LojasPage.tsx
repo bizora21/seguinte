@@ -21,13 +21,12 @@ const LojasPage = () => {
   }, [])
 
   useEffect(() => {
-    // Filtrar vendedores baseado na busca
     if (searchQuery.trim() === '') {
       setFilteredSellers(sellers)
     } else {
       const filtered = sellers.filter(seller => 
         seller.store_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        seller.email.toLowerCase().includes(searchQuery.toLowerCase())
+        seller.email?.toLowerCase().includes(searchQuery.toLowerCase())
       )
       setFilteredSellers(filtered)
     }
@@ -40,34 +39,19 @@ const LojasPage = () => {
     try {
       console.log('🔍 Iniciando busca de vendedores...')
       
-      // 🔥 QUERY CORRIGIDA: Buscar todos os perfis com role 'vendedor'
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'vendedor')
         .order('created_at', { ascending: false })
 
-      // 🔥 LOGGING DETALHADO PARA DIAGNÓSTICO
       if (error) {
         console.error('❌ Erro na query de vendedores:', error)
-        console.error('❌ Detalhes do erro:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
         setError(`Erro ao carregar lojas: ${error.message}`)
         return
       }
 
       console.log('✅ Dados recebidos:', data)
-      console.log('✅ Quantidade de vendedores encontrados:', data?.length || 0)
-      
-      if (data && data.length > 0) {
-        console.log('✅ Primeiro vendedor:', data[0])
-        console.log('✅ Lista de IDs dos vendedores:', data.map(s => s.id))
-      }
-
       setSellers(data || [])
       setFilteredSellers(data || [])
       
@@ -121,7 +105,6 @@ const LojasPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
@@ -148,7 +131,6 @@ const LojasPage = () => {
               Conheça os vendedores locais e explore produtos incríveis em todo Moçambique
             </p>
             
-            {/* Barra de Busca */}
             <div className="max-w-2xl mx-auto">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -166,7 +148,6 @@ const LojasPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* 🔥 MENSAGEM DE ERRO */}
         {error && (
           <Card className="mb-8 border-red-200 bg-red-50">
             <CardContent className="p-6">
@@ -238,10 +219,12 @@ const LojasPage = () => {
                       <Store className="w-10 h-10 text-purple-600" />
                     </div>
                     <CardTitle className="text-xl">
+                      {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
                       {seller.store_name || 'Loja Sem Nome'}
                     </CardTitle>
                     <p className="text-sm text-gray-600">
-                      {seller.email}
+                      {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
+                      {seller.email || 'Email não disponível'}
                     </p>
                   </CardHeader>
                   <CardContent className="text-center space-y-4">
@@ -258,7 +241,8 @@ const LojasPage = () => {
 
                     <div className="flex items-center justify-center text-sm text-gray-500">
                       <MapPin className="w-3 h-3 mr-1" />
-                      <span>Vendedor desde {new Date(seller.created_at!).getFullYear()}</span>
+                      {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
+                      Vendedor desde {seller.created_at ? new Date(seller.created_at).getFullYear() : 'Data desconhecida'}
                     </div>
 
                     <Button

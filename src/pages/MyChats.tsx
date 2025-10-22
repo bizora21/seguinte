@@ -126,13 +126,15 @@ const MyChats = () => {
                         </div>
                         <div>
                           <h3 className="font-semibold text-lg">
+                            {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
                             {isSeller 
-                              ? otherPerson.email.split('@')[0]
-                              : otherPerson.store_name || otherPerson.email.split('@')[0]
+                              ? otherPerson?.email?.split('@')[0] || 'Usuário'
+                              : otherPerson?.store_name || otherPerson?.email?.split('@')[0] || 'Loja'
                             }
                           </h3>
                           <p className="text-sm text-gray-600">
-                            Sobre: {chat.product.name}
+                            {/* 🔥 CORREÇÃO: Verificação defensiva */}
+                            Sobre: {chat.product?.name || 'Produto'}
                           </p>
                         </div>
                       </div>

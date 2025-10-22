@@ -42,7 +42,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Hooks personalizados
   const { chatId, loading: chatLoading, error: chatError } = useChat({
     productId,
     clientId: user?.id || '',
@@ -56,7 +55,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     sendMessage
   } = useRealtimeMessages({ chatId })
 
-  // Auto-scroll para a última mensagem
   useEffect(() => {
     scrollToBottom()
   }, [messages])
@@ -65,7 +63,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Enviar mensagem
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !chatId) return
 
@@ -79,7 +76,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     setSending(false)
   }
 
-  // Formatar hora da mensagem
   const formatTime = (dateString: string) => {
     try {
       const date = new Date(dateString)
@@ -92,12 +88,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }
 
-  // Verificar se a mensagem é minha
   const isMyMessage = (message: MessageWithSender) => {
     return message.sender_id === user?.id
   }
 
-  // Obter informações do outro participante
   const getOtherParticipant = () => {
     if (!messages.length) return { name: sellerName || 'Vendedor', isSeller: true }
     
@@ -106,8 +100,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     
     return {
       name: isSeller 
-        ? sellerName || firstMessage.sender.store_name || 'Vendedor'
-        : firstMessage.sender.email.split('@')[0],
+        ? sellerName || firstMessage.sender?.store_name || 'Vendedor'
+        : firstMessage.sender?.email?.split('@')[0] || 'Usuário',
       isSeller
     }
   }
@@ -119,7 +113,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl h-[600px] flex flex-col">
-        {/* Header */}
         <CardHeader className="pb-3 border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -154,7 +147,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         </CardHeader>
 
-        {/* Messages Area */}
         <CardContent className="flex-1 overflow-hidden p-0">
           {chatLoading || messagesLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -166,7 +158,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             </div>
           ) : (
             <div className="h-full flex flex-col">
-              {/* Messages List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
@@ -181,16 +172,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                       className={`flex ${isMyMessage(message) ? 'justify-end' : 'justify-start'}`}
                     >
                       <div className={`max-w-xs lg:max-w-md space-y-1`}>
-                        {/* Sender Info (only for other person's messages) */}
                         {!isMyMessage(message) && (
                           <div className="flex items-center space-x-2 px-2">
                             <span className="text-xs font-medium text-gray-600">
-                              {message.sender.store_name || message.sender.email.split('@')[0]}
+                              {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
+                              {message.sender?.store_name || message.sender?.email?.split('@')[0] || 'Usuário'}
                             </span>
                           </div>
                         )}
                         
-                        {/* Message Bubble */}
                         <div
                           className={`px-4 py-2 rounded-lg ${
                             isMyMessage(message)
@@ -201,7 +191,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                           <p className="text-sm break-words">{message.content}</p>
                         </div>
                         
-                        {/* Timestamp */}
                         <div className={`flex items-center space-x-1 px-2 text-xs ${
                           isMyMessage(message) ? 'justify-end' : 'justify-start'
                         }`}>
@@ -219,7 +208,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Input */}
               <div className="border-t p-4">
                 <div className="flex space-x-2">
                   <Input
