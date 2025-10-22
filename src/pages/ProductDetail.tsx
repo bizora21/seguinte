@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Product } from '../types/product'
+import { ProductWithSeller } from '../types/product'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, ShoppingCart, Package, MessageCircle, CreditCard } from 'lucide-react'
-import { showSuccess } from '../utils/toast'
+import { ArrowLeft, ShoppingCart, Package, MessageCircle, CreditCard, Store } from 'lucide-react'
+import { showSuccess, showError } from '../utils/toast'
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
-  const [product, setProduct] = useState<Product | null>(null)
+  const [product, setProduct] = useState<ProductWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
   const [startingChat, setStartingChat] = useState(false)
   const { addToCart } = useCart()
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (id) {
@@ -24,15 +25,24 @@ const ProductDetail = () => {
   }, [id])
 
   const fetchProduct = async (productId: string) => {
+    setLoading(true)
     try {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey (
+            id,
+            store_name,
+            email
+          )
+        `)
         .eq('id', productId)
         .single()
 
       if (error) {
         console.error('Error fetching product:', error)
+        setProduct(null)
       } else {
         setProduct(data)
       }
@@ -65,55 +75,44 @@ const ProductDetail = () => {
   }
 
   const handleStartChat = async () => {
-    if (!user || !product) {
+    if (!user) {
+      showError('Faça login para conversar com o vendedor')
+      navigate('/login')
       return
     }
+    if (!product || !product.seller_id) return
 
     setStartingChat(true)
 
     try {
-      // Verificar se já existe um chat para este produto, cliente e vendedor
-      const { data: existingChat, error: fetchError } = await supabase
+      const { data: existingChat } = await supabase
         .from('chats')
-        .select('*')
+        .select('id')
         .eq('product_id', product.id)
         .eq('client_id', user.id)
         .eq('seller_id', product.seller_id)
         .single()
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Error checking existing chat:', fetchError)
-      }
-
-      let chatId = existingChat?.id
-
-      // Se não existe, criar um novo chat
-      if (!existingChat) {
-        const { data: newChat, error: createError } = await supabase
+      if (existingChat) {
+        navigate(`/chat/${existingChat.id}`)
+      } else {
+        const { data: newChat, error } = await supabase
           .from('chats')
           .insert({
             product_id: product.id,
             client_id: user.id,
             seller_id: product.seller_id
           })
-          .select()
+          .select('id')
           .single()
 
-        if (createError) {
-          console.error('Error creating chat:', createError)
-          return
-        }
-
-        chatId = newChat.id
+        if (error) throw error
+        
         showSuccess('Chat iniciado com sucesso!')
-      } else {
-        showSuccess('Redirecionando para chat existente...')
+        navigate(`/chat/${newChat.id}`)
       }
-
-      // Redirecionar para a página do chat
-      window.location.href = `/chat/${chatId}`
-
     } catch (error) {
+      showError('Erro ao iniciar chat. Tente novamente.')
       console.error('Error starting chat:', error)
     } finally {
       setStartingChat(false)
@@ -136,12 +135,10 @@ const ProductDetail = () => {
             <CardTitle className="text-center">Produto Não Encontrado</CardTitle>
           </CardHeader>
           <CardContent>
-            <Link to="/">
-              <Button className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar para produtos
-              </Button>
-            </Link>
+            <Button onClick={() => navigate('/')} className="w-full">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar para produtos
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -152,14 +149,12 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link to="/">
-            <Button variant="ghost">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar para produtos
-            </Button>
-          </Link>
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
         </div>
 
         <Card>
@@ -167,22 +162,11 @@ const ProductDetail = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Imagem do Produto */}
               <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop'
-                    }}
-                  />
-                ) : (
-                  <img
-                    src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop"
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                )}
+                <img
+                  src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop'}
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                />
               </div>
 
               {/* Informações do Produto */}
@@ -209,9 +193,29 @@ const ProductDetail = () => {
                 <div className="flex-1 mb-6">
                   <h3 className="text-lg font-semibold mb-2">Descrição</h3>
                   <p className="text-gray-600 whitespace-pre-wrap">
-                    {product.description || 'Nenhuma descrição disponível para este produto.'}
+                    {product.description || 'Nenhuma descrição disponível.'}
                   </p>
                 </div>
+
+                {/* Card do Vendedor */}
+                {product.seller && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2">Vendido por</h3>
+                    <Link to={`/loja/${product.seller.id}`}>
+                      <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4 flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <Store className="w-5 h-5 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-blue-600">{product.seller.store_name}</p>
+                            <p className="text-sm text-gray-500">{product.seller.email}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <Button
@@ -235,29 +239,6 @@ const ProductDetail = () => {
                       <MessageCircle className="w-5 h-5 mr-2" />
                       {startingChat ? 'Iniciando chat...' : 'Conversar com Vendedor'}
                     </Button>
-                  )}
-
-                  {!canChat && user && (
-                    <p className="text-sm text-gray-500 text-center">
-                      Você não pode conversar sobre seus próprios produtos
-                    </p>
-                  )}
-
-                  {!user && (
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        <Link to="/login" className="underline hover:text-blue-800">
-                          Faça login
-                        </Link>{' '}
-                        para conversar com o vendedor
-                      </p>
-                    </div>
-                  )}
-
-                  {product.stock <= 5 && product.stock > 0 && (
-                    <p className="text-sm text-orange-600 text-center">
-                      ⚠️ Apenas {product.stock} unidades disponíveis!
-                    </p>
                   )}
                 </div>
               </div>

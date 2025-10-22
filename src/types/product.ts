@@ -9,6 +9,14 @@ export interface Product {
   created_at: string
 }
 
+export interface ProductWithSeller extends Product {
+  seller?: {
+    id: string
+    store_name: string
+    email: string
+  }
+}
+
 export interface ProductFormData {
   name: string
   description: string

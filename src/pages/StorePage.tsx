@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Product } from '../types/product'
+import { Product, ProductWithSeller } from '../types/product'
 import { Profile } from '../types/auth'
 import ProductCard from '../components/ProductCard'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Store, Star, MessageCircle, ArrowLeft } from 'lucide-react'
+import { Store, Star, MessageCircle, ArrowLeft, Package } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
@@ -14,75 +14,63 @@ import { showSuccess } from '../utils/toast'
 const StorePage = () => {
   const { sellerId } = useParams<{ sellerId: string }>()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [seller, setSeller] = useState<Profile | null>(null)
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductWithSeller[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (sellerId) {
-      fetchSellerData()
-      fetchSellerProducts()
+      fetchStoreData()
     }
   }, [sellerId])
 
-  const fetchSellerData = async () => {
+  const fetchStoreData = async () => {
+    setLoading(true)
     try {
-      const { data, error } = await supabase
+      // Buscar perfil do vendedor
+      const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', sellerId!)
         .eq('role', 'vendedor')
         .single()
 
-      if (error) {
-        console.error('Error fetching seller:', error)
-      } else {
-        setSeller(data)
-      }
-    } catch (error) {
-      console.error('Error fetching seller:', error)
-    }
-  }
+      if (sellerError) throw sellerError
+      setSeller(sellerData)
 
-  const fetchSellerProducts = async () => {
-    try {
-      const { data, error } = await supabase
+      // Buscar produtos do vendedor
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey (
+            id,
+            store_name,
+            email
+          )
+        `)
         .eq('seller_id', sellerId!)
         .order('created_at', { ascending: false })
 
-      if (error) {
-        console.error('Error fetching products:', error)
-      } else {
-        setProducts(data || [])
-      }
+      if (productsError) throw productsError
+      setProducts(productsData || [])
+
     } catch (error) {
-      console.error('Error fetching products:', error)
+      console.error('Error fetching store data:', error)
+      setSeller(null)
+      setProducts([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleContactSeller = async () => {
-    if (!user || !sellerId) {
+  const handleContactSeller = () => {
+    if (!user) {
+      navigate('/login')
       return
     }
-
-    // Verificar se já existe algum chat com este vendedor
-    const { data: existingChat } = await supabase
-      .from('chats')
-      .select('*')
-      .eq('seller_id', sellerId)
-      .eq('client_id', user.id)
-      .limit(1)
-      .single()
-
-    if (existingChat) {
-      window.location.href = `/chat/${existingChat.id}`
-    } else {
-      showSuccess('Entre em contato através da página de um produto específico')
-    }
+    showSuccess('Para iniciar uma conversa, por favor, vá para a página de um produto específico.')
   }
 
   const containerVariants: Variants = {
@@ -110,12 +98,8 @@ const StorePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     )
   }
@@ -148,7 +132,7 @@ const StorePage = () => {
           <div className="mb-4">
             <Button
               variant="ghost"
-              onClick={() => window.history.back()}
+              onClick={() => navigate(-1)}
               className="text-white hover:bg-white/20 mb-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -183,7 +167,7 @@ const StorePage = () => {
                 <span>{products.length} produtos</span>
               </div>
               <div>
-                <span>Vendedor desde {new Date(seller.created_at).getFullYear()}</span>
+                <span>Vendedor desde {new Date(seller.created_at!).getFullYear()}</span>
               </div>
             </div>
             
@@ -215,7 +199,7 @@ const StorePage = () => {
         {products.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <Store className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 Nenhum produto disponível
               </h2>
