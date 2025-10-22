@@ -79,6 +79,8 @@ const Chat = () => {
   }
 
   const setupRealtimeSubscription = () => {
+    console.log(`🔧 Setting up realtime subscription for chat ${chatId} as user ${user?.id}`)
+    
     const channel = supabase
       .channel(`chat-${chatId}`)
       .on(
@@ -90,25 +92,57 @@ const Chat = () => {
           filter: `chat_id=eq.${chatId}`
         },
         async (payload) => {
+          console.log('📨 New message received via realtime:', payload)
+          
           const newMessage = payload.new as Message
+          
+          // 🔥 CORREÇÃO CRUCIAL: Não filtrar por remetente
+          // TODOS os participantes do chat devem receber TODAS as mensagens
+          
           if (newMessage.sender_id !== user?.id) {
-            const { data: sender } = await supabase
+            console.log(`📬 Message from another user: ${newMessage.sender_id}`)
+            
+            // Buscar informações completas do remetente APENAS se não for minha mensagem
+            const { data: senderData } = await supabase
               .from('profiles')
               .select('email, store_name')
               .eq('id', newMessage.sender_id)
               .single()
             
-            setMessages(prev => [...prev, { ...newMessage, sender: sender || { email: 'Desconhecido' } }])
+            const messageWithSender: MessageWithSender = {
+              ...newMessage,
+              sender: senderData || { email: 'Desconhecido' }
+            }
+
+            console.log('✅ Adding message to state:', messageWithSender)
+            setMessages(prev => {
+              const updated = [...prev, messageWithSender]
+              console.log('📝 Updated messages list:', updated)
+              return updated
+            })
+          } else {
+            console.log('📤 This is my own message, not adding to realtime')
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log(`📡 Subscription status: ${status}`)
+        if (status === 'SUBSCRIBED') {
+          console.log(`✅ Realtime subscription active for chat ${chatId}`)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Realtime subscription error')
+        }
+      })
+
+    console.log('🔗 Channel created:', channel)
     return channel
   }
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !chatId) return
     setSending(true)
+
+    console.log(`📤 Sending message: "${newMessage.trim()}" from user ${user.id}`)
 
     const optimisticMessage: MessageWithSender = {
       id: Date.now().toString(),
@@ -121,7 +155,12 @@ const Chat = () => {
         store_name: user.profile?.store_name
       }
     }
-    setMessages(prev => [...prev, optimisticMessage])
+    
+    setMessages(prev => {
+      const updated = [...prev, optimisticMessage]
+      console.log('📝 Added optimistic message:', updated)
+      return updated
+    })
     setNewMessage('')
 
     try {
@@ -134,8 +173,10 @@ const Chat = () => {
         })
 
       if (error) {
-        console.error('Error sending message:', error)
+        console.error('❌ Error sending message:', error)
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id))
+      } else {
+        console.log('✅ Message sent successfully')
       }
     } finally {
       setSending(false)
