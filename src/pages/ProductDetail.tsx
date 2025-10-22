@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { ArrowLeft, ShoppingCart, Package, MessageCircle, CreditCard, Store } from 'lucide-react'
 import { showSuccess, showError } from '../utils/toast'
+import ChatWindow from '../components/ChatWindow'
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<ProductWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
   const [startingChat, setStartingChat] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const { addToCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -74,49 +76,22 @@ const ProductDetail = () => {
     }
   }
 
-  const handleStartChat = async () => {
+  const handleStartChat = () => {
     if (!user) {
       showError('Faça login para conversar com o vendedor')
       navigate('/login')
       return
     }
+    
     if (!product || !product.seller_id) return
-
-    setStartingChat(true)
-
-    try {
-      const { data: existingChat } = await supabase
-        .from('chats')
-        .select('id')
-        .eq('product_id', product.id)
-        .eq('client_id', user.id)
-        .eq('seller_id', product.seller_id)
-        .single()
-
-      if (existingChat) {
-        navigate(`/chat/${existingChat.id}`)
-      } else {
-        const { data: newChat, error } = await supabase
-          .from('chats')
-          .insert({
-            product_id: product.id,
-            client_id: user.id,
-            seller_id: product.seller_id
-          })
-          .select('id')
-          .single()
-
-        if (error) throw error
-        
-        showSuccess('Chat iniciado com sucesso!')
-        navigate(`/chat/${newChat.id}`)
-      }
-    } catch (error) {
-      showError('Erro ao iniciar chat. Tente novamente.')
-      console.error('Error starting chat:', error)
-    } finally {
-      setStartingChat(false)
+    
+    // Verificar se não está tentando conversar consigo mesmo
+    if (user.id === product.seller_id) {
+      showError('Você não pode conversar com você mesmo!')
+      return
     }
+
+    setIsChatOpen(true)
   }
 
   if (loading) {
@@ -148,105 +123,123 @@ const ProductDetail = () => {
   const canChat = user && user.id !== product.seller_id
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-        </div>
+    <>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-6">
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+          </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Imagem do Produto */}
-              <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
-                <img
-                  src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop'}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              {/* Informações do Produto */}
-              <div className="flex flex-col">
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  {product.name}
-                </h1>
-
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="text-3xl font-bold text-green-600">
-                    {formatPrice(product.price)}
-                  </div>
-                  <div className="flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                    <CreditCard className="w-4 h-4 mr-1" />
-                    Pagamento na entrega
-                  </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Imagem do Produto */}
+                <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+                  <img
+                    src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop'}
+                    alt={product.name}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
 
-                <div className="flex items-center text-sm text-gray-600 mb-4">
-                  <Package className="w-4 h-4 mr-2" />
-                  {product.stock} unidades em estoque
-                </div>
+                {/* Informações do Produto */}
+                <div className="flex flex-col">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                    {product.name}
+                  </h1>
 
-                <div className="flex-1 mb-6">
-                  <h3 className="text-lg font-semibold mb-2">Descrição</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">
-                    {product.description || 'Nenhuma descrição disponível.'}
-                  </p>
-                </div>
-
-                {/* Card do Vendedor */}
-                {product.seller && (
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2">Vendido por</h3>
-                    <Link to={`/loja/${product.seller.id}`}>
-                      <Card className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4 flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <Store className="w-5 h-5 text-gray-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-blue-600">{product.seller.store_name}</p>
-                            <p className="text-sm text-gray-500">{product.seller.email}</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="text-3xl font-bold text-green-600">
+                      {formatPrice(product.price)}
+                    </div>
+                    <div className="flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                      <CreditCard className="w-4 h-4 mr-1" />
+                      Pagamento na entrega
+                    </div>
                   </div>
-                )}
 
-                <div className="space-y-4">
-                  <Button
-                    onClick={handleAddToCart}
-                    className="w-full"
-                    size="lg"
-                    disabled={product.stock === 0}
-                  >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    {product.stock === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
-                  </Button>
+                  <div className="flex items-center text-sm text-gray-600 mb-4">
+                    <Package className="w-4 h-4 mr-2" />
+                    {product.stock} unidades em estoque
+                  </div>
 
-                  {canChat && (
+                  <div className="flex-1 mb-6">
+                    <h3 className="text-lg font-semibold mb-2">Descrição</h3>
+                    <p className="text-gray-600 whitespace-pre-wrap">
+                      {product.description || 'Nenhuma descrição disponível.'}
+                    </p>
+                  </div>
+
+                  {/* Card do Vendedor */}
+                  {product.seller && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-2">Vendido por</h3>
+                      <Link to={`/loja/${product.seller.id}`}>
+                        <Card className="hover:shadow-md transition-shadow">
+                          <CardContent className="p-4 flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              <Store className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-blue-600">
+                                {product.seller.store_name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {product.seller.email}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
                     <Button
-                      onClick={handleStartChat}
-                      variant="outline"
+                      onClick={handleAddToCart}
                       className="w-full"
                       size="lg"
-                      disabled={startingChat}
+                      disabled={product.stock === 0}
                     >
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      {startingChat ? 'Iniciando chat...' : 'Conversar com Vendedor'}
+                      <ShoppingCart className="w-5 h-5 mr-2" />
+                      {product.stock === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
                     </Button>
-                  )}
+
+                    {canChat && (
+                      <Button
+                        onClick={handleStartChat}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                        disabled={startingChat}
+                      >
+                        <MessageCircle className="w-5 h-5 mr-2" />
+                        Conversar com Vendedor
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      {/* Chat Window Modal */}
+      {product && (
+        <ChatWindow
+          productId={product.id}
+          sellerId={product.seller_id}
+          productName={product.name}
+          sellerName={product.seller?.store_name}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
+    </>
   )
 }
 
