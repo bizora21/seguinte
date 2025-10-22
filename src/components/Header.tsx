@@ -57,6 +57,7 @@ const Header = () => {
 
   // Links de navegação principal
   const navLinks = [
+    { name: 'Lojas', href: '/lojas', hasDropdown: false },
     { name: 'Categorias', href: '#', hasDropdown: true },
     { name: 'Blog', href: '/blog', hasDropdown: false },
     { name: 'Sobre Nós', href: '/sobre', hasDropdown: false }
@@ -260,13 +261,22 @@ const Header = () => {
                                 </button>
                               </>
                             ) : (
-                              <button
-                                onClick={() => navigate('/produtos')}
-                                className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                              >
-                                <ShoppingBag className="w-4 h-4" />
-                                <span>Explorar Produtos</span>
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => navigate('/lojas')}
+                                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
+                                >
+                                  <Store className="w-4 h-4" />
+                                  <span>Explorar Lojas</span>
+                                </button>
+                                <button
+                                  onClick={() => navigate('/produtos')}
+                                  className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
+                                >
+                                  <ShoppingBag className="w-4 h-4" />
+                                  <span>Explorar Produtos</span>
+                                </button>
+                              </>
                             )}
                             
                             <button
@@ -484,16 +494,28 @@ const Header = () => {
                             </button>
                           </>
                         ) : (
-                          <button
-                            onClick={() => {
-                              navigate('/produtos')
-                              setIsMobileMenuOpen(false)
-                            }}
-                            className="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
-                          >
-                            <ShoppingBag className="w-5 h-5" />
-                            <span>Explorar Produtos</span>
-                          </button>
+                          <>
+                            <button
+                              onClick={() => {
+                                navigate('/lojas')
+                                setIsMobileMenuOpen(false)
+                              }}
+                              className="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                            >
+                              <Store className="w-5 h-5" />
+                              <span>Explorar Lojas</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                navigate('/produtos')
+                                setIsMobileMenuOpen(false)
+                              }}
+                              className="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200"
+                            >
+                              <ShoppingBag className="w-5 h-5" />
+                              <span>Explorar Produtos</span>
+                            </button>
+                          </>
                         )}
 
                         <button

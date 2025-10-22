@@ -15,6 +15,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductsPage from "./pages/ProductsPage";
+import LojasPage from "./pages/LojasPage";
 import Dashboard from "./pages/Dashboard";
 import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
@@ -50,6 +51,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/produtos" element={<ProductsPage />} />
+                  <Route path="/lojas" element={<LojasPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route 

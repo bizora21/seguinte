@@ -175,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (profile?.role === 'vendedor') {
           redirectTo = '/dashboard'  // Vendedores vão para o dashboard
         } else if (profile?.role === 'cliente') {
-          redirectTo = '/'  // 🔥 CLIENTES VÃO PARA A HOME COM PRODUTOS
+          redirectTo = '/lojas'  // 🔥 CLIENTES VÃO PARA A PÁGINA DE LOJAS
         }
 
         return { error: null, redirectTo }
