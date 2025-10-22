@@ -14,22 +14,21 @@ export interface Message {
   created_at: string
 }
 
+export interface ProfileInfo {
+  email: string
+  store_name?: string | null
+}
+
 export interface MessageWithSender extends Message {
-  sender: {
-    email: string
-  }
+  sender: ProfileInfo
 }
 
 export interface ChatWithDetails extends Chat {
   product: {
     name: string
   }
-  client: {
-    email: string
-  }
-  seller: {
-    email: string
-  }
+  client: ProfileInfo
+  seller: ProfileInfo
   _count?: {
     messages: number
   }
