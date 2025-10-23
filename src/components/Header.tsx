@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
-import { ShoppingCart, User, Search, Menu, X, LayoutDashboard, Store, MessageCircle } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, LayoutDashboard, Store, MessageCircle, LogOut, Package, Home } from 'lucide-react'
 import CartButton from './CartButton'
 import Logo from './Logo'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
+import { Avatar, AvatarFallback } from './ui/avatar'
+import CategoryMenu from './CategoryMenu'
 
 const Header = () => {
   const { user, signOut } = useAuth()
@@ -16,119 +20,114 @@ const Header = () => {
     navigate('/')
   }
 
+  const navLinks = [
+    { name: 'Início', href: '/', icon: Home },
+    { name: 'Produtos', href: '/produtos', icon: Package },
+    { name: 'Lojas', href: '/lojas', icon: Store },
+    { name: 'Blog', href: '/blog', icon: MessageCircle },
+    { name: 'Sobre Nós', href: '/sobre-nos', icon: User },
+  ]
+
+  const userMenuItems = user?.profile?.role === 'vendedor' ? [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Adicionar Produto', href: '/adicionar-produto', icon: Package },
+    { name: 'Meus Pedidos', href: '/meus-pedidos', icon: ShoppingCart },
+    { name: 'Meus Chats', href: '/meus-chats', icon: MessageCircle },
+    { name: 'Minha Loja', href: `/loja/${user.id}`, icon: Store },
+  ] : [
+    { name: 'Meus Pedidos', href: '/meus-pedidos', icon: ShoppingCart },
+    { name: 'Minhas Conversas', href: '/meus-chats', icon: MessageCircle },
+  ]
+
+  const renderUserMenuContent = (isMobile: boolean) => (
+    <>
+      {userMenuItems.map((item) => (
+        <Link key={item.name} to={item.href} onClick={() => isMobile && setIsMobileMenuOpen(false)}>
+          <div className={`flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 ${isMobile ? 'md:hidden' : ''}`}>
+            <item.icon className="w-4 h-4" />
+            <span>{item.name}</span>
+          </div>
+        </Link>
+      ))}
+      <div className={`px-4 py-2 ${isMobile ? 'md:hidden' : ''}`}>
+        <Button
+          onClick={handleSignOut}
+          variant="destructive"
+          className="w-full"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sair
+        </Button>
+      </div>
+    </>
+  )
+
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-40">
+    <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <Logo />
-          </div>
+          <Link to="/" className="flex items-center">
+            <Logo size="md" />
+          </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-700 hover:text-green-600 transition-colors"
-            >
-              Início
-            </button>
-            <button
-              onClick={() => navigate('/produtos')}
-              className="text-gray-700 hover:text-green-600 transition-colors"
-            >
-              Produtos
-            </button>
-            <button
-              onClick={() => navigate('/lojas')}
-              className="text-gray-700 hover:text-green-600 transition-colors"
-            >
-              Lojas
-            </button>
+          {/* Desktop Navigation (Central) */}
+          <nav className="hidden lg:flex items-center space-x-6">
+            <CategoryMenu />
+            {navLinks.slice(0, 5).map((link) => (
+              <Link
+                key={link.name}
+                to={link.href}
+                className="text-gray-700 font-medium hover:text-primary transition-colors"
+              >
+                {link.name}
+              </Link>
+            ))}
           </nav>
 
-          {/* Right side actions */}
-          <div className="flex items-center space-x-4">
+          {/* Right side actions (Desktop) */}
+          <div className="hidden md:flex items-center space-x-4">
             <CartButton />
             
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-green-600 transition-colors"
-                >
-                  <User className="w-5 h-5" />
-                  <span className="hidden md:block">{user.email.split('@')[0]}</span>
-                </button>
-
-                {/* Dropdown Menu */}
-                {isMobileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                    {user.profile?.role === 'vendedor' ? (
-                      <>
-                        <button
-                          onClick={() => navigate('/dashboard')}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <LayoutDashboard className="w-4 h-4" />
-                          <span>Dashboard</span>
-                        </button>
-                        <button
-                          onClick={() => navigate('/adicionar-produto')}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <Store className="w-4 h-4" />
-                          <span>Adicionar Produto</span>
-                        </button>
-                        <button
-                          onClick={() => navigate('/meus-chats')}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Meus Chats</span>
-                        </button>
-                        <button
-                          onClick={() => navigate(`/loja/${user.id}`)}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <Store className="w-4 h-4" />
-                          <span>Minha Loja</span>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => navigate('/meus-pedidos')}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>Meus Pedidos</span>
-                        </button>
-                        <button
-                          onClick={() => navigate('/meus-chats')}
-                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Minhas Conversas</span>
-                        </button>
-                      </>
-                    )}
-                    <hr className="my-1" />
-                    <button
-                      onClick={handleSignOut}
-                      className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Sair</span>
-                    </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-10 w-10 bg-secondary text-white">
+                      <AvatarFallback>
+                        {user.email.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex flex-col space-y-1 p-3">
+                    <p className="text-sm font-medium leading-none">
+                      {user.profile?.store_name || user.email.split('@')[0]}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
                   </div>
-                )}
-              </div>
+                  <DropdownMenuSeparator />
+                  {userMenuItems.map((item) => (
+                    <DropdownMenuItem key={item.name} onClick={() => navigate(item.href)} className="cursor-pointer">
+                      <item.icon className="w-4 h-4 mr-2" />
+                      <span>{item.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
                 <Button
                   onClick={() => navigate('/login')}
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                 >
                   Entrar
@@ -141,6 +140,96 @@ const Header = () => {
                 </Button>
               </div>
             )}
+          </div>
+
+          {/* Mobile Menu Trigger */}
+          <div className="md:hidden flex items-center space-x-2">
+            <CartButton />
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0 flex flex-col">
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="flex items-center">
+                    <Logo size="sm" />
+                    <span className="ml-2">Menu</span>
+                  </SheetTitle>
+                </SheetHeader>
+                
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {/* User Info / Auth */}
+                  {user ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
+                        <Avatar className="h-10 w-10 bg-secondary text-white">
+                          <AvatarFallback>
+                            {user.email.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{user.profile?.store_name || user.email.split('@')[0]}</p>
+                          <p className="text-sm text-gray-600">{user.profile?.role === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        {userMenuItems.map((item) => (
+                          <Button
+                            key={item.name}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              navigate(item.href)
+                              setIsMobileMenuOpen(false)
+                            }}
+                          >
+                            <item.icon className="w-4 h-4 mr-2" />
+                            {item.name}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        onClick={handleSignOut}
+                        variant="destructive"
+                        className="w-full"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sair
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Button onClick={() => { navigate('/login'); setIsMobileMenuOpen(false) }} className="w-full">
+                        Entrar
+                      </Button>
+                      <Button onClick={() => { navigate('/register'); setIsMobileMenuOpen(false) }} variant="outline" className="w-full">
+                        Cadastrar
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-4 space-y-1">
+                    <h3 className="text-lg font-semibold mb-2">Navegação</h3>
+                    {navLinks.map((link) => (
+                      <Button
+                        key={link.name}
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          navigate(link.href)
+                          setIsMobileMenuOpen(false)
+                        }}
+                      >
+                        <link.icon className="w-4 h-4 mr-2" />
+                        {link.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </div>

@@ -17,21 +17,24 @@ const ProductCard = ({ product }: ProductCardProps) => {
   }
 
   return (
-    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-300">
+    <Card className="h-full flex flex-col hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="p-0">
         <Link to={`/produto/${product.id}`}>
           <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-gray-100">
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'}
               alt={product.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
+              }}
             />
           </div>
         </Link>
       </CardHeader>
       <CardContent className="flex-1 p-4">
         <Link to={`/produto/${product.id}`}>
-          <CardTitle className="text-lg mb-2 line-clamp-2 hover:text-green-700 transition-colors">
+          <CardTitle className="text-lg mb-2 line-clamp-2 hover:text-primary transition-colors">
             {product.name}
           </CardTitle>
         </Link>
@@ -40,13 +43,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </p>
         {product.seller && (
           <Link to={`/loja/${product.seller.id}`} className="inline-block mb-2">
-            <div className="flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors">
+            <div className="flex items-center text-sm text-gray-500 hover:text-secondary transition-colors">
               <Store className="w-4 h-4 mr-1" />
               <span>{product.seller.store_name || 'Loja do Vendedor'}</span>
             </div>
           </Link>
         )}
-        <div className="text-2xl font-bold text-green-600">
+        <div className="text-2xl font-bold text-primary">
           {formatPrice(product.price)}
         </div>
         <div className="text-sm text-gray-500 mt-1">
@@ -55,9 +58,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Link to={`/confirmar-encomenda/${product.id}`} className="w-full">
-          <Button className="w-full bg-green-600 hover:bg-green-700">
+          <Button 
+            className="w-full bg-primary hover:bg-green-600"
+            disabled={product.stock === 0}
+          >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            Encomendar Agora
+            {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
           </Button>
         </Link>
       </CardFooter>

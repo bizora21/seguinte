@@ -14,8 +14,7 @@ import {
   Shield,
   Truck,
   CreditCard,
-  Headphones,
-  Users
+  Headphones
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -103,7 +102,7 @@ const Footer = () => {
   return (
     <footer className="bg-gray-900 text-white">
       {/* Features Bar */}
-      <div className="border-b border-gray-800">
+      <section className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <motion.div
             variants={containerVariants}
@@ -118,7 +117,7 @@ const Footer = () => {
                 variants={itemVariants}
                 className="flex items-center space-x-3 text-center md:text-left"
               >
-                <feature.icon className="w-8 h-8 text-green-400 flex-shrink-0" />
+                <feature.icon className="w-8 h-8 text-primary flex-shrink-0" />
                 <div>
                   <div className="font-semibold">{feature.title}</div>
                   <div className="text-sm text-gray-400">{feature.description}</div>
@@ -127,7 +126,7 @@ const Footer = () => {
             ))}
           </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -140,7 +139,7 @@ const Footer = () => {
             viewport={{ once: true }}
             className="lg:col-span-2"
           >
-            <h3 className="text-2xl font-bold mb-4 text-green-400">LojaRápida</h3>
+            <h3 className="text-2xl font-bold mb-4 text-primary">LojaRápida</h3>
             <p className="text-gray-300 mb-6">
               O maior marketplace de Moçambique, conectando vendedores locais com clientes em todo o país. 
               Compre e venda com segurança e confiança.
@@ -150,7 +149,7 @@ const Footer = () => {
             <div className="space-y-3 mb-6">
               {contactInfo.map((info, index) => (
                 <div key={index} className="flex items-center">
-                  <info.icon className="w-4 h-4 mr-2 text-green-400" />
+                  <info.icon className="w-4 h-4 mr-2 text-primary" />
                   <span className="text-sm">{info.text}</span>
                 </div>
               ))}
@@ -163,7 +162,7 @@ const Footer = () => {
                   key={index}
                   href={social.href}
                   aria-label={social.label}
-                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-green-600 transition-colors"
+                  className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-primary transition-colors"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -181,18 +180,20 @@ const Footer = () => {
             viewport={{ once: true }}
           >
             <h4 className="text-lg font-semibold mb-4">Links Rápidos</h4>
-            <ul className="space-y-2">
-              {quickLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    to={link.href}
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <nav>
+              <ul className="space-y-2">
+                {quickLinks.map((link, index) => (
+                  <li key={index}>
+                    <Link
+                      to={link.href}
+                      className="text-gray-300 hover:text-primary transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </motion.div>
 
           {/* Customer Service */}
@@ -203,18 +204,20 @@ const Footer = () => {
             viewport={{ once: true }}
           >
             <h4 className="text-lg font-semibold mb-4">Atendimento</h4>
-            <ul className="space-y-2">
-              {customerServiceLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    to={link.href}
-                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <nav>
+              <ul className="space-y-2">
+                {customerServiceLinks.map((link, index) => (
+                  <li key={index}>
+                    <Link
+                      to={link.href}
+                      className="text-gray-300 hover:text-primary transition-colors text-sm"
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </motion.div>
 
           {/* Newsletter */}
@@ -239,7 +242,7 @@ const Footer = () => {
               />
               <Button
                 type="submit"
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-primary hover:bg-green-600"
               >
                 <Send className="w-4 h-4 mr-2" />
                 Inscrever
@@ -257,17 +260,17 @@ const Footer = () => {
               © 2025 LojaRápida. Todos os direitos reservados.
             </div>
             
-            <div className="flex items-center space-x-6">
+            <nav className="flex items-center space-x-6">
               {legalLinks.map((link, index) => (
                 <Link
                   key={index}
                   to={link.href}
-                  className="text-sm text-gray-400 hover:text-green-400 transition-colors"
+                  className="text-sm text-gray-400 hover:text-primary transition-colors"
                 >
                   {link.name}
                 </Link>
               ))}
-            </div>
+            </nav>
 
             <div className="flex items-center text-sm text-gray-400">
               Feito com <Heart className="w-4 h-4 mx-1 text-red-500" /> em Moçambique
