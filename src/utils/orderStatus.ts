@@ -26,6 +26,12 @@ export const ORDER_STATUS_OPTIONS: OrderStatusOption[] = [
     icon: '✅'
   },
   {
+    value: 'completed',
+    label: 'Concluído',
+    color: 'bg-blue-100 text-blue-800',
+    icon: '🎉'
+  },
+  {
     value: 'cancelled',
     label: 'Cancelado',
     color: 'bg-red-100 text-red-800',
@@ -42,7 +48,8 @@ export const getNextStatuses = (currentStatus: Order['status']) => {
     'pending': ['preparing', 'cancelled'],
     'preparing': ['in_transit', 'cancelled'],
     'in_transit': ['delivered'],
-    'delivered': [],
+    'delivered': ['completed'],
+    'completed': [],
     'cancelled': []
   }
   
