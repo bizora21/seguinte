@@ -10,7 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { showSuccess, showError } from '../utils/toast'
 
 // Defina o email do administrador aqui
-const ADMIN_EMAIL = 'your-admin-email@example.com' // 🔥 Mude para o seu email
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
 
 interface Commission {
   id: string
