@@ -165,88 +165,69 @@ const SellerOrders = () => {
     
     try {
       console.log('🔍 Buscando pedidos para o vendedor:', user.id)
-      console.log('👤 User role:', user.profile?.role)
       
-      // 🚀 MÉTODO 1: Query SIMPLES (garantida funcionar)
-      console.log('📋 Tentando query SIMPLES primeiro...')
-      const { data: simpleData, error: simpleError } = await supabase
+      // Query simples e direta que FUNCIONA (baseada na variável sellerItems)
+      const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          id,
+          order_id,
+          product_id,
+          quantity,
+          price,
+          created_at,
+          orders!inner(
+            id,
+            user_id,
+            total_amount,
+            status,
+            delivery_address,
+            created_at,
+            updated_at
+          ),
+          products(
+            id,
+            name,
+            image_url
+          )
+        `)
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false })
 
-      if (simpleError) {
-        console.error('❌ Erro na query simples:', simpleError)
-        throw new Error(`Query simples falhou: ${simpleError.message}`)
+      if (sellerError) {
+        console.error('❌ Erro na query:', sellerError)
+        throw new Error(`Query falhou: ${sellerError.message}`)
       }
 
-      console.log('✅ Query SIMPLES funcionou:', simpleData?.length || 0, 'itens')
+      console.log('✅ Dados brutos recebidos:', sellerItems?.length || 0, 'itens')
       
-      if (!simpleData || simpleData.length === 0) {
+      if (!sellerItems || sellerItems.length === 0) {
         console.log('📦 Nenhum item encontrado para este vendedor')
         setOrders([])
         return
       }
 
-      // 🚀 MÉTODO 2: Buscar dados adicionais separadamente
-      console.log('📋 Buscando dados adicionais...')
-      
-      // Buscar orders
-      const orderIds = [...new Set(simpleData.map(item => item.order_id))]
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .in('id', orderIds)
-
-      if (ordersError) {
-        console.error('❌ Erro ao buscar orders:', ordersError)
-        throw new Error(`Erro ao buscar orders: ${ordersError.message}`)
-      }
-
-      // Buscar products
-      const productIds = [...new Set(simpleData.map(item => item.product_id))]
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .in('id', productIds)
-
-      if (productsError) {
-        console.error('❌ Erro ao buscar products:', productsError)
-        throw new Error(`Erro ao buscar products: ${productsError.message}`)
-      }
-
-      console.log('✅ Dados adicionais buscados:')
-      console.log('- Orders:', ordersData?.length || 0)
-      console.log('- Products:', productsData?.length || 0)
-
-      // 🔥 PROCESSAMENTO GARANTIDO
+      // Processamento dos dados
       const orderMap = new Map<string, ProcessedOrder>()
       
-      simpleData.forEach((item: any) => {
+      sellerItems.forEach((item: any) => {
         const orderId = item.order_id
-        const order = ordersData?.find(o => o.id === orderId)
-        const product = productsData?.find(p => p.id === item.product_id)
-        
-        if (!order || !product) {
-          console.warn('⚠️ Item sem order ou product:', item.id)
-          return
-        }
         
         if (!orderMap.has(orderId)) {
           orderMap.set(orderId, {
-            id: order.id,
-            user_id: order.user_id,
-            total_amount: order.total_amount,
-            status: order.status as ProcessedOrder['status'],
-            delivery_address: order.delivery_address,
-            created_at: order.created_at,
-            updated_at: order.updated_at,
+            id: item.orders.id,
+            user_id: item.orders.user_id,
+            total_amount: item.orders.total_amount,
+            status: item.orders.status as ProcessedOrder['status'],
+            delivery_address: item.orders.delivery_address,
+            created_at: item.orders.created_at,
+            updated_at: item.orders.updated_at,
             order_items: []
           })
         }
         
-        const orderMapItem = orderMap.get(orderId)!
-        orderMapItem.order_items.push({
+        const order = orderMap.get(orderId)!
+        order.order_items.push({
           id: item.id,
           order_id: item.order_id,
           product_id: item.product_id,
@@ -254,22 +235,18 @@ const SellerOrders = () => {
           price: item.price,
           created_at: item.created_at,
           product: {
-            name: product.name || 'Produto sem nome',
-            image_url: product.image_url
+            name: item.products?.name || 'Produto sem nome',
+            image_url: item.products?.image_url
           }
         })
       })
       
       const finalOrders = Array.from(orderMap.values())
-      console.log('📊 Pedidos processados:', finalOrders.length)
-      console.log('📦 Estrutura final:', finalOrders)
-      
       setOrders(finalOrders)
       
     } catch (error: any) {
-      console.error('❌ Erro completo ao buscar pedidos:', error)
+      console.error('❌ Erro ao buscar pedidos:', error)
       setError(error.message || 'Erro desconhecido')
-      showError(`Erro ao carregar pedidos: ${error.message}`)
     } finally {
       setLoading(false)
     }
