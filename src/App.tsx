@@ -32,6 +32,9 @@ import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
 import ConfirmarEncomendaPage from "./pages/ConfirmarEncomendaPage";
 import EncomendaSucessoPage from "./pages/EncomendaSucessoPage";
+import TermosDeUsoPage from "./pages/TermosDeUsoPage";
+import PoliticaDePrivacidadePage from "./pages/PoliticaDePrivacidadePage";
+import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +93,10 @@ const App = () => (
                       </ProtectedRoute>
                     } 
                   />
+                  {/* ROTAS DE POLÍTICAS LEGAIS */}
+                  <Route path="/termos" element={<TermosDeUsoPage />} />
+                  <Route path="/privacidade" element={<PoliticaDePrivacidadePage />} />
+                  <Route path="/politica-vendedor" element={<PoliticaVendedorPage />} />
                   {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
                   <Route 
                     path="/carrinho" 
