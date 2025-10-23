@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button'
 import { ArrowLeft, ShoppingCart, Package, MessageCircle, CreditCard, Store } from 'lucide-react'
 import { showSuccess, showError } from '../utils/toast'
 import ChatWindow from '../components/ChatWindow'
+import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO'
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -103,9 +104,30 @@ const ProductDetail = () => {
   }
 
   const canChat = user && user.id !== product.seller_id
+  const storeName = product.seller?.store_name || 'Loja do Vendedor'
+  const productUrl = `https://lojarapida.co.mz/produto/${product.id}`
+
+  // SEO Data
+  const jsonLd = [
+    generateProductSchema(product, storeName),
+    generateBreadcrumbSchema([
+      { name: 'Lojas', url: 'https://lojarapida.co.mz/lojas' },
+      { name: storeName, url: `https://lojarapida.co.mz/loja/${product.seller_id}` },
+      { name: product.name, url: productUrl }
+    ])
+  ]
 
   return (
     <>
+      <SEO
+        title={`${product.name} | ${storeName}`}
+        description={`${product.description || `Compre ${product.name} na LojaRápida por apenas ${formatPrice(product.price)}.`} ${product.stock > 0 ? 'Disponível para entrega em todo Moçambique.' : 'Produto temporariamente indisponível.'}`}
+        image={product.image_url || '/og-image.jpg'}
+        url={productUrl}
+        type="product"
+        jsonLd={jsonLd}
+      />
+      
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
@@ -124,6 +146,7 @@ const ProductDetail = () => {
                     src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop'}
                     alt={product.name}
                     className="h-full w-full object-cover"
+                    loading="lazy" // Otimização de imagem
                   />
                 </div>
 
@@ -170,7 +193,8 @@ const ProductDetail = () => {
                                 {product.seller.store_name}
                               </p>
                               <p className="text-sm text-gray-500">
-                                {product.seller.email}
+                                {/* Removido email para SEO/Privacidade, mas mantido para debug se necessário */}
+                                Ver Loja
                               </p>
                             </div>
                           </CardContent>

@@ -38,154 +38,157 @@ import EncomendaSucessoPage from "./pages/EncomendaSucessoPage";
 import TermosDeUsoPage from "./pages/TermosDeUsoPage";
 import PoliticaDePrivacidadePage from "./pages/PoliticaDePrivacidadePage";
 import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
-import CustomerOrderDetails from "./pages/CustomerOrderDetails"; // Novo import
+import CustomerOrderDetails from "./pages/CustomerOrderDetails";
+import { HelmetProvider } from "react-helmet-async"; // Importação necessária
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <AuthProvider>
-        <CartProvider>
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            <div className="min-h-screen bg-gray-50 flex flex-col">
-              <Header />
-              <PaymentBanner />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/produtos" element={<ProductsPage />} />
-                  <Route path="/lojas" element={<LojasPage />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route 
-                    path="/dashboard" 
-                    element={
-                      <ProtectedRoute requiredRole="vendedor">
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute>
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/adicionar-produto" 
-                    element={
-                      <ProtectedRoute requiredRole="vendedor">
-                        <AddProduct />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/produto/:id" element={<ProductDetail />} />
-                  {/* ROTAS INFORMATIVAS */}
-                  <Route path="/sobre-nos" element={<SobreNosPage />} />
-                  <Route path="/blog" element={<BlogPage />} />
-                  <Route path="/faq" element={<FaqPage />} />
-                  <Route path="/contato" element={<ContatoPage />} />
-                  {/* ROTAS DE ENCOMENDA */}
-                  <Route 
-                    path="/confirmar-encomenda/:productId" 
-                    element={
-                      <ProtectedRoute>
-                        <ConfirmarEncomendaPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/encomenda-sucesso" 
-                    element={
-                      <ProtectedRoute>
-                        <EncomendaSucessoPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  {/* ROTAS DE POLÍTICAS LEGAIS */}
-                  <Route path="/termos" element={<TermosDeUsoPage />} />
-                  <Route path="/privacidade" element={<PoliticaDePrivacidadePage />} />
-                  <Route path="/politica-vendedor" element={<PoliticaVendedorPage />} />
-                  {/* ROTAS DE PEDIDOS */}
-                  <Route 
-                    path="/meus-pedidos" 
-                    element={
-                      <ProtectedRoute>
-                        <MyOrders />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/meus-pedidos/:orderId" 
-                    element={
-                      <ProtectedRoute requiredRole="cliente">
-                        <CustomerOrderDetails />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
-                  <Route 
-                    path="/carrinho" 
-                    element={
-                      <ProtectedRoute>
-                        <Cart />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/checkout" 
-                    element={
-                      <ProtectedRoute>
-                        <Checkout />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/encomenda-confirmada" 
-                    element={
-                      <ProtectedRoute>
-                        <OrderConfirmed />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/meus-chats" 
-                    element={
-                      <ProtectedRoute>
-                        <MyChats />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/chat/:chatId" 
-                    element={
-                      <ProtectedRoute>
-                        <Chat />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/busca" element={<SearchResults />} />
-                  <Route path="/loja/:sellerId" element={<StorePage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-              <BackToHomeButton />
-              <Chatbot />
-            </div>
-            <Toaster />
-            <Sonner />
-          </BrowserRouter>
-        </CartProvider>
-      </AuthProvider>
+      <HelmetProvider> {/* Envolve a aplicação com HelmetProvider */}
+        <AuthProvider>
+          <CartProvider>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Header />
+                <PaymentBanner />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/produtos" element={<ProductsPage />} />
+                    <Route path="/lojas" element={<LojasPage />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route 
+                      path="/dashboard" 
+                      element={
+                        <ProtectedRoute requiredRole="vendedor">
+                          <Dashboard />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/admin" 
+                      element={
+                        <ProtectedRoute>
+                          <AdminDashboard />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/adicionar-produto" 
+                      element={
+                        <ProtectedRoute requiredRole="vendedor">
+                          <AddProduct />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route path="/produto/:id" element={<ProductDetail />} />
+                    {/* ROTAS INFORMATIVAS */}
+                    <Route path="/sobre-nos" element={<SobreNosPage />} />
+                    <Route path="/blog" element={<BlogPage />} />
+                    <Route path="/faq" element={<FaqPage />} />
+                    <Route path="/contato" element={<ContatoPage />} />
+                    {/* ROTAS DE ENCOMENDA */}
+                    <Route 
+                      path="/confirmar-encomenda/:productId" 
+                      element={
+                        <ProtectedRoute>
+                          <ConfirmarEncomendaPage />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/encomenda-sucesso" 
+                      element={
+                        <ProtectedRoute>
+                          <EncomendaSucessoPage />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    {/* ROTAS DE POLÍTICAS LEGAIS */}
+                    <Route path="/termos" element={<TermosDeUsoPage />} />
+                    <Route path="/privacidade" element={<PoliticaDePrivacidadePage />} />
+                    <Route path="/politica-vendedor" element={<PoliticaVendedorPage />} />
+                    {/* ROTAS DE PEDIDOS */}
+                    <Route 
+                      path="/meus-pedidos" 
+                      element={
+                        <ProtectedRoute>
+                          <MyOrders />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/meus-pedidos/:orderId" 
+                      element={
+                        <ProtectedRoute requiredRole="cliente">
+                          <CustomerOrderDetails />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
+                    <Route 
+                      path="/carrinho" 
+                      element={
+                        <ProtectedRoute>
+                          <Cart />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/checkout" 
+                      element={
+                        <ProtectedRoute>
+                          <Checkout />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/encomenda-confirmada" 
+                      element={
+                        <ProtectedRoute>
+                          <OrderConfirmed />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/meus-chats" 
+                      element={
+                        <ProtectedRoute>
+                          <MyChats />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route 
+                      path="/chat/:chatId" 
+                      element={
+                        <ProtectedRoute>
+                          <Chat />
+                        </ProtectedRoute>
+                      } 
+                    />
+                    <Route path="/busca" element={<SearchResults />} />
+                    <Route path="/loja/:sellerId" element={<StorePage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+                <BackToHomeButton />
+                <Chatbot />
+              </div>
+              <Toaster />
+              <Sonner />
+            </BrowserRouter>
+          </CartProvider>
+        </AuthProvider>
+      </HelmetProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
