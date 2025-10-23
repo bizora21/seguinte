@@ -7,6 +7,7 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { 
   Plus, 
   ShoppingBag, 
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { showSuccess } from '../utils/toast'
+import SellerFinanceTab from '../components/SellerFinanceTab'
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -226,127 +228,145 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Ações Rápidas */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2" />
-                  Ações Rápidas
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button
-                  onClick={() => navigate('/adicionar-produto')}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Produto
-                </Button>
-                <Button
-                  onClick={() => navigate('/meus-pedidos')}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Gerenciar Pedidos
-                </Button>
-                <Button
-                  onClick={() => navigate('/meus-chats')}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Mensagens
-                </Button>
-                <Button
-                  onClick={() => navigate(`/loja/${user.id}`)}
-                  className="w-full justify-start"
-                  variant="outline"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Ver Minha Loja
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Minha Loja Pública */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Store className="w-5 h-5 mr-2" />
-                  Minha Loja Pública
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  Veja como sua loja aparece para os clientes
-                </p>
-                <Button
-                  onClick={() => navigate(`/loja/${user.id}`)}
-                  className="w-full"
-                >
-                  <Store className="w-4 h-4 mr-2" />
-                  Ver Minha Loja
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Pedidos Recentes */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <ShoppingBag className="w-5 h-5 mr-2" />
-                  Pedidos Recentes
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/meus-pedidos')}
-                >
-                  Ver Todos
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {recentOrders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Nenhum pedido recebido ainda</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentOrders.map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(order.created_at).toLocaleDateString('pt-MZ')}
-                          </p>
+        {/* Tabs for different sections */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="finance">Finanças</TabsTrigger>
+            <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="finance">
+            <SellerFinanceTab />
+          </TabsContent>
+          
+          <TabsContent value="activity">
+            <div className="space-y-6">
+              {/* Pedidos Recentes */}
+              <Card>
+                <CardHeader className="flex items-center justify-between">
+                  <CardTitle className="flex items-center">
+                    <ShoppingBag className="w-5 h-5 mr-2" />
+                    Pedidos Recentes
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/meus-pedidos')}
+                  >
+                    Ver Todos
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {recentOrders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Nenhum pedido recebido ainda</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {recentOrders.map((order) => (
+                        <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div>
+                            <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
+                            <p className="text-sm text-gray-600">
+                              {new Date(order.created_at).toLocaleDateString('pt-MZ')}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+                            <Badge 
+                              variant={order.status === 'pending' ? 'secondary' : 'default'}
+                              className="text-xs"
+                            >
+                              {order.status === 'pending' ? 'Pendente' : 
+                               order.status === 'preparing' ? 'Preparando' :
+                               order.status === 'in_transit' ? 'A Caminho' : 'Entregue'}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{formatPrice(order.total_amount)}</p>
-                          <Badge 
-                            variant={order.status === 'pending' ? 'secondary' : 'default'}
-                            className="text-xs"
-                          >
-                            {order.status === 'pending' ? 'Pendente' : 
-                             order.status === 'preparing' ? 'Preparando' :
-                             order.status === 'in_transit' ? 'A Caminho' : 'Entregue'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="overview">
+            <div className="space-y-6">
+              {/* Ações Rápidas */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Ações Rápidas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <TrendingUp className="w-5 h-5 mr-2" />
+                      Ações Rápidas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button
+                      onClick={() => navigate('/adicionar-produto')}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Produto
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/meus-pedidos')}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <ShoppingBag className="w-4 h-4 mr-2" />
+                      Gerenciar Pedidos
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/meus-chats')}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Mensagens
+                    </Button>
+                    <Button
+                      onClick={() => navigate(`/loja/${user.id}`)}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Ver Minha Loja
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Minha Loja Pública */}
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Store className="w-5 h-5 mr-2" />
+                      Minha Loja Pública
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Veja como sua loja aparece para os clientes
+                    </p>
+                    <Button
+                      onClick={() => navigate(`/loja/${user.id}`)}
+                      className="w-full"
+                    >
+                      <Store className="w-4 h-4 mr-2" />
+                      Ver Minha Loja
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

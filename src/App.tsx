@@ -17,6 +17,7 @@ import Register from "./pages/Register";
 import ProductsPage from "./pages/ProductsPage";
 import LojasPage from "./pages/LojasPage";
 import Dashboard from "./pages/Dashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -66,6 +67,14 @@ const App = () => (
                     element={
                       <ProtectedRoute requiredRole="vendedor">
                         <Dashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/admin" 
+                    element={
+                      <ProtectedRoute>
+                        <AdminDashboard />
                       </ProtectedRoute>
                     } 
                   />

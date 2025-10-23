@@ -252,6 +252,7 @@ const SellerOrders = () => {
     }
   }
 
+  // 🔥 FUNÇÃO ATUALIZADA PARA CRIAR COMISSÃO
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
     
@@ -263,12 +264,22 @@ const SellerOrders = () => {
 
       if (error) {
         showError('Erro ao atualizar status: ' + error.message)
-      } else {
-        showSuccess('Status atualizado com sucesso!')
-        setOrders(prev => prev.map(order => 
-          order.id === orderId ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() } : order
-        ))
+        return // Impede a execução se a atualização falhar
       }
+      
+      showSuccess('Status atualizado com sucesso!')
+      setOrders(prev => prev.map(order => 
+        order.id === orderId ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() } : order
+      ))
+
+      // 🔥 GATILHO DE MONETIZAÇÃO: Criar comissão se o pedido for entregue
+      if (newStatus === 'delivered') {
+        const order = orders.find(o => o.id === orderId)
+        if (order) {
+          await createCommission(order)
+        }
+      }
+
     } catch (error) {
       showError('Erro inesperado ao atualizar status')
       console.error('Update status error:', error)
@@ -276,6 +287,36 @@ const SellerOrders = () => {
       setUpdatingStatus(null)
     }
   }
+
+  // 🔥 FUNÇÃO PARA CRIAR A COMISSÃO
+  const createCommission = async (order: ProcessedOrder) => {
+    const commissionAmount = order.total_amount * 0.10 // 10% de comissão
+    const toastId = showLoading('Registrando comissão...')
+
+    try {
+      const { error } = await supabase
+        .from('commissions')
+        .insert({
+          order_id: order.id,
+          seller_id: user!.id,
+          amount: commissionAmount,
+          status: 'pending'
+        })
+      
+      if (error) {
+        console.error('Erro ao criar comissão:', error)
+        // Não mostrar erro para o vendedor, é um processo interno
+      } else {
+        // Aqui você pode adicionar uma notificação interna para o admin
+        console.log(`Comissão de ${commissionAmount} criada para o pedido ${order.id}`)
+      }
+    } catch (error: any) {
+      console.error('Erro inesperado ao criar comissão:', error)
+    } finally {
+      dismissToast(toastId)
+    }
+  }
+
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
