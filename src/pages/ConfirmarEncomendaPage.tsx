@@ -147,25 +147,52 @@ const ConfirmarEncomendaPage = () => {
         throw new Error('Erro ao criar pedido: ' + orderError.message)
       }
 
-      // 2. Criar o item do pedido
+      // 🔥 MUDANÇA CRUCIAL: Buscar o seller_id do produto
+      console.log('🔍 Buscando seller_id do produto:', productId)
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('seller_id')
+        .eq('id', productId)
+        .single()
+
+      if (productError) {
+        console.error('❌ Erro ao buscar seller_id:', productError)
+        throw new Error('Erro ao obter informações do vendedor: ' + productError.message)
+      }
+
+      if (!productData?.seller_id) {
+        throw new Error('Produto não possui vendedor associado')
+      }
+
+      console.log('✅ Seller_id encontrado:', productData.seller_id)
+
+      // 2. Criar o item do pedido COM o seller_id
       const { error: itemError } = await supabase
         .from('order_items')
         .insert({
           order_id: order.id,
           product_id: product.id,
           quantity: 1,
-          price: product.price
+          price: product.price,
+          user_id: user.id,
+          seller_id: productData.seller_id // <-- 🔥 A MUDANÇA CRUCIAL AQUI
         })
 
       if (itemError) {
+        console.error('❌ Erro ao criar item do pedido:', itemError)
         throw new Error('Erro ao adicionar item ao pedido: ' + itemError.message)
       }
+
+      console.log('✅ Pedido e item criados com sucesso!')
+      console.log('📦 Order ID:', order.id)
+      console.log('👤 Seller ID:', productData.seller_id)
+      console.log('🛒 Product ID:', product.id)
 
       showSuccess('Encomenda confirmada com sucesso!')
       navigate('/encomenda-sucesso')
 
     } catch (error: any) {
-      console.error('Error creating order:', error)
+      console.error('❌ Error creating order:', error)
       showError(error.message || 'Erro ao processar sua encomenda')
     } finally {
       setSubmitting(false)
