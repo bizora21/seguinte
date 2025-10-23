@@ -25,6 +25,11 @@ const ConfirmarEncomendaPage = () => {
   const [product, setProduct] = useState<ProductWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  
+  // 1. Gerenciar Estado de Aceitação
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+
   const [formData, setFormData] = useState<OrderFormData>({
     fullName: '',
     deliveryAddress: '',
@@ -117,6 +122,12 @@ const ConfirmarEncomendaPage = () => {
     if (!validateForm()) {
       return
     }
+    
+    // 3. Lógica de Envio Condicional
+    if (!acceptedTerms || !acceptedPrivacy) {
+      showError('Você deve aceitar os Termos de Uso e a Política de Privacidade para continuar.');
+      return;
+    }
 
     if (!user) {
       showError('Você precisa estar logado para fazer uma encomenda')
@@ -134,12 +145,8 @@ const ConfirmarEncomendaPage = () => {
 
     try {
       console.log('🚀 INICIANDO CRIAÇÃO DE ENCOMENDA')
-      console.log('👤 Cliente:', user.id, user.email)
-      console.log('📦 Produto:', product.id, product.name)
-      console.log('🏪 Vendedor:', product.seller_id)
-
-      // 🔥 PASSO 1: Verificar seller_id do produto
-      console.log('🔍 VERIFICANDO SELLER_ID DO PRODUTO')
+      
+      // PASSO 1: Verificar seller_id do produto
       const { data: productCheck, error: productCheckError } = await supabase
         .from('products')
         .select('seller_id, name')
@@ -147,7 +154,6 @@ const ConfirmarEncomendaPage = () => {
         .single()
 
       if (productCheckError) {
-        console.error('❌ Erro ao verificar produto:', productCheckError)
         throw new Error('Erro ao verificar produto: ' + productCheckError.message)
       }
 
@@ -155,10 +161,7 @@ const ConfirmarEncomendaPage = () => {
         throw new Error('Produto não possui vendedor associado')
       }
 
-      console.log('✅ Seller_id verificado:', productCheck.seller_id)
-
-      // 🔥 PASSO 2: Criar o pedido (order)
-      console.log('📋 CRIANDO PEDIDO (ORDER)')
+      // PASSO 2: Criar o pedido (order)
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -171,56 +174,27 @@ const ConfirmarEncomendaPage = () => {
         .single()
 
       if (orderError) {
-        console.error('❌ Erro ao criar pedido:', orderError)
         throw new Error('Erro ao criar pedido: ' + orderError.message)
       }
 
-      console.log('✅ Pedido criado:', order.id)
-
-      // 🔥 PASSO 3: Criar o item do pedido COM seller_id
-      console.log('📦 CRIANDO ITEM DO PEDIDO (ORDER_ITEM)')
+      // PASSO 3: Criar o item do pedido COM seller_id
       const orderItemData = {
         order_id: order.id,
         product_id: product.id,
         quantity: 1,
         price: product.price,
         user_id: user.id,
-        seller_id: productCheck.seller_id // 🔥 CRUCIAL: Usar seller_id verificado
+        seller_id: productCheck.seller_id
       }
 
-      console.log('📝 Dados do order_item:', orderItemData)
-
-      const { data: orderItem, error: itemError } = await supabase
+      const { error: itemError } = await supabase
         .from('order_items')
         .insert(orderItemData)
-        .select()
-        .single()
 
       if (itemError) {
-        console.error('❌ Erro ao criar item do pedido:', itemError)
         // Tentar deletar o pedido criado para evitar dados órfãos
         await supabase.from('orders').delete().eq('id', order.id)
         throw new Error('Erro ao adicionar item ao pedido: ' + itemError.message)
-      }
-
-      console.log('✅ Item do pedido criado:', orderItem.id)
-
-      // 🔥 PASSO 4: Verificação final
-      console.log('🔍 VERIFICAÇÃO FINAL')
-      const { data: verification, error: verificationError } = await supabase
-        .from('order_items')
-        .select(`
-          *,
-          orders(id, status),
-          products(name)
-        `)
-        .eq('id', orderItem.id)
-        .single()
-
-      if (verificationError) {
-        console.error('❌ Erro na verificação:', verificationError)
-      } else {
-        console.log('✅ VERIFICAÇÃO BEM-SUCEDIDA:', verification)
       }
 
       dismissToast(toastId)
@@ -348,12 +322,60 @@ const ConfirmarEncomendaPage = () => {
                       disabled={submitting}
                     />
                   </div>
+                  
+                  {/* 2. Checkboxes de Aceitação */}
+                  <div className="space-y-3 pt-4">
+                    <label className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        disabled={submitting}
+                      />
+                      <span className="text-sm text-gray-600">
+                        Li e aceito os{' '}
+                        <a
+                          href="/termos"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline hover:text-blue-800 font-medium"
+                        >
+                          Termos de Uso
+                        </a>{' '}
+                        da LojaRápida.
+                      </span>
+                    </label>
+
+                    <label className="flex items-start space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={acceptedPrivacy}
+                        onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        disabled={submitting}
+                      />
+                      <span className="text-sm text-gray-600">
+                        Li e aceito a{' '}
+                        <a
+                          href="/privacidade"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 underline hover:text-blue-800 font-medium"
+                        >
+                          Política de Privacidade
+                        </a>{' '}
+                        da LojaRápida.
+                      </span>
+                    </label>
+                  </div>
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-green-600 hover:bg-green-700"
                     size="lg"
-                    disabled={submitting}
+                    // 4. Desabilitar Botão de Forma Dinâmica
+                    disabled={submitting || !acceptedTerms || !acceptedPrivacy}
                   >
                     {submitting ? 'Processando...' : 'Confirmar Encomenda'}
                   </Button>
