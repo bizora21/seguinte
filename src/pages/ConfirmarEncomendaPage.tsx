@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield } from 'lucide-react'
-import { showSuccess, showError } from '../utils/toast'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 interface OrderFormData {
@@ -73,6 +73,7 @@ const ConfirmarEncomendaPage = () => {
       }
 
       setProduct(data)
+      console.log('📦 Produto carregado:', data)
     } catch (error) {
       console.error('Error fetching product:', error)
       showError('Erro ao carregar produto')
@@ -129,9 +130,35 @@ const ConfirmarEncomendaPage = () => {
     }
 
     setSubmitting(true)
+    const toastId = showLoading('Processando sua encomenda...')
 
     try {
-      // 1. Criar o pedido
+      console.log('🚀 INICIANDO CRIAÇÃO DE ENCOMENDA')
+      console.log('👤 Cliente:', user.id, user.email)
+      console.log('📦 Produto:', product.id, product.name)
+      console.log('🏪 Vendedor:', product.seller_id)
+
+      // 🔥 PASSO 1: Verificar seller_id do produto
+      console.log('🔍 VERIFICANDO SELLER_ID DO PRODUTO')
+      const { data: productCheck, error: productCheckError } = await supabase
+        .from('products')
+        .select('seller_id, name')
+        .eq('id', productId)
+        .single()
+
+      if (productCheckError) {
+        console.error('❌ Erro ao verificar produto:', productCheckError)
+        throw new Error('Erro ao verificar produto: ' + productCheckError.message)
+      }
+
+      if (!productCheck?.seller_id) {
+        throw new Error('Produto não possui vendedor associado')
+      }
+
+      console.log('✅ Seller_id verificado:', productCheck.seller_id)
+
+      // 🔥 PASSO 2: Criar o pedido (order)
+      console.log('📋 CRIANDO PEDIDO (ORDER)')
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -144,55 +171,65 @@ const ConfirmarEncomendaPage = () => {
         .single()
 
       if (orderError) {
+        console.error('❌ Erro ao criar pedido:', orderError)
         throw new Error('Erro ao criar pedido: ' + orderError.message)
       }
 
-      // 🔥 MUDANÇA CRUCIAL: Buscar o seller_id do produto
-      console.log('🔍 Buscando seller_id do produto:', productId)
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('seller_id')
-        .eq('id', productId)
-        .single()
+      console.log('✅ Pedido criado:', order.id)
 
-      if (productError) {
-        console.error('❌ Erro ao buscar seller_id:', productError)
-        throw new Error('Erro ao obter informações do vendedor: ' + productError.message)
+      // 🔥 PASSO 3: Criar o item do pedido COM seller_id
+      console.log('📦 CRIANDO ITEM DO PEDIDO (ORDER_ITEM)')
+      const orderItemData = {
+        order_id: order.id,
+        product_id: product.id,
+        quantity: 1,
+        price: product.price,
+        user_id: user.id,
+        seller_id: productCheck.seller_id // 🔥 CRUCIAL: Usar seller_id verificado
       }
 
-      if (!productData?.seller_id) {
-        throw new Error('Produto não possui vendedor associado')
-      }
+      console.log('📝 Dados do order_item:', orderItemData)
 
-      console.log('✅ Seller_id encontrado:', productData.seller_id)
-
-      // 2. Criar o item do pedido COM o seller_id
-      const { error: itemError } = await supabase
+      const { data: orderItem, error: itemError } = await supabase
         .from('order_items')
-        .insert({
-          order_id: order.id,
-          product_id: product.id,
-          quantity: 1,
-          price: product.price,
-          user_id: user.id,
-          seller_id: productData.seller_id // <-- 🔥 A MUDANÇA CRUCIAL AQUI
-        })
+        .insert(orderItemData)
+        .select()
+        .single()
 
       if (itemError) {
         console.error('❌ Erro ao criar item do pedido:', itemError)
+        // Tentar deletar o pedido criado para evitar dados órfãos
+        await supabase.from('orders').delete().eq('id', order.id)
         throw new Error('Erro ao adicionar item ao pedido: ' + itemError.message)
       }
 
-      console.log('✅ Pedido e item criados com sucesso!')
-      console.log('📦 Order ID:', order.id)
-      console.log('👤 Seller ID:', productData.seller_id)
-      console.log('🛒 Product ID:', product.id)
+      console.log('✅ Item do pedido criado:', orderItem.id)
 
-      showSuccess('Encomenda confirmada com sucesso!')
+      // 🔥 PASSO 4: Verificação final
+      console.log('🔍 VERIFICAÇÃO FINAL')
+      const { data: verification, error: verificationError } = await supabase
+        .from('order_items')
+        .select(`
+          *,
+          orders(id, status),
+          products(name)
+        `)
+        .eq('id', orderItem.id)
+        .single()
+
+      if (verificationError) {
+        console.error('❌ Erro na verificação:', verificationError)
+      } else {
+        console.log('✅ VERIFICAÇÃO BEM-SUCEDIDA:', verification)
+      }
+
+      dismissToast(toastId)
+      showSuccess('Encomenda confirmada com sucesso! O vendedor já foi notificado.')
       navigate('/encomenda-sucesso')
 
     } catch (error: any) {
-      console.error('❌ Error creating order:', error)
+      console.error('❌ ERRO COMPLETO NA CRIAÇÃO:', error)
+      dismissToast(toastId)
       showError(error.message || 'Erro ao processar sua encomenda')
     } finally {
       setSubmitting(false)
