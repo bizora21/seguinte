@@ -4,8 +4,11 @@ import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { DollarSign, AlertCircle, ExternalLink, TrendingUp } from 'lucide-react'
-import { showSuccess, showError } from '../utils/toast'
+import { DollarSign, AlertCircle, ExternalLink, TrendingUp, Phone, CheckCheck } from 'lucide-react'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 interface Commission {
   id: string
@@ -13,6 +16,8 @@ interface Commission {
   amount: number
   status: 'pending' | 'paid'
   created_at: string
+  payment_method?: string | null
+  admin_payment_reference?: string | null
   order: {
     id: string
     total_amount: number
@@ -24,6 +29,12 @@ const SellerFinanceTab = () => {
   const [commissions, setCommissions] = useState<Commission[]>([])
   const [totalOwed, setTotalOwed] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [paymentRef, setPaymentRef] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [submittingPayment, setSubmittingPayment] = useState(false)
+
+  // Número de telefone para pagamento M-Pesa/eMola
+  const PAYMENT_PHONE = '846843135'
 
   useEffect(() => {
     if (user) {
@@ -62,15 +73,59 @@ const SellerFinanceTab = () => {
     }
   }
 
+  const handleSendPaymentProof = async () => {
+    if (!paymentRef.trim() || !paymentMethod) {
+      showError('Por favor, preencha o ID da Transação e o Método de Pagamento.')
+      return
+    }
+
+    if (totalOwed <= 0) {
+      showError('Você não tem comissões pendentes para pagar.')
+      return
+    }
+
+    setSubmittingPayment(true)
+    const toastId = showLoading('Enviando comprovante...')
+
+    try {
+      // Atualizar todas as comissões pendentes com o comprovante
+      // Nota: Em um sistema real, isso seria mais complexo (pagamento por fatura),
+      // mas para este MVP, atualizamos todas as pendentes.
+      const pendingIds = commissions.filter(c => c.status === 'pending').map(c => c.id)
+
+      const { error } = await supabase
+        .from('commissions')
+        .update({ 
+          payment_method: paymentMethod,
+          admin_payment_reference: paymentRef.trim()
+        })
+        .in('id', pendingIds)
+        .eq('seller_id', user!.id)
+
+      if (error) throw error
+
+      dismissToast(toastId)
+      showSuccess('Comprovante enviado! O administrador irá verificar e marcar como pago.')
+      
+      // Limpar formulário e recarregar
+      setPaymentRef('')
+      setPaymentMethod('')
+      fetchCommissions()
+
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro ao enviar comprovante: ' + error.message)
+      console.error('Payment proof error:', error)
+    } finally {
+      setSubmittingPayment(false)
+    }
+  }
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
       currency: 'MZN'
     }).format(price)
-  }
-
-  const handlePaymentInfo = () => {
-    showSuccess('Entre em contato com o suporte para instruções de pagamento.')
   }
 
   if (loading) {
@@ -109,27 +164,78 @@ const SellerFinanceTab = () => {
         </CardContent>
       </Card>
 
+      {/* Pagamento de Comissões */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Phone className="w-5 h-5 mr-2" />
+            Pagar Comissões Pendentes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+              <p className="text-sm font-medium text-red-800 mb-2">
+                Total a Pagar: <span className="text-lg font-bold">{formatPrice(totalOwed)}</span>
+              </p>
+              <p className="text-sm text-red-700">
+                Efetue o pagamento para o número: <strong className="text-red-900">{PAYMENT_PHONE}</strong> (M-Pesa, eMola ou Conta Bancária).
+              </p>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSendPaymentProof() }} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMethod">Método de Pagamento *</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={submittingPayment || totalOwed <= 0}>
+                    <SelectTrigger id="paymentMethod">
+                      <SelectValue placeholder="Selecione o método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                      <SelectItem value="eMola">eMola</SelectItem>
+                      <SelectItem value="Transferencia">Transferência Bancária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentRef">ID da Transação / Comprovante *</Label>
+                  <Input
+                    id="paymentRef"
+                    value={paymentRef}
+                    onChange={(e) => setPaymentRef(e.target.value)}
+                    placeholder="Ex: ID da transação M-Pesa"
+                    disabled={submittingPayment || totalOwed <= 0}
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-orange-600 hover:bg-orange-700"
+                disabled={submittingPayment || totalOwed <= 0 || !paymentRef || !paymentMethod}
+              >
+                <CheckCheck className="w-4 h-4 mr-2" />
+                {submittingPayment ? 'Enviando...' : 'Enviar Comprovante'}
+              </Button>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Histórico de Comissões */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2" />
-              Histórico de Comissões
-            </div>
-            {totalOwed > 0 && (
-              <Button onClick={handlePaymentInfo} size="sm">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Pagar Agora
-              </Button>
-            )}
+          <CardTitle className="flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2" />
+            Histórico de Comissões
           </CardTitle>
         </CardHeader>
         <CardContent>
           {commissions.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">Você ainda não tem comissões registradas.</p>
-              <p className="text-sm text-gray-500 mt-2">As comissões são geradas quando seus pedidos são entregues.</p>
+              <p className="text-sm text-gray-500 mt-2">As comissões são geradas quando seus pedidos são confirmados pelo administrador.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -145,6 +251,11 @@ const SellerFinanceTab = () => {
                     <p className="text-sm text-gray-600 mt-1">
                       Pedido #{commission.order.id.slice(0, 8)} • Total: {formatPrice(commission.order.total_amount)}
                     </p>
+                    {(commission.payment_method || commission.admin_payment_reference) && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Comprovante: {commission.payment_method} ({commission.admin_payment_reference})
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Gerado em {new Date(commission.created_at).toLocaleDateString('pt-MZ')}
                     </p>
@@ -153,37 +264,6 @@ const SellerFinanceTab = () => {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Informações de Pagamento */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            Como Pagar as Comissões
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              Para pagar suas comissões, entre em contato com nossa equipe de suporte. Aceitamos:
-            </p>
-            <ul className="list-disc list-inside text-gray-600 space-y-1">
-              <li>M-Pesa</li>
-              <li>eMola</li>
-              <li>Transferência Bancária</li>
-            </ul>
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm font-medium text-blue-900 mb-1">Contato para Pagamentos:</p>
-              <p className="text-sm text-blue-700">Email: financeiro@lojarapida.com</p>
-              <p className="text-sm text-blue-700">WhatsApp: +258 86 318 1415</p>
-            </div>
-            <Button className="w-full" onClick={() => window.location.href = 'mailto:financeiro@lojarapida.com'}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Enviar Email para Pagamento
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>

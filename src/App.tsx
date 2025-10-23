@@ -38,6 +38,7 @@ import EncomendaSucessoPage from "./pages/EncomendaSucessoPage";
 import TermosDeUsoPage from "./pages/TermosDeUsoPage";
 import PoliticaDePrivacidadePage from "./pages/PoliticaDePrivacidadePage";
 import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
+import CustomerOrderDetails from "./pages/CustomerOrderDetails"; // Novo import
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,23 @@ const App = () => (
                   <Route path="/termos" element={<TermosDeUsoPage />} />
                   <Route path="/privacidade" element={<PoliticaDePrivacidadePage />} />
                   <Route path="/politica-vendedor" element={<PoliticaVendedorPage />} />
+                  {/* ROTAS DE PEDIDOS */}
+                  <Route 
+                    path="/meus-pedidos" 
+                    element={
+                      <ProtectedRoute>
+                        <MyOrders />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/meus-pedidos/:orderId" 
+                    element={
+                      <ProtectedRoute requiredRole="cliente">
+                        <CustomerOrderDetails />
+                      </ProtectedRoute>
+                    } 
+                  />
                   {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
                   <Route 
                     path="/carrinho" 
@@ -135,14 +153,6 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <OrderConfirmed />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/meus-pedidos" 
-                    element={
-                      <ProtectedRoute>
-                        <MyOrders />
                       </ProtectedRoute>
                     } 
                   />

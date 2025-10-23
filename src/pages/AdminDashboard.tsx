@@ -5,9 +5,10 @@ import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { showSuccess, showError } from '../utils/toast'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { OrderWithItems } from '../types/order'
 
 // Defina o email do administrador aqui
 const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
@@ -29,29 +30,54 @@ interface Commission {
   }
 }
 
+// Interface para pedidos que precisam de confirmação (status 'delivered')
+interface DeliveredOrder {
+  id: string
+  user_id: string
+  total_amount: number
+  status: 'delivered'
+  delivery_address: string
+  created_at: string
+  updated_at: string
+  order_items: Array<{
+    id: string
+    product_id: string
+    quantity: number
+    price: number
+    seller_id: string
+    // Corrigido: Supabase retorna um array de objetos para a relação 1:1 ou 1:N
+    product: Array<{
+      name: string
+    }>
+  }>
+}
+
 const AdminDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [commissions, setCommissions] = useState<Commission[]>([])
+  const [deliveredOrders, setDeliveredOrders] = useState<DeliveredOrder[]>([])
   const [stats, setStats] = useState({
     totalPending: 0,
     totalPaid: 0,
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (user?.email !== ADMIN_EMAIL) {
       navigate('/')
       return
     }
-    fetchCommissions()
+    fetchDashboardData()
   }, [user, navigate])
 
-  const fetchCommissions = async () => {
+  const fetchDashboardData = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      // 1. Buscar Comissões (para estatísticas e histórico)
+      const { data: commissionData, error: commissionError } = await supabase
         .from('commissions')
         .select(`
           *,
@@ -66,29 +92,104 @@ const AdminDashboard = () => {
         `)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (commissionError) throw commissionError
 
-      setCommissions(data || [])
+      setCommissions(commissionData || [])
       
-      // Calcular estatísticas
-      const pending = data?.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0) || 0
-      const paid = data?.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0) || 0
+      const pending = commissionData?.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0) || 0
+      const paid = commissionData?.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0) || 0
       
       setStats({
-        totalPending: data?.filter(c => c.status === 'pending').length || 0,
-        totalPaid: data?.filter(c => c.status === 'paid').length || 0,
+        totalPending: commissionData?.filter(c => c.status === 'pending').length || 0,
+        totalPaid: commissionData?.filter(c => c.status === 'paid').length || 0,
         totalRevenue: paid
       })
 
+      // 2. Buscar Pedidos Entregues (Aguardando Confirmação do Cliente)
+      const { data: deliveredData, error: deliveredError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          user_id,
+          total_amount,
+          status,
+          delivery_address,
+          created_at,
+          updated_at,
+          order_items (
+            id,
+            product_id,
+            quantity,
+            price,
+            seller_id,
+            product:products ( name )
+          )
+        `)
+        .eq('status', 'delivered')
+        .order('updated_at', { ascending: true })
+
+      if (deliveredError) throw deliveredError
+      setDeliveredOrders(deliveredData as DeliveredOrder[] || [])
+
     } catch (error: any) {
-      console.error('Error fetching commissions:', error)
-      showError('Erro ao carregar comissões')
+      console.error('Error fetching dashboard data:', error)
+      showError('Erro ao carregar dados do painel: ' + error.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const markAsPaid = async (commissionId: string) => {
+  const handleConfirmPaymentAndGenerateCommission = async (order: DeliveredOrder) => {
+    setSubmitting(true)
+    const toastId = showLoading('Confirmando pagamento e gerando comissão...')
+
+    try {
+      // 1. Atualizar status do pedido para 'completed'
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', order.id)
+
+      if (orderError) throw new Error('Erro ao atualizar status do pedido: ' + orderError.message)
+
+      // 2. Gerar comissão (10% do total)
+      const commissionAmount = order.total_amount * 0.10
+      
+      // Como um pedido pode ter itens de vários vendedores, precisamos gerar uma comissão por vendedor.
+      // No entanto, o fluxo atual de checkout só permite 1 produto por encomenda, então assumimos 1 vendedor por pedido.
+      const sellerId = order.order_items[0]?.seller_id
+
+      if (!sellerId) {
+        throw new Error('Vendedor não encontrado para este pedido.')
+      }
+
+      const { error: commissionError } = await supabase
+        .from('commissions')
+        .insert({
+          order_id: order.id,
+          seller_id: sellerId,
+          amount: commissionAmount,
+          status: 'pending'
+        })
+      
+      if (commissionError) throw new Error('Erro ao criar comissão: ' + commissionError.message)
+
+      dismissToast(toastId)
+      showSuccess(`Pagamento confirmado e comissão de ${formatPrice(commissionAmount)} gerada para o vendedor!`)
+      
+      // Recarregar dados
+      fetchDashboardData()
+
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError(error.message || 'Erro inesperado ao processar confirmação.')
+      console.error('Admin confirmation error:', error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const markCommissionAsPaid = async (commissionId: string) => {
     try {
       const { error } = await supabase
         .from('commissions')
@@ -98,7 +199,7 @@ const AdminDashboard = () => {
       if (error) throw error
 
       showSuccess('Comissão marcada como paga!')
-      fetchCommissions() // Recarregar dados
+      fetchDashboardData() // Recarregar dados
     } catch (error: any) {
       console.error('Error marking commission as paid:', error)
       showError('Erro ao atualizar status da comissão')
@@ -188,12 +289,56 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Comissões Recentes */}
+        {/* Confirmações de Pagamento Pendentes (Novo) */}
+        <Card className="mb-8 border-blue-200">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center text-xl text-blue-800">
+              <CheckCircle className="w-6 h-6 mr-2" />
+              Confirmações de Pagamento Pendentes ({deliveredOrders.length})
+            </CardTitle>
+            <Button onClick={fetchDashboardData} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {deliveredOrders.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Nenhum pedido aguardando confirmação do cliente.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {deliveredOrders.map((order) => (
+                  <div key={order.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-blue-50">
+                    <div className="flex-1 space-y-1">
+                      <p className="font-medium text-blue-900">Pedido #{order.id.slice(0, 8)}</p>
+                      <p className="text-sm text-gray-700">
+                        Total: <span className="font-semibold">{formatPrice(order.total_amount)}</span>
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Cliente ID: {order.user_id.slice(0, 8)} | Entregue em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleConfirmPaymentAndGenerateCommission(order)}
+                      disabled={submitting}
+                      className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
+                    >
+                      {submitting ? 'Processando...' : 'Confirmar Pagamento & Gerar Comissão'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Comissões Recentes (Histórico) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <DollarSign className="w-5 h-5 mr-2" />
-              Comissões Recentes
+              Histórico de Comissões
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -228,7 +373,7 @@ const AdminDashboard = () => {
                       {commission.status === 'pending' && (
                         <Button
                           size="sm"
-                          onClick={() => markAsPaid(commission.id)}
+                          onClick={() => markCommissionAsPaid(commission.id)}
                         >
                           Marcar como Pago
                         </Button>
