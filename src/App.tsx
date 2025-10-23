@@ -27,8 +27,10 @@ import MyChats from "./pages/MyChats";
 import Chat from "./pages/Chat";
 import SearchResults from "./pages/SearchResults";
 import StorePage from "./pages/StorePage";
-import About from "./pages/About";
-import Blog from "./pages/Blog";
+import SobreNosPage from "./pages/SobreNosPage";
+import BlogPage from "./pages/BlogPage";
+import FaqPage from "./pages/FaqPage";
+import ContatoPage from "./pages/ContatoPage";
 import NotFound from "./pages/NotFound";
 import ConfirmarEncomendaPage from "./pages/ConfirmarEncomendaPage";
 import EncomendaSucessoPage from "./pages/EncomendaSucessoPage";
@@ -76,7 +78,12 @@ const App = () => (
                     } 
                   />
                   <Route path="/produto/:id" element={<ProductDetail />} />
-                  {/* NOVAS ROTAS DE ENCOMENDA */}
+                  {/* ROTAS INFORMATIVAS */}
+                  <Route path="/sobre-nos" element={<SobreNosPage />} />
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/faq" element={<FaqPage />} />
+                  <Route path="/contato" element={<ContatoPage />} />
+                  {/* ROTAS DE ENCOMENDA */}
                   <Route 
                     path="/confirmar-encomenda/:productId" 
                     element={
@@ -148,8 +155,6 @@ const App = () => (
                   />
                   <Route path="/busca" element={<SearchResults />} />
                   <Route path="/loja/:sellerId" element={<StorePage />} />
-                  <Route path="/sobre" element={<About />} />
-                  <Route path="/blog" element={<Blog />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

@@ -15,13 +15,12 @@ import {
   Truck,
   CreditCard,
   Headphones,
-  Award,
-  Users,
-  TrendingUp
+  Users
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { showSuccess } from '../utils/toast'
+import { Link } from 'react-router-dom'
 
 const Footer = () => {
   const [email, setEmail] = useState('')
@@ -43,25 +42,32 @@ const Footer = () => {
 
   const contactInfo = [
     { icon: Phone, text: '+258 86 318 1415' },
-    { icon: Mail, text: 'contato@lojarapida.co.mz' },
-    { icon: MapPin, text: 'Av. 25 de Setembro, 1234 - Maputo' },
+    { icon: Mail, text: 'suporte@lojarapida.com' },
+    { icon: MapPin, text: 'Maputo, Moçambique' },
     { icon: Clock, text: 'Seg-Sex: 8h-18h, Sáb: 9h-14h' }
   ]
 
   const quickLinks = [
-    { name: 'Sobre Nós', href: '/sobre' },
-    { name: 'Como Funciona', href: '/#como-funciona' },
-    { name: 'Para Vendedores', href: '/register' },
-    { name: 'Para Clientes', href: '/register' },
-    { name: 'Central de Ajuda', href: '/ajuda' },
+    { name: 'Sobre Nós', href: '/sobre-nos' },
+    { name: 'Como Funciona', href: '/faq' },
+    { name: 'Para Vendedores', href: '/politica-vendedor' },
+    { name: 'Para Clientes', href: '/termos' },
     { name: 'Blog', href: '/blog' }
   ]
 
   const legalLinks = [
-    { name: 'Termos de Serviço', href: '/termos' },
+    { name: 'Termos de Uso', href: '/termos' },
     { name: 'Política de Privacidade', href: '/privacidade' },
-    { name: 'Política de Devolução', href: '/devolucao' },
-    { name: 'Cookies', href: '/cookies' }
+    { name: 'Política do Vendedor', href: '/politica-vendedor' },
+    { name: 'Central de Ajuda', href: '/faq' }
+  ]
+
+  const customerServiceLinks = [
+    { name: 'Central de Ajuda', href: '/faq' },
+    { name: 'Rastrear Pedido', href: '/meus-pedidos' },
+    { name: 'Trocas e Devoluções', href: '/faq' },
+    { name: 'Fale Conosco', href: '/contato' },
+    { name: 'Perguntas Frequentes', href: '/faq' }
   ]
 
   const features = [
@@ -178,12 +184,12 @@ const Footer = () => {
             <ul className="space-y-2">
               {quickLinks.map((link, index) => (
                 <li key={index}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-gray-300 hover:text-green-400 transition-colors text-sm"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -198,31 +204,16 @@ const Footer = () => {
           >
             <h4 className="text-lg font-semibold mb-4">Atendimento</h4>
             <ul className="space-y-2">
-              <li>
-                <a href="/ajuda" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
-                  Central de Ajuda
-                </a>
-              </li>
-              <li>
-                <a href="/rastreamento" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
-                  Rastrear Pedido
-                </a>
-              </li>
-              <li>
-                <a href="/trocas" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
-                  Trocas e Devoluções
-                </a>
-              </li>
-              <li>
-                <a href="/contato" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
-                  Fale Conosco
-                </a>
-              </li>
-              <li>
-                <a href="/faq" className="text-gray-300 hover:text-green-400 transition-colors text-sm">
-                  Perguntas Frequentes
-                </a>
-              </li>
+              {customerServiceLinks.map((link, index) => (
+                <li key={index}>
+                  <Link
+                    to={link.href}
+                    className="text-gray-300 hover:text-green-400 transition-colors text-sm"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </motion.div>
 
@@ -268,13 +259,13 @@ const Footer = () => {
             
             <div className="flex items-center space-x-6">
               {legalLinks.map((link, index) => (
-                <a
+                <Link
                   key={index}
-                  href={link.href}
+                  to={link.href}
                   className="text-sm text-gray-400 hover:text-green-400 transition-colors"
                 >
                   {link.name}
-                </a>
+                </Link>
               ))}
             </div>
 
