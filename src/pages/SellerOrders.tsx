@@ -11,10 +11,64 @@ import { ArrowLeft, Package, User, MapPin, Calendar } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError } from '../utils/toast'
 
+// 🔥 TIPO OTIMIZADO PARA A NOVA QUERY
+interface OrderItemWithOrder {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  price: number
+  seller_id: string
+  user_id: string
+  created_at: string
+  
+  // Dados do pedido (via inner join)
+  orders: {
+    id: string
+    user_id: string
+    total_amount: number
+    status: string
+    delivery_address: string
+    created_at: string
+    updated_at: string
+  }
+  
+  // Dados do produto
+  products: {
+    id: string
+    name: string
+    image_url?: string
+    seller_id: string
+  }
+}
+
+// 🔥 TIPO CORRETO PARA PEDIDOS PROCESSADOS
+interface ProcessedOrder {
+  id: string
+  user_id: string
+  total_amount: number
+  status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled'
+  delivery_address: string
+  created_at: string
+  updated_at: string
+  order_items: Array<{
+    id: string
+    order_id: string
+    product_id: string
+    quantity: number
+    price: number
+    created_at: string
+    product: {
+      name: string
+      image_url?: string
+    }
+  }>
+}
+
 const SellerOrders = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [orders, setOrders] = useState<OrderWithItems[]>([])
+  const [orders, setOrders] = useState<ProcessedOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
@@ -24,30 +78,70 @@ const SellerOrders = () => {
     }
   }, [user])
 
+  // 🔥 QUERY OTIMIZADA - SEM RECURSÃO RLS!
   const fetchOrders = async () => {
     try {
+      console.log('🔍 Buscando pedidos para o vendedor:', user!.id)
+      
       const { data, error } = await supabase
-        .from('orders')
+        .from('order_items')
         .select(`
           *,
-          order_items (
-            *,
-            product:products (
-              name,
-              image_url
-            )
-          )
+          orders!inner(*),
+          products(*)
         `)
-        .in('order_items.product.seller_id', [user!.id])
+        .eq('seller_id', user!.id)
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching orders:', error)
+        console.error('❌ Erro na query de pedidos:', error)
+        showError('Erro ao carregar pedidos: ' + error.message)
       } else {
-        setOrders(data || [])
+        console.log('✅ Pedidos encontrados:', data?.length || 0)
+        console.log('📦 Dados brutos:', data)
+        
+        // 🔥 PROCESSAMENTO OTIMIZADO: Agrupar por order_id
+        const groupedOrders = data?.reduce((acc: Record<string, ProcessedOrder>, item: OrderItemWithOrder) => {
+          const orderId = item.order_id
+          
+          if (!acc[orderId]) {
+            // Primeiro item deste pedido - criar estrutura base
+            acc[orderId] = {
+              id: item.orders.id,
+              user_id: item.orders.user_id,
+              total_amount: item.orders.total_amount,
+              status: item.orders.status as ProcessedOrder['status'],
+              delivery_address: item.orders.delivery_address,
+              created_at: item.orders.created_at,
+              updated_at: item.orders.updated_at,
+              order_items: []
+            }
+          }
+          
+          // Adicionar este item ao pedido
+          acc[orderId].order_items.push({
+            id: item.id,
+            order_id: item.order_id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price,
+            created_at: item.created_at,
+            product: {
+              name: item.products.name,
+              image_url: item.products.image_url
+            }
+          })
+          
+          return acc
+        }, {})
+        
+        const ordersArray = Object.values(groupedOrders) as ProcessedOrder[]
+        console.log('📊 Pedidos processados:', ordersArray)
+        setOrders(ordersArray)
       }
     } catch (error) {
-      console.error('Error fetching orders:', error)
+      console.error('❌ Erro inesperado ao buscar pedidos:', error)
+      showError('Erro inesperado ao carregar pedidos')
     } finally {
       setLoading(false)
     }
@@ -67,9 +161,9 @@ const SellerOrders = () => {
       } else {
         showSuccess('Status atualizado com sucesso!')
         
-        // Atualizar localmente para feedback imediato
+        // 🔥 ATUALIZAÇÃO OTIMIZADA: Atualizar localmente
         setOrders(prev => prev.map(order => 
-          order.id === orderId ? { ...order, status: newStatus as any } : order
+          order.id === orderId ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() } : order
         ))
       }
     } catch (error) {
@@ -81,14 +175,14 @@ const SellerOrders = () => {
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN'
     }).format(price)
   }
 
   const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat('pt-BR', {
+    return new Intl.DateTimeFormat('pt-MZ', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
