@@ -30,6 +30,8 @@ import StorePage from "./pages/StorePage";
 import About from "./pages/About";
 import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
+import ConfirmarEncomendaPage from "./pages/ConfirmarEncomendaPage";
+import EncomendaSucessoPage from "./pages/EncomendaSucessoPage";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,24 @@ const App = () => (
                     } 
                   />
                   <Route path="/produto/:id" element={<ProductDetail />} />
+                  {/* NOVAS ROTAS DE ENCOMENDA */}
+                  <Route 
+                    path="/confirmar-encomenda/:productId" 
+                    element={
+                      <ProtectedRoute>
+                        <ConfirmarEncomendaPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/encomenda-sucesso" 
+                    element={
+                      <ProtectedRoute>
+                        <EncomendaSucessoPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
                   <Route 
                     path="/carrinho" 
                     element={

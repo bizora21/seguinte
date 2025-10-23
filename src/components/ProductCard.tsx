@@ -1,7 +1,7 @@
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store } from 'lucide-react'
+import { Eye, Store, ShoppingCart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface ProductCardProps {
@@ -54,10 +54,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Link to={`/produto/${product.id}`} className="w-full">
+        <Link to={`/confirmar-encomenda/${product.id}`} className="w-full">
           <Button className="w-full bg-green-600 hover:bg-green-700">
-            <Eye className="w-4 h-4 mr-2" />
-            Ver Detalhes
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Encomendar Agora
           </Button>
         </Link>
       </CardFooter>

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
-import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -14,9 +13,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [product, setProduct] = useState<ProductWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
-  const [startingChat, setStartingChat] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const { addToCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -62,20 +59,6 @@ const ProductDetail = () => {
     }).format(price)
   }
 
-  const handleAddToCart = () => {
-    if (product) {
-      addToCart({
-        id: product.id,
-        product_id: product.id,
-        name: product.name,
-        price: product.price,
-        image_url: product.image_url,
-        stock: product.stock
-      })
-      showSuccess(`${product.name} adicionado ao carrinho!`)
-    }
-  }
-
   const handleStartChat = () => {
     if (!user) {
       showError('Faça login para conversar com o vendedor')
@@ -85,7 +68,6 @@ const ProductDetail = () => {
     
     if (!product || !product.seller_id) return
     
-    // Verificar se não está tentando conversar consigo mesmo
     if (user.id === product.seller_id) {
       showError('Você não pode conversar com você mesmo!')
       return
@@ -198,15 +180,16 @@ const ProductDetail = () => {
                   )}
 
                   <div className="space-y-4">
-                    <Button
-                      onClick={handleAddToCart}
-                      className="w-full"
-                      size="lg"
-                      disabled={product.stock === 0}
-                    >
-                      <ShoppingCart className="w-5 h-5 mr-2" />
-                      {product.stock === 0 ? 'Fora de Estoque' : 'Adicionar ao Carrinho'}
-                    </Button>
+                    <Link to={`/confirmar-encomenda/${product.id}`} className="w-full block">
+                      <Button
+                        className="w-full"
+                        size="lg"
+                        disabled={product.stock === 0}
+                      >
+                        <ShoppingCart className="w-5 h-5 mr-2" />
+                        {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
+                      </Button>
+                    </Link>
 
                     {canChat && (
                       <Button
@@ -214,7 +197,6 @@ const ProductDetail = () => {
                         variant="outline"
                         className="w-full"
                         size="lg"
-                        disabled={startingChat}
                       >
                         <MessageCircle className="w-5 h-5 mr-2" />
                         Conversar com Vendedor
