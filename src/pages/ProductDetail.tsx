@@ -358,8 +358,8 @@ const ProductDetail = () => {
 
   const productImages = getProductImages();
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
-  const productUrl = `https://lojarapida.co.mz/produto/${productId}`;
-
+  const productUrl = `https://lojarapidamz.com/produto/${productId}`; // Usando domínio canônico
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -388,8 +388,8 @@ const ProductDetail = () => {
   
   // Gerar Breadcrumbs
   const breadcrumbs = [
-    { name: 'Início', url: 'https://lojarapida.co.mz/' },
-    { name: 'Produtos', url: 'https://lojarapida.co.mz/produtos' },
+    { name: 'Início', url: 'https://lojarapidamz.com/' },
+    { name: 'Produtos', url: 'https://lojarapidamz.com/produtos' },
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
@@ -415,15 +415,15 @@ const ProductDetail = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
-                <h1 className="text-lg font-semibold ml-4">{product.name}</h1>
+                <h1 className="text-lg font-semibold ml-4 truncate max-w-[200px] sm:max-w-none">{product.name}</h1>
               </div>
               
               <div className="flex items-center space-x-2">
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Badge variant="secondary" className="bg-green-100 text-green-800 hidden sm:flex">
                   <Shield className="w-3 h-3 mr-1" />
                   Compra Segura
                 </Badge>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800 hidden sm:flex">
                   <Truck className="w-3 h-3 mr-1" />
                   Frete Grátis
                 </Badge>
@@ -433,7 +433,8 @@ const ProductDetail = () => {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Adicionado max-w-full para garantir que o grid não force o overflow */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
             {/* Coluna da Esquerda: Detalhes do Produto */}
             <div className="space-y-6">
               {/* Galeria de Imagens */}
@@ -452,13 +453,13 @@ const ProductDetail = () => {
                   </div>
                   
                   {productImages.length > 1 && (
-                    <div className="flex space-x-2 mt-4 overflow-x-auto">
+                    <div className="flex space-x-2 mt-4 overflow-x-auto pb-2">
                       {productImages.map((url, index) => (
                         <img
                           key={index}
                           src={url}
                           alt={`Miniatura ${index + 1} do produto ${product.name}`}
-                          className={`w-20 h-20 object-cover rounded cursor-pointer border-2 ${
+                          className={`w-20 h-20 object-cover rounded cursor-pointer border-2 flex-shrink-0 ${
                             mainImage === url ? 'border-blue-500' : 'border-gray-200'
                           }`}
                           onClick={() => setMainImage(url)}
@@ -558,7 +559,7 @@ const ProductDetail = () => {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+                <CardContent className="flex-1 overflow-hidden flex flex-col p-0">
                   {!user ? (
                     <div className="flex-1 flex items-center justify-center p-6">
                       <div className="text-center">
