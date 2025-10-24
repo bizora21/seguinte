@@ -11,7 +11,7 @@ import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Index from "./pages/Index";
+import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProductsPage from "./pages/ProductsPage";
@@ -59,7 +59,7 @@ const App = () => (
                 <PaymentBanner />
                 <main className="flex-1">
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<HomePage />} />
                     <Route path="/produtos" element={<ProductsPage />} />
                     <Route path="/lojas" element={<LojasPage />} />
                     <Route path="/login" element={<Login />} />
