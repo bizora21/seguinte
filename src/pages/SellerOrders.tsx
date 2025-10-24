@@ -263,8 +263,7 @@ const SellerOrders = () => {
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        // 🔥 Adicionando .select() para garantir que o realtime trigger seja disparado
-        .select() 
+        .select() // Garante que o evento Realtime seja disparado
 
       if (error) {
         showError('Erro ao atualizar status: ' + error.message)
@@ -291,6 +290,7 @@ const SellerOrders = () => {
       console.error('Update status error:', error)
     } finally {
       setUpdatingStatus(null)
+      // 🔥 REMOVIDO: Não chamar fetchOrders aqui para evitar buscar dados antigos
     }
   }
 
