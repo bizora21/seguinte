@@ -1,8 +1,9 @@
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store, MessageCircle } from 'lucide-react'
+import { Eye, Store, MessageCircle, ShoppingCart, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Badge } from './ui/badge'
 
 interface ProductCardProps {
   product: ProductWithSeller
@@ -16,64 +17,162 @@ const ProductCard = ({ product }: ProductCardProps) => {
     }).format(price)
   }
 
+  const formatStock = (stock: number) => {
+    if (stock === 0) return 'Fora de estoque'
+    if (stock <= 5) return `Apenas ${stock} unidades`
+    return `${stock} unidades disponíveis`
+  }
+
+  const getStockColor = (stock: number) => {
+    if (stock === 0) return 'text-red-600 bg-red-50'
+    if (stock <= 5) return 'text-orange-600 bg-orange-50'
+    return 'text-green-600 bg-green-50'
+  }
+
   return (
-    <Card className="h-full flex flex-col hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="p-0">
-        <Link to={`/produto/${product.id}`}>
-          <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-gray-100">
+    <Card className="group h-full flex flex-col hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:shadow-2xl">
+      {/* Imagem do Produto */}
+      <CardHeader className="p-0 relative overflow-hidden">
+        <Link 
+          to={`/produto/${product.id}`}
+          className="block aspect-square w-full"
+          aria-label={`Ver detalhes de ${product.name}`}
+        >
+          <div className="relative w-full h-full bg-gray-100">
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'}
               alt={product.name}
-              className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
               }}
             />
+            
+            {/* Badge de Estoque */}
+            <div className="absolute top-3 left-3">
+              <Badge 
+                variant="secondary" 
+                className={`text-xs font-medium ${getStockColor(product.stock)}`}
+              >
+                {formatStock(product.stock)}
+              </Badge>
+            </div>
+
+            {/* Badge de Desconto (simulado) */}
+            {product.stock > 0 && product.stock <= 3 && (
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-red-500 text-white text-xs font-bold">
+                  ÚLTIMAS UNIDADES
+                </Badge>
+              </div>
+            )}
           </div>
         </Link>
       </CardHeader>
-      <CardContent className="flex-1 p-4">
+
+      {/* Conteúdo do Produto */}
+      <CardContent className="flex-1 p-4 space-y-3">
+        {/* Nome do Produto */}
         <Link to={`/produto/${product.id}`}>
-          <CardTitle className="text-lg mb-2 line-clamp-2 hover:text-primary transition-colors">
+          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 hover:text-primary transition-colors group-hover:text-primary">
             {product.name}
           </CardTitle>
         </Link>
-        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-          {product.description || 'Sem descrição'}
+
+        {/* Descrição */}
+        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+          {product.description || 'Sem descrição disponível'}
         </p>
+
+        {/* Informações do Vendedor */}
         {product.seller && (
-          <Link to={`/loja/${product.seller.id}`} className="inline-block mb-2">
-            <div className="flex items-center text-sm text-gray-500 hover:text-secondary transition-colors">
-              <Store className="w-4 h-4 mr-1" />
-              <span>{product.seller.store_name || 'Loja do Vendedor'}</span>
-            </div>
+          <Link 
+            to={`/loja/${product.seller.id}`}
+            className="inline-flex items-center text-sm text-gray-500 hover:text-primary transition-colors group"
+          >
+            <Store className="w-4 h-4 mr-1.5 flex-shrink-0" />
+            <span className="truncate">{product.seller.store_name || 'Loja do Vendedor'}</span>
           </Link>
         )}
-        <div className="text-2xl font-bold text-primary">
-          {formatPrice(product.price)}
+
+        {/* Avaliação (simulada) */}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`w-4 h-4 ${
+                  i < 4
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'text-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-sm text-gray-600">(4.8)</span>
         </div>
-        <div className="text-sm text-gray-500 mt-1">
-          Estoque: {product.stock} unidades
+
+        {/* Preço */}
+        <div className="flex items-baseline justify-between">
+          <div className="text-2xl font-bold text-primary">
+            {formatPrice(product.price)}
+          </div>
+          {product.stock > 0 && (
+            <div className="text-xs text-gray-500">
+              <span className="line-through text-gray-400">
+                {formatPrice(product.price * 1.2)}
+              </span>
+              <span className="text-green-600 font-semibold ml-1">-20%</span>
+            </div>
+          )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0 space-y-2">
-        <Link to={`/produto/${product.id}`} className="w-full">
+
+      {/* Ações */}
+      <CardFooter className="p-4 pt-0 space-y-3">
+        {/* Botão Principal - Ver Detalhes */}
+        <Link 
+          to={`/produto/${product.id}`}
+          className="w-full block"
+        >
           <Button 
-            className="w-full bg-primary hover:bg-green-600"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 transition-all duration-200 group-hover:shadow-lg"
+            size="lg"
             disabled={product.stock === 0}
           >
             <Eye className="w-4 h-4 mr-2" />
             Ver mais detalhes
           </Button>
         </Link>
-        <Link to={`/confirmar-encomenda/${product.id}`} className="w-full">
+
+        {/* Botão Secundário - Encomendar */}
+        <Link 
+          to={`/confirmar-encomenda/${product.id}`}
+          className="w-full block"
+        >
           <Button 
             variant="outline"
-            className="w-full"
+            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-3 transition-all duration-200 group-hover:border-primary/80"
+            size="lg"
             disabled={product.stock === 0}
           >
-            <MessageCircle className="w-4 h-4 mr-2" />
+            <ShoppingCart className="w-4 h-4 mr-2" />
             {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
+          </Button>
+        </Link>
+
+        {/* Botão Terciário - Chat Rápido */}
+        <Link 
+          to={`/produto/${product.id}`}
+          className="w-full block"
+        >
+          <Button 
+            variant="ghost"
+            className="w-full text-gray-600 hover:text-primary hover:bg-primary/5 font-medium py-2 transition-all duration-200"
+            size="sm"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Conversar com vendedor
           </Button>
         </Link>
       </CardFooter>
