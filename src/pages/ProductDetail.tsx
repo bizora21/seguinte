@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { showSuccess, showError } from '../utils/toast';
-import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO';
+import { SEO } from '../components/SEO';
 
 // Interface para os dados do produto
 interface Product {
@@ -19,9 +19,10 @@ interface Product {
   image_url: string | string[];
   stock: number;
   seller_id: string;
-  seller: {
+  seller?: {
     id: string;
     store_name: string;
+    email: string;
   };
 }
 
@@ -51,6 +52,7 @@ const ProductDetail = () => {
   const [chatId, setChatId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Efeito para buscar os dados do produto
@@ -59,7 +61,11 @@ const ProductDetail = () => {
 
     const fetchProduct = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
+        console.log('🔍 Buscando produto:', productId);
+        
         const { data, error } = await supabase
           .from('products')
           .select(`
@@ -70,12 +76,13 @@ const ProductDetail = () => {
           .single();
 
         if (error) {
-          console.error('Erro ao buscar produto:', error);
-          showError('Produto não encontrado');
+          console.error('❌ Erro ao buscar produto:', error);
+          setError('Produto não encontrado');
           setProduct(null);
           return;
         }
 
+        console.log('✅ Produto encontrado:', data);
         setProduct(data);
         
         const imageUrl = data.image_url;
@@ -85,15 +92,15 @@ const ProductDetail = () => {
           setMainImage(imageUrl || '');
         }
       } catch (error) {
-        console.error('Erro ao buscar produto:', error);
-        showError('Erro ao carregar produto');
+        console.error('❌ Erro ao buscar produto:', error);
+        setError('Erro ao carregar produto');
       } finally {
         setLoading(false);
       }
     };
 
     fetchProduct();
-  }, [productId, navigate]);
+  }, [productId]);
 
   // Efeito para buscar ou criar o chat e carregar mensagens
   useEffect(() => {
@@ -148,7 +155,7 @@ const ProductDetail = () => {
           .single();
         
         if (createError) {
-          console.error('Erro ao criar chat:', createError);
+          console.error('❌ Erro ao criar chat:', createError);
           showError('Erro ao iniciar conversa');
           return;
         }
@@ -164,7 +171,7 @@ const ProductDetail = () => {
       setupRealtimeSubscription(currentChatId);
 
     } catch (error) {
-      console.error('Erro ao configurar chat:', error);
+      console.error('❌ Erro ao configurar chat:', error);
       showError('Erro ao configurar conversa');
     } finally {
       setChatLoading(false);
@@ -177,6 +184,8 @@ const ProductDetail = () => {
 
   const fetchMessages = async (chatId: string) => {
     try {
+      console.log('📨 Buscando mensagens do chat:', chatId);
+      
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -187,16 +196,19 @@ const ProductDetail = () => {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Erro ao buscar mensagens:', error);
+        console.error('❌ Erro ao buscar mensagens:', error);
       } else {
+        console.log('✅ Mensagens encontradas:', data?.length || 0);
         setMessages(data || []);
       }
     } catch (error) {
-      console.error('Erro ao buscar mensagens:', error);
+      console.error('❌ Erro ao buscar mensagens:', error);
     }
   };
 
   const setupRealtimeSubscription = (chatId: string) => {
+    console.log('🔧 Configurando subscription em tempo real para:', chatId);
+    
     const channel = supabase
       .channel(`chat:${chatId}`)
       .on(
@@ -251,6 +263,8 @@ const ProductDetail = () => {
 
     setSending(true);
     const messageContent = newMessage.trim();
+
+    console.log('📤 Enviando mensagem:', messageContent);
 
     const optimisticMessage: Message = {
       id: Date.now().toString(),
@@ -336,11 +350,7 @@ const ProductDetail = () => {
     if (Array.isArray(product.image_url)) {
       return product.image_url;
     } else if (typeof product.image_url === 'string') {
-      return [
-        product.image_url,
-        product.image_url.replace(/w=\d+&h=\d+/, 'w=800&h=600'),
-        product.image_url.replace(/w=\d+&h=\d+/, 'w=800&h=600&fit=crop&auto=format')
-      ].filter((img, index, self) => self.indexOf(img) === index);
+      return [product.image_url];
     }
     
     return [];
@@ -353,16 +363,20 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando produto...</p>
+        </div>
       </div>
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Produto não encontrado</h2>
+          <p className="text-gray-600 mb-6">{error || 'O produto que você procura não existe.'}</p>
           <Button onClick={() => navigate('/produtos')}>Voltar para produtos</Button>
         </div>
       </div>
