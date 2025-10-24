@@ -101,7 +101,7 @@ const SellerOrders = () => {
         // tableInfo = result.data
         // tableError = result.error?.message
       } catch (rpcError) {
-        tableError = 'RPC not available'
+        // tableError = 'RPC not available'
       }
       
       // 2. Verificar contagem de order_items
@@ -356,32 +356,6 @@ const SellerOrders = () => {
         console.log('✅ Notificação criada com sucesso')
       }
 
-      // 🔥 ENVIAR NOTIFICAÇÃO EM TEMPO REAL VIA SUPABASE CHANNEL
-      const channelName = `client_notification_${order.user_id}`
-      console.log('📡 Enviando notificação via canal:', channelName)
-      
-      const channel = supabase.channel(channelName)
-      
-      channel.send({
-        type: 'broadcast',
-        event: 'new_notification',
-        payload: {
-          notification: {
-            id: Date.now().toString(),
-            type: notificationData.type,
-            order_id: orderId,
-            data: {
-              sellerName: notificationData.sellerName,
-              productName: notificationData.productName,
-              status: notificationData.type === 'order_delivered' ? 'delivered' : 'updated',
-              timestamp: new Date().toISOString()
-            }
-          }
-        }
-      })
-
-      console.log('✅ Notificação enviada em tempo real')
-      
     } catch (error: any) {
       console.error('❌ Erro ao enviar notificação:', error)
     }
@@ -491,7 +465,7 @@ const SellerOrders = () => {
               </p>
             </div>
             
-            <div className="flex space-x-2 mt-4 sm:mt-0">
+            <div className="flex space-x-2 mt-4">
               <Button
                 variant="outline"
                 onClick={debugDatabase}
@@ -588,13 +562,13 @@ const SellerOrders = () => {
                           {order.updated_at !== order.created_at && (
                             <div className="flex items-center text-blue-600">
                               <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                              <span>Atualizado recentemente</span>
+                              <span className="text-blue-700">Atualizado recentemente</span>
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-3 sm:mt-0">
+                      <div className="flex items-center">
                         <Badge className={statusInfo.color}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
@@ -699,7 +673,7 @@ const SellerOrders = () => {
           </div>
         )}
       </div>
-    </div>
+    )
   )
 }
 
