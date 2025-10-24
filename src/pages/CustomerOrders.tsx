@@ -19,16 +19,20 @@ const CustomerOrders = () => {
   useEffect(() => {
     if (user?.profile?.role === 'cliente') {
       fetchOrders()
-      setupRealtimeSubscription()
+      
+      // Configurar subscrição apenas se o user.id estiver disponível
+      if (user.id) {
+        const channel = setupRealtimeSubscription(user.id)
+        return () => {
+          // Cleanup subscription when component unmounts
+          supabase.removeChannel(channel)
+        }
+      }
     }
-
-    return () => {
-      // Cleanup subscription when component unmounts
-      supabase.channel('orders').unsubscribe()
-    }
-  }, [user])
+  }, [user]) // Dependência apenas do objeto user
 
   const fetchOrders = async () => {
+    if (!user) return
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -42,7 +46,7 @@ const CustomerOrders = () => {
             )
           )
         `)
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -57,19 +61,21 @@ const CustomerOrders = () => {
     }
   }
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = (userId: string) => {
+    console.log(`Realtime: Setting up subscription for user ${userId}`)
+    
     const channel = supabase
-      .channel('orders')
+      .channel(`orders_user_${userId}`) // Usar um nome de canal único
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${user!.id}`
+          filter: `user_id=eq.${userId}` // Filtrar pelo ID do cliente
         },
         (payload) => {
-          console.log('Order status updated:', payload)
+          console.log('Realtime: Order status updated:', payload)
           
           const updatedOrder = payload.new as OrderWithItems
           
@@ -85,9 +91,15 @@ const CustomerOrders = () => {
           showSuccess(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Realtime: Subscription active for orders of user ${userId}`)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Realtime: Subscription error')
+        }
+      })
 
-    console.log('Realtime subscription set up for orders')
+    return channel
   }
 
   const formatPrice = (price: number) => {
