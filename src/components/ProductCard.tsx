@@ -136,7 +136,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           className="w-full block"
         >
           <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:shadow-lg"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:shadow-lg justify-center"
             size="lg"
             disabled={product.stock === 0}
           >
@@ -152,7 +152,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         >
           <Button 
             variant="outline"
-            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:border-primary/80"
+            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:border-primary/80 justify-center"
             size="lg"
             disabled={product.stock === 0}
           >
