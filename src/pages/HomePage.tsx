@@ -292,11 +292,13 @@ const HomePage: React.FC = () => {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <img 
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop" 
-                alt="Como funciona a LojaRápida" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
+              <div className="w-full h-auto rounded-xl shadow-2xl overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop" 
+                  alt="Como funciona a LojaRápida" 
+                  className="w-full h-auto object-cover"
+                />
+              </div>
             </motion.div>
           </div>
         </div>
@@ -392,11 +394,13 @@ const HomePage: React.FC = () => {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <img 
-                src="https://images.unsplash.com/photo-1554224155-6726b3f81c4c?w=600&h=400&fit=crop" 
-                alt="Vantagens para clientes" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
+              <div className="w-full h-auto rounded-xl shadow-2xl overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1554224155-6726b3f81c4c?w=600&h=400&fit=crop" 
+                  alt="Vantagens para clientes" 
+                  className="w-full h-auto object-cover"
+                />
+              </div>
             </motion.div>
 
             <motion.div
@@ -466,11 +470,13 @@ const HomePage: React.FC = () => {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <img 
-                src="https://images.unsplash.com/photo-1554224155-6726b3f81c4c?w=600&h=400&fit=crop" 
-                alt="Vantagens para vendedores" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
+              <div className="w-full h-auto rounded-xl shadow-2xl overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1554224155-6726b3f81c4c?w=600&h=400&fit=crop" 
+                  alt="Vantagens para vendedores" 
+                  className="w-full h-auto object-cover"
+                />
+              </div>
             </motion.div>
           </div>
         </div>
