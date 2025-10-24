@@ -434,8 +434,9 @@ const ProductDetail = () => {
                   <div className="relative">
                     <img 
                       src={mainImage} 
-                      alt={product.name} 
+                      alt={`Imagem principal do produto ${product.name}`}
                       className="w-full h-96 object-cover rounded-lg"
+                      loading="eager" // Imagem principal deve ser carregada rapidamente
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
                       }}
@@ -448,11 +449,12 @@ const ProductDetail = () => {
                         <img
                           key={index}
                           src={url}
-                          alt={`Thumbnail ${index + 1}`}
+                          alt={`Miniatura ${index + 1} do produto ${product.name}`}
                           className={`w-20 h-20 object-cover rounded cursor-pointer border-2 ${
                             mainImage === url ? 'border-blue-500' : 'border-gray-200'
                           }`}
                           onClick={() => setMainImage(url)}
+                          loading="lazy"
                         />
                       ))}
                     </div>

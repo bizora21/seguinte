@@ -41,8 +41,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <div className="relative w-full h-full bg-gray-100">
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'}
-              alt={product.name}
+              alt={`Imagem do produto ${product.name}`}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
               onError={(e) => {
                 e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
               }}
