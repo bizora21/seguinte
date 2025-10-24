@@ -74,7 +74,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <CardContent className="flex-1 p-3 sm:p-4 space-y-2 sm:space-y-3">
         {/* Nome do Produto */}
         <Link to={`/produto/${product.id}`}>
-          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 hover:text-primary transition-colors group-hover:text-primary">
+          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 hover:text-primary transition-colors">
             {product.name}
           </CardTitle>
         </Link>
@@ -128,31 +128,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
 
-      {/* Ações - Botões Alinhados Verticalmente */}
-      <CardFooter className="p-3 sm:p-4 pt-0 space-y-2">
-        {/* Botão Principal - Ver Detalhes */}
-        <Link 
-          to={`/produto/${product.id}`}
-          className="w-full block"
-        >
-          <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:shadow-lg justify-center"
-            size="lg"
-            disabled={product.stock === 0}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            <span className="text-sm sm:text-base">Ver mais detalhes</span>
-          </Button>
-        </Link>
-
-        {/* Botão Secundário - Encomendar */}
+      {/* Ações - Botões Alinhados Verticalmente (Corrigido) */}
+      <CardFooter className="p-3 sm:p-4 pt-0 space-y-2 flex flex-col">
+        {/* 1. Botão Principal: Encomendar Agora (Azul) */}
         <Link 
           to={`/confirmar-encomenda/${product.id}`}
           className="w-full block"
         >
           <Button 
-            variant="outline"
-            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-2.5 sm:py-3 transition-all duration-200 group-hover:border-primary/80 justify-center"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg justify-center transition-colors"
             size="lg"
             disabled={product.stock === 0}
           >
@@ -160,6 +144,22 @@ const ProductCard = ({ product }: ProductCardProps) => {
             <span className="text-sm sm:text-base">
               {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
             </span>
+          </Button>
+        </Link>
+        
+        {/* 2. Botão Secundário: Ver Detalhes (Cinza) */}
+        <Link 
+          to={`/produto/${product.id}`}
+          className="w-full block"
+        >
+          <Button 
+            variant="outline"
+            className="w-full bg-gray-200 text-gray-800 hover:bg-gray-300 font-medium py-3 rounded-lg justify-center border-0 transition-colors"
+            size="lg"
+            disabled={product.stock === 0}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            <span className="text-sm sm:text-base">Ver Detalhes</span>
           </Button>
         </Link>
       </CardFooter>
