@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 
@@ -64,7 +64,6 @@ const SellerOrders = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<ProcessedOrder[]>([])
-  const [loading, setLoading] = useState(true)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -72,8 +71,17 @@ const SellerOrders = () => {
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
       fetchOrders()
+      
+      // Configurar subscrição apenas se o user.id estiver disponível
+      if (user.id) {
+        const channel = setupRealtimeSubscription(user.id)
+        return () => {
+          // Cleanup subscription when component unmounts
+          supabase.removeChannel(channel)
+        }
+      }
     }
-  }, [user])
+  }, [user]) // Dependência apenas do objeto user
 
   // 🔥 FUNÇÃO DE DEBUGGING COMPLETA
   const debugDatabase = async () => {
@@ -167,7 +175,7 @@ const SellerOrders = () => {
     try {
       console.log('🔍 Buscando pedidos para o vendedor:', user.id)
       
-      // Query simples e direta que FUNCIONA (baseada na variável sellerItems)
+      // Query simples e direta que FUNCIONA
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select(`
@@ -243,6 +251,7 @@ const SellerOrders = () => {
       })
       
       const finalOrders = Array.from(orderMap.values())
+      console.log('📦 Pedidos processados:', finalOrders.length, 'pedidos')
       setOrders(finalOrders)
       
     } catch (error: any) {
@@ -253,81 +262,173 @@ const SellerOrders = () => {
     }
   }
 
-  // 🔥 FUNÇÃO ATUALIZADA PARA CRIAR COMISSÃO
+  // 🔥 FUNÇÃO ATUALIZADA COM NOTIFICAÇÃO EM TEMPO REAL
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
     
     try {
+      console.log('🔄 Atualizando pedido:', orderId, 'para', newStatus)
+      
       // 1. Atualizar status do pedido
       const { data, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        .select() // Garante que o evento Realtime seja disparado
-        .single()
+        .eq('user_id', user!.id) // Segurança adicional
+        .select() // Importante para disparar o evento Realtime
 
       if (error) {
+        console.error('❌ Erro ao atualizar status:', error)
         showError('Erro ao atualizar status: ' + error.message)
-        return // Impede a execução se a atualização falhar
+        return // Impede a execução se houver erro
       }
-      
-      showSuccess('Status atualizado com sucesso!')
-      
-      // 2. Atualizar estado local com o dado retornado (mais seguro)
+
+      console.log('✅ Status atualizado com sucesso:', data)
+
+      // 2. 🔥 ENVIAR NOTIFICAÇÃO EM TEMPO REAL PARA O CLIENTE
+      if (newStatus === 'delivered') {
+        await sendNotificationToClient(orderId, {
+          type: 'order_delivered',
+          orderId,
+          sellerName: user?.profile?.store_name || user?.email?.split('@')[0] || 'Vendedor',
+          productName: 'Seu pedido'
+        })
+      }
+
+      // 3. Atualizar estado local
       setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: data.status as ProcessedOrder['status'], updated_at: data.updated_at } : order
+        order.id === orderId 
+          ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() }
+          : order
       ))
 
-      // 3. GATILHO DE MONETIZAÇÃO: Criar comissão se o pedido for entregue
-      if (newStatus === 'delivered') {
-        const order = orders.find(o => o.id === orderId)
-        if (order) {
-          await createCommission(order)
-        }
-      }
-
-    } catch (error) {
+      showSuccess(`Pedido #${orderId.slice(0, 8)} atualizado para ${getStatusInfo(newStatus as ProcessedOrder['status']).label}`)
+      
+    } catch (error: any) {
+      console.error('❌ Erro ao atualizar pedido:', error)
       showError('Erro inesperado ao atualizar status')
-      console.error('Update status error:', error)
     } finally {
       setUpdatingStatus(null)
     }
   }
 
-  // 🔥 FUNÇÃO PARA CRIAR A COMISSÃO
-  const createCommission = async (order: ProcessedOrder) => {
-    const commissionAmount = order.total_amount * 0.10 // 10% de comissão
-    const toastId = showLoading('Registrando comissão...')
-
+  // 🔥 FUNÇÃO PARA ENVIAR NOTIFICAÇÃO EM TEMPO REAL
+  const sendNotificationToClient = async (orderId: string, notificationData: {
+    type: 'order_update' | 'order_delivered'
+    orderId: string
+    sellerName: string
+    productName: string
+  }) => {
     try {
-      const { error } = await supabase
-        .from('commissions')
-        .insert({
-          order_id: order.id,
-          seller_id: user!.id,
-          amount: commissionAmount,
-          status: 'pending'
-        })
+      console.log('📨 Enviando notificação para o cliente:', notificationData)
       
-      if (error) {
-        console.error('Erro ao criar comissão:', error)
-        // Não mostrar erro para o vendedor, é um processo interno
-      } else {
-        // Aqui você pode adicionar uma notificação interna para o admin
-        console.log(`Comissão de ${commissionAmount} criada para o pedido ${order.id}`)
+      // Buscar informações do pedido
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('user_id')
+        .eq('id', orderId)
+        .single()
+
+      if (orderError || !order) {
+        console.error('❌ Erro ao buscar pedido para notificação:', orderError)
+        return
       }
+
+      // Criar notificação no banco
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: order.user_id,
+          type: notificationData.type,
+          order_id: orderId,
+          data: {
+            sellerName: notificationData.sellerName,
+            productName: notificationData.productName,
+            status: notificationData.type === 'order_delivered' ? 'delivered' : 'updated',
+            timestamp: new Date().toISOString()
+          },
+          read: false
+        })
+
+      if (notificationError) {
+        console.error('❌ Erro ao criar notificação:', notificationError)
+      } else {
+        console.log('✅ Notificação criada com sucesso')
+      }
+
+      // 🔥 ENVIAR NOTIFICAÇÃO EM TEMPO REAL VIA SUPABASE CHANNEL
+      const channelName = `client_notification_${order.user_id}`
+      console.log('📡 Enviando notificação via canal:', channelName)
+      
+      const channel = supabase.channel(channelName)
+      
+      channel.send({
+        type: 'broadcast',
+        event: 'new_notification',
+        payload: {
+          notification: {
+            id: Date.now().toString(),
+            type: notificationData.type,
+            order_id: orderId,
+            data: {
+              sellerName: notificationData.sellerName,
+              productName: notificationData.productName,
+              status: notificationData.type === 'order_delivered' ? 'delivered' : 'updated',
+              timestamp: new Date().toISOString()
+            }
+          }
+        }
+      })
+
+      console.log('✅ Notificação enviada em tempo real')
+      
     } catch (error: any) {
-      console.error('Erro inesperado ao criar comissão:', error)
-    } finally {
-      dismissToast(toastId)
+      console.error('❌ Erro ao enviar notificação:', error)
     }
   }
 
+  // 🔥 FUNÇÃO PARA CONFIGURAR SUBSCRIÇÃO EM TEMPO REAL
+  const setupRealtimeSubscription = (userId: string) => {
+    console.log(`🔧 Configurando subscrição em tempo real para o usuário ${userId}`)
+    
+    const channel = supabase
+      .channel(`order_status_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Realtime: Order status updated via subscription:', payload)
+          
+          // Invalidar a query para forçar o React Query a buscar os dados atualizados
+          // ou atualizar o cache diretamente se a estrutura for simples
+          setOrders(prev => prev.map(order => 
+            order.id === payload.new.id 
+              ? { ...order, status: payload.new.status as ProcessedOrder['status'], updated_at: payload.new.updated_at }
+              : order
+          ))
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`✅ Realtime: Subscription active for user ${userId}`)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`❌ Realtime: Subscription error for user ${userId}`)
+        }
+      })
+
+    return channel
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'MZN'
+      currency: 'MZN',
+      minimumFractionDigits: 2
     }).format(price)
   }
 
@@ -358,6 +459,17 @@ const SellerOrders = () => {
     )
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando seus pedidos...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -366,7 +478,7 @@ const SellerOrders = () => {
             <div>
               <Button
                 variant="ghost"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 className="mb-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -374,8 +486,8 @@ const SellerOrders = () => {
               </Button>
               <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
               <p className="text-gray-600 mt-2">
-                Visualize e gerencie os pedidos recebidos
-                {user && <span className="ml-2 text-sm">({user.id.slice(0, 8)}...)</span>}
+                Gerencie o status dos seus pedidos em tempo real
+                {user && <span className="ml-2 text-sm text-gray-500">({user.id.slice(0, 8)}...)</span>}
               </p>
             </div>
             
@@ -385,7 +497,7 @@ const SellerOrders = () => {
                 onClick={debugDatabase}
                 className="flex items-center"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <AlertTriangle className="w-4 h-4 mr-2" />
                 Debug
               </Button>
               <Button
@@ -419,9 +531,6 @@ const SellerOrders = () => {
                 {debugInfo.testError && (
                   <div className="text-red-600"><strong>Test Error:</strong> {debugInfo.testError}</div>
                 )}
-                {debugInfo.sellerError && (
-                  <div className="text-red-600"><strong>Seller Query Error:</strong> {debugInfo.sellerError}</div>
-                )}
               </div>
               <pre className="mt-4 p-4 bg-gray-100 rounded text-xs overflow-auto max-h-40">
                 {JSON.stringify(debugInfo, null, 2)}
@@ -443,18 +552,14 @@ const SellerOrders = () => {
           </Card>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : orders.length === 0 ? (
+        {orders.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 Nenhum pedido recebido ainda
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-6">
                 Os clientes ainda não fizeram pedidos com seus produtos.
               </p>
               <Button onClick={debugDatabase} variant="outline">
@@ -475,28 +580,33 @@ const SellerOrders = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div>
                         <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                        <div className="flex flex-wrap items-center space-x-4 mt-2 text-sm text-gray-600">
+                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
                             {formatDate(order.created_at)}
                           </div>
-                          <div className="flex items-center">
-                            <User className="w-4 h-4 mr-1" />
-                            Cliente ID: {order.user_id.slice(0, 8)}
-                          </div>
+                          {order.updated_at !== order.created_at && (
+                            <div className="flex items-center text-blue-600">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                              <span>Atualizado recentemente</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                      
                       <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-3 sm:mt-0">
                         <Badge className={statusInfo.color}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
+                        
                         {nextStatuses.length > 0 && (
                           <Select
                             value=""
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                             disabled={updatingStatus === order.id}
+                            className="w-full sm:w-32"
                           >
-                            <SelectTrigger className="w-full sm:w-32">
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Atualizar" />
                             </SelectTrigger>
                             <SelectContent>
@@ -512,9 +622,10 @@ const SellerOrders = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    
                     {/* Itens do Pedido */}
                     <div className="space-y-3">
-                      {order.order_items.map((item) => (
+                      {order.order_items.slice(0, 1).map((item) => (
                         <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
                           <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                             {item.product.image_url ? (
@@ -540,11 +651,16 @@ const SellerOrders = () => {
                               {item.quantity}x {formatPrice(item.price)}
                             </p>
                           </div>
-                          <div className="font-semibold flex-shrink-0">
+                          <div className="font-semibold">
                             {formatPrice(item.price * item.quantity)}
                           </div>
                         </div>
                       ))}
+                      {order.order_items.length > 1 && (
+                        <p className="text-sm text-gray-500 mt-1 ml-4">
+                          + {order.order_items.length - 1} item(s)
+                        </p>
+                      )}
                     </div>
 
                     {/* Endereço de Entrega */}
@@ -563,6 +679,19 @@ const SellerOrders = () => {
                         {formatPrice(order.total_amount)}
                       </span>
                     </div>
+
+                    {/* Indicador de Notificação Enviada */}
+                    {order.status === 'delivered' && (
+                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center text-green-800">
+                          <CheckCircle className="w-5 h-5 mr-2" />
+                          <span className="font-medium">Notificação enviada ao cliente!</span>
+                        </div>
+                        <p className="text-sm text-green-700 mt-1">
+                          O cliente foi notificado que o pedido foi entregue e pode confirmar o recebimento.
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
