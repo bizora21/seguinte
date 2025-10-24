@@ -1,7 +1,7 @@
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store, ShoppingCart } from 'lucide-react'
+import { Eye, Store, MessageCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface ProductCardProps {
@@ -56,13 +56,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
           Estoque: {product.stock} unidades
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
-        <Link to={`/confirmar-encomenda/${product.id}`} className="w-full">
+      <CardFooter className="p-4 pt-0 space-y-2">
+        <Link to={`/produto/${product.id}`} className="w-full">
           <Button 
             className="w-full bg-primary hover:bg-green-600"
             disabled={product.stock === 0}
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
+            <Eye className="w-4 h-4 mr-2" />
+            Ver mais detalhes
+          </Button>
+        </Link>
+        <Link to={`/confirmar-encomenda/${product.id}`} className="w-full">
+          <Button 
+            variant="outline"
+            className="w-full"
+            disabled={product.stock === 0}
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
             {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
           </Button>
         </Link>

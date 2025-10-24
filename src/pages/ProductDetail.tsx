@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -100,7 +100,7 @@ const ProductDetail = () => {
     };
 
     fetchProduct();
-  }, [productId]);
+  }, [productId, navigate]);
 
   // Efeito para buscar ou criar o chat e carregar mensagens
   useEffect(() => {
@@ -527,7 +527,7 @@ const ProductDetail = () => {
               </Card>
             </div>
 
-            {/* Coluna da Direita: Chat Integrado */}
+            {/* Coluna da Direita: Chat Integrado com Aviso de Segurança */}
             <div className="lg:sticky lg:top-24 h-fit">
               <Card className="h-[600px] flex flex-col">
                 <CardHeader className="pb-3">
@@ -607,6 +607,17 @@ const ProductDetail = () => {
                               ))
                             )}
                             <div ref={messagesEndRef} />
+                          </div>
+
+                          {/* Aviso de Segurança */}
+                          <div className="bg-yellow-50 border border-yellow-200 p-3 mx-4 mb-2">
+                            <div className="flex items-start space-x-2">
+                              <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                              <div className="text-xs text-yellow-800">
+                                <p className="font-medium mb-1">⚠️ Aviso de Segurança</p>
+                                <p>Para sua segurança, siga as políticas do site e nunca compartilhe dados pessoais ou de pagamento fora deste chat.</p>
+                              </div>
+                            </div>
                           </div>
 
                           {/* Input de Mensagem */}
