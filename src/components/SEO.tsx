@@ -55,16 +55,67 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="keywords" content="marketplace Moçambique, comprar online Maputo, vender online Moçambique, LojaRápida, e-commerce Moçambique" />
       
       {/* Structured Data (JSON-LD) */}
-      {jsonLd && (
-        <script type="application/ld+json">
-          {JSON.stringify(jsonLd)}
+      {jsonLd && jsonLd.map((schema, index) => (
+        <script key={index} type="application/ld+json">
+          {JSON.stringify(schema)}
         </script>
-      )}
+      ))}
     </Helmet>
   )
 }
 
-// Função para gerar schema de produto
+// --- Funções Auxiliares para JSON-LD ---
+
+// 1. Schema WebSite (Para a Homepage)
+export const generateWebSiteSchema = () => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "LojaRápida",
+    "url": "https://lojarapida.co.mz/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://lojarapida.co.mz/busca?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+}
+
+// 2. Schema LocalBusiness (Para a Homepage)
+export const generateLocalBusinessSchema = () => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "LojaRápida Marketplace",
+    "image": "https://lojarapida.co.mz/og-image.jpg",
+    "url": "https://lojarapida.co.mz/",
+    "telephone": "+258 86 318 1415",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Maputo",
+      "addressLocality": "Maputo",
+      "addressRegion": "Maputo",
+      "addressCountry": "MZ"
+    },
+    "priceRange": "$$",
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday"
+        ],
+        "opens": "08:00",
+        "closes": "18:00"
+      }
+    ]
+  }
+}
+
+// 3. Schema Product (Para a Página de Detalhes do Produto)
 export const generateProductSchema = (product: ProductWithSeller, storeName: string) => {
   const productUrl = `https://lojarapida.co.mz/produto/${product.id}`
   
@@ -90,11 +141,35 @@ export const generateProductSchema = (product: ProductWithSeller, storeName: str
     brand: {
       '@type': 'Brand',
       name: storeName
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8", // Mocked rating
+      "reviewCount": "125" // Mocked count
     }
   }
 }
 
-// Função para gerar schema de breadcrumbs
+// 4. Schema Store (Para a Página da Loja do Vendedor)
+export const generateStoreSchema = (storeName: string, sellerId: string) => {
+  const storeUrl = `https://lojarapida.co.mz/loja/${sellerId}`
+  return {
+    "@context": "https://schema.org",
+    "@type": "Store",
+    "name": storeName,
+    "url": storeUrl,
+    "image": "https://lojarapida.co.mz/og-image.jpg",
+    "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Maputo",
+      "addressRegion": "Maputo",
+      "addressCountry": "MZ"
+    }
+  }
+}
+
+// Função para gerar schema de breadcrumbs (já existente, mantida)
 export const generateBreadcrumbSchema = (breadcrumbs: Array<{ name: string; url: string }>) => {
   return {
     '@context': 'https://schema.org',

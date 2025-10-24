@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { showSuccess, showError } from '../utils/toast';
-import { SEO } from '../components/SEO';
+import { SEO, generateProductSchema } from '../components/SEO';
 
 // Interface para os dados do produto
 interface Product {
@@ -382,15 +382,19 @@ const ProductDetail = () => {
       </div>
     );
   }
+  
+  // Gerar JSON-LD do produto
+  const productSchema = generateProductSchema(product as any, storeName);
 
   return (
     <>
       <SEO
-        title={`${product.name} | ${storeName}`}
-        description={`${product.description || `Converse diretamente com o vendedor sobre ${product.name} na LojaRápida.`} ${product.stock > 0 ? 'Disponível para entrega em todo Moçambique.' : 'Produto temporariamente indisponível.'}`}
+        title={`${product.name} | ${storeName} | LojaRápida`}
+        description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
         image={productImages[0] || '/og-image.jpg'}
         url={productUrl}
         type="product"
+        jsonLd={[productSchema]}
       />
       
       <div className="min-h-screen bg-gray-50">
