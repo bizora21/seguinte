@@ -1,63 +1,92 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, ShoppingBag, Users, Package, Shield, Star, TrendingUp, MapPin, Clock, CheckCircle, Store } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { ProductWithSeller } from '../types/product'
+import ProductCard from '../components/ProductCard'
+import { Button } from '../components/ui/button'
+import { motion, Variants } from 'framer-motion'
 
 const Index = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [featuredProducts, setFeaturedProducts] = useState<ProductWithSeller[]>([])
+  const [newProducts, setNewProducts] = useState<ProductWithSeller[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const features = [
-    {
-      icon: ShoppingBag,
-      title: 'Variedade de Produtos',
-      description: 'Encontre tudo o que precisa em um só lugar, de produtos locais a internacionais'
-    },
-    {
-      icon: Users,
-      title: 'Conecte-se com Vendedores',
-      description: 'Compre diretamente de vendedores locais e apoie a economia moçambicana'
-    },
-    {
-      icon: Package,
-      title: 'Entrega Rápida',
-      description: 'Receba seus pedidos em até 5-10 dias úteis em qualquer parte do país'
-    },
-    {
-      icon: Shield,
-      title: 'Compra Segura',
-      description: 'Pagamento na entrega e garantia de devolução em 7 dias'
+  useEffect(() => {
+    fetchFeaturedProducts()
+    fetchNewProducts()
+  }, [])
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey(id, store_name)
+        `)
+        .gt('stock', 0) // CORREÇÃO: Trocado de .eq('stock', true) para .gt('stock', 0)
+        .order('created_at', { ascending: false })
+        .limit(4)
+
+      if (error) throw error
+      setFeaturedProducts(data || [])
+    } catch (error) {
+      console.error('Error fetching featured products:', error)
     }
-  ]
+  }
 
-  const stats = [
-    { number: '10,000+', label: 'Produtos Disponíveis' },
-    { number: '500+', label: 'Vendedores Ativos' },
-    { number: '50,000+', label: 'Clientes Satisfeitos' },
-    { number: '258', label: 'Cidades Atendidas' }
-  ]
+  const fetchNewProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey(id, store_name)
+        `)
+        .gt('stock', 0) // CORREÇÃO: Trocado de .eq('stock', true) para .gt('stock', 0)
+        .order('created_at', { ascending: false })
+        .limit(8)
 
-  const testimonials = [
-    {
-      name: 'Ana Joaquim',
-      role: 'Cliente',
-      content: 'A melhor plataforma para comprar online em Moçambique. Entrega sempre no prazo!',
-      rating: 5
-    },
-    {
-      name: 'Carlos Mabunda',
-      role: 'Vendedor',
-      content: 'Aumentei minhas vendas em 300% desde que comecei a vender na LojaRápida.',
-      rating: 5
-    },
-    {
-      name: 'Sofia Nhantumbo',
-      role: 'Cliente',
-      content: 'Adoro a variedade de produtos e a segurança na entrega. Recomendo!',
-      rating: 5
+      if (error) throw error
+      setNewProducts(data || [])
+    } catch (error) {
+      console.error('Error fetching new products:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const itemVariants: Variants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -89,9 +118,7 @@ const Index = () => {
                 onClick={() => navigate('/produtos')}
                 className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-3 text-lg"
               >
-                <ShoppingBag className="mr-2 h-5 w-5" />
                 Explorar Produtos
-                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
                 size="lg"
@@ -105,68 +132,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-gray-600">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Por que escolher a LojaRápida?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              A plataforma mais confiável para compras online em Moçambique
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-              >
-                <feature.icon className="h-12 w-12 text-green-600 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
+      {/* Featured Products */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -176,44 +142,37 @@ const Index = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Como Funciona
+              Produtos em Destaque
             </h2>
-            <p className="text-xl text-gray-600">
-              Simples, rápido e seguro
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Os melhores produtos selecionados para você
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { step: '1', title: 'Cadastre-se', description: 'Crie sua conta gratuita em menos de 1 minuto' },
-              { step: '2', title: 'Compre ou Venda', description: 'Encontre produtos ou cadastre os seus para vender' },
-              { step: '3', title: 'Receba ou Entregue', description: 'Pagamento na entrega e rastreamento do pedido' }
-            ].map((item, index) => (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {featuredProducts.map((product) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
+                key={product.id}
+                variants={itemVariants}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="text-center"
+                viewport={{ once: true }}
               >
-                <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                  {item.step}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600">
-                  {item.description}
-                </p>
+                <ProductCard product={product} />
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* New Products */}
       <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 vism:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -221,41 +180,31 @@ const Index = () => {
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              O Que Nossos Clientes Dizem
+              Novos Produtos
             </h2>
-            <p className="text-xl text-gray-600">
-              Depoimentos reais de quem já usa nossa plataforma
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              As últimas novidades na nossa plataforma
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            {newProducts.map((product) => (
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
+                key={product.id}
+                variants={itemVariants}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white p-6 rounded-xl shadow-lg"
+                viewport={{ once: true }}
               >
-                <div className="flex mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4 italic">
-                  "{testimonial.content}"
-                </p>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {testimonial.name}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {testimonial.role}
-                  </div>
-                </div>
+                <ProductCard product={product} />
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -275,17 +224,16 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
-                size="lg"
                 onClick={() => navigate('/produtos')}
                 className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-3 text-lg"
+                size="lg"
               >
-                <ShoppingBag className="mr-2 h-5 w-5" />
                 Explorar Produtos Agora
               </Button>
               <Button
-                size="lg"
                 onClick={() => navigate('/register')}
                 className="bg-white hover:bg-gray-100 text-green-700 font-semibold px-8 py-3 text-lg border-0"
+                size="lg"
               >
                 Criar Conta Gratuita
               </Button>
