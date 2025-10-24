@@ -31,7 +31,7 @@ const OrderConfirmed = () => {
                 <li>• Você receberá um email com os detalhes do pedido</li>
                 <li>• O vendedor irá preparar seus produtos</li>
                 <li>• Você será notificado quando o pedido for enviado</li>
-                <li>• Entrega em 1-5 dias úteis</li>
+                <li>• Entrega em 1 a 5 dias úteis</li>
               </ul>
             </div>
 

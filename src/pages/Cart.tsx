@@ -187,7 +187,7 @@ const Cart = () => {
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Truck className="w-4 h-4 mr-2" />
-                  <span>Entrega em 1-5 dias úteis em todo Moçambique</span>
+                  <span>Entrega em 1 a 5 dias úteis em todo Moçambique</span>
                 </div>
 
                 <Button

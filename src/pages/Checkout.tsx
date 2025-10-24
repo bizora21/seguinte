@@ -278,7 +278,7 @@ const Checkout = () => {
                 </div>
                 <div className="flex items-center">
                   <Shield className="w-4 h-4 mr-2" />
-                  <span>• Prazo de entrega: 1-5 dias úteis</span>
+                  <span>• Prazo de entrega: 1 a 5 dias úteis</span>
                 </div>
                 <div className="flex items-center">
                   <CreditCard className="w-4 h-4 mr-2" />

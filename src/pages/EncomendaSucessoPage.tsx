@@ -93,7 +93,7 @@ const EncomendaSucessoPage = () => {
                     </div>
                     <div>
                       <p className="font-medium">Entrega no seu endereço</p>
-                      <p className="text-blue-600">Receba em 1-5 dias úteis</p>
+                      <p className="text-blue-600">Receba em 1 a 5 dias úteis</p>
                     </div>
                   </div>
                 </div>
@@ -139,7 +139,7 @@ const EncomendaSucessoPage = () => {
                 <Clock className="w-8 h-8 text-blue-600" />
                 <div>
                   <h3 className="font-semibold text-sm">Prazo de Entrega</h3>
-                  <p className="text-xs text-gray-600">1-5 dias úteis</p>
+                  <p className="text-xs text-gray-600">1 a 5 dias úteis</p>
                 </div>
               </div>
             </Card>

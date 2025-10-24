@@ -71,7 +71,7 @@ const Footer = () => {
 
   const features = [
     { icon: Shield, title: 'Compra Segura', description: '100% seguro' },
-    { icon: Truck, title: 'Entrega Rápida', description: '1-5 dias úteis' },
+    { icon: Truck, title: 'Entrega Rápida', description: '1 a 5 dias úteis' },
     { icon: CreditCard, title: 'Pagamento na Entrega', description: 'Seguro e fácil' },
     { icon: Headphones, title: 'Suporte 24/7', description: 'Sempre disponível' }
   ]

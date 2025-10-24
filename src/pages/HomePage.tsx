@@ -99,7 +99,7 @@ const HomePage: React.FC = () => {
     {
       icon: <Truck className="w-8 h-8 text-blue-600" />,
       title: 'Entrega Grátis',
-      description: 'Frete grátis para todo Moçambique. Entrega em 5-10 dias úteis.'
+      description: 'Frete grátis para todo Moçambique. Entrega em 1 a 5 dias úteis.'
     },
     {
       icon: <Store className="w-8 h-8 text-purple-600" />,
@@ -128,7 +128,7 @@ const HomePage: React.FC = () => {
     {
       icon: <TruckIcon className="w-6 h-6 text-purple-600" />,
       title: 'Receba em Casa',
-      description: 'Aguarde a entrega e pague na hora.'
+      description: 'Aguarde a entrega em 1 a 5 dias úteis e pague na hora.'
     },
     {
       icon: <CreditCardIcon className="w-6 h-6 text-orange-600" />,
@@ -147,7 +147,7 @@ const HomePage: React.FC = () => {
     {
       icon: <Truck className="w-5 h-5 text-blue-600" />,
       title: 'Entrega Rápida',
-      description: 'Receba seus produtos em 5-10 dias úteis.'
+      description: 'Receba seus produtos em 1 a 5 dias úteis.'
     },
     {
       icon: <MessageCircle className="w-5 h-5 text-purple-600" />,
@@ -176,7 +176,7 @@ const HomePage: React.FC = () => {
     {
       icon: <CreditCard className="w-5 h-5 text-purple-600" />,
       title: 'Pagamento Seguro',
-      description: 'Receba seus pagamentos de forma segura.'
+      description: 'Receba seus pagamentos em meticais de forma segura.'
     },
     {
       icon: <Users className="w-5 h-5 text-orange-600" />,
@@ -485,7 +485,7 @@ const HomePage: React.FC = () => {
                 size="lg"
               >
                 <Users className="w-5 h-5 mr-2" />
-                Criar Conta Gratuita
+                Cadastrar como Vendedor
               </Button>
             </div>
           </motion.div>

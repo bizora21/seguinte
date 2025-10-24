@@ -21,7 +21,7 @@ const About = () => {
     {
       icon: <Truck className="w-8 h-8 text-purple-600" />,
       title: 'Entrega Rápida em Todo MZ',
-      description: 'Frete grátis para todo Moçambique com entrega em 1-5 dias úteis em Maputo, Matola, Beira e mais.'
+      description: 'Frete grátis para todo Moçambique com entrega em 1 a 5 dias úteis em Maputo, Matola, Beira e mais.'
     },
     {
       icon: <Shield className="w-8 h-8 text-red-600" />,
@@ -231,7 +231,7 @@ const About = () => {
               Pronto para Começar?
             </h2>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Junte-se a milhares de vendedores e clientes que já fazem parte da 
+              Junte-se a milhares de vendedores e clientes que já confiam na 
               comunidade LojaRápida. Comece a comprar ou vender hoje mesmo em todo Moçambique!
             </p>
             <div className="flex justify-center space-x-4">
