@@ -19,13 +19,12 @@ import LojasPage from "./pages/LojasPage";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AddProduct from "./pages/AddProduct";
-import ProductDetail from "./pages/ProductDetail";
+import ProductDetail from "./pages/ProductDetail"; // Importação corrigida
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmed from "./pages/OrderConfirmed";
 import MyOrders from "./pages/MyOrders";
 import MyChats from "./pages/MyChats";
-import Chat from "./pages/Chat";
 import SearchResults from "./pages/SearchResults";
 import StorePage from "./pages/StorePage";
 import SobreNosPage from "./pages/SobreNosPage";
@@ -39,14 +38,14 @@ import TermosDeUsoPage from "./pages/TermosDeUsoPage";
 import PoliticaDePrivacidadePage from "./pages/PoliticaDePrivacidadePage";
 import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
 import CustomerOrderDetails from "./pages/CustomerOrderDetails";
-import { HelmetProvider } from "react-helmet-async"; // Importação necessária
+import { HelmetProvider } from "react-helmet-async";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <HelmetProvider> {/* Envolve a aplicação com HelmetProvider */}
+      <HelmetProvider>
         <AuthProvider>
           <CartProvider>
             <BrowserRouter
@@ -89,6 +88,7 @@ const App = () => (
                         </ProtectedRoute>
                       } 
                     />
+                    {/* Rota de Detalhes do Produto (agora com chat integrado) */}
                     <Route path="/produto/:id" element={<ProductDetail />} />
                     {/* ROTAS INFORMATIVAS */}
                     <Route path="/sobre-nos" element={<SobreNosPage />} />
@@ -166,14 +166,7 @@ const App = () => (
                         </ProtectedRoute>
                       } 
                     />
-                    <Route 
-                      path="/chat/:chatId" 
-                      element={
-                        <ProtectedRoute>
-                          <Chat />
-                        </ProtectedRoute>
-                      } 
-                    />
+                    {/* ROTA DE CHAT OBSOLETA REMOVIDA: /chat/:productId */}
                     <Route path="/busca" element={<SearchResults />} />
                     <Route path="/loja/:sellerId" element={<StorePage />} />
                     <Route path="*" element={<NotFound />} />
