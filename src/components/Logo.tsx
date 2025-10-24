@@ -24,7 +24,7 @@ const Logo = ({ size = 'md', showText = true }: LogoProps) => {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      {/* Novo Ícone SVG: Pin de Localização com Seta de Velocidade */}
+      {/* Novo Ícone SVG: Sacola de Compras com Raio (Flash) */}
       <svg
         width={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
         height={size === 'sm' ? 32 : size === 'md' ? 40 : 48}
@@ -33,15 +33,16 @@ const Logo = ({ size = 'md', showText = true }: LogoProps) => {
         xmlns="http://www.w3.org/2000/svg"
         className={sizeClasses[size]}
       >
-        {/* Fundo Azul Profundo (Primary) */}
+        {/* Fundo Azul Profundo (#0A2540) */}
         <rect width="40" height="40" rx="8" fill="#0A2540"/>
         
-        {/* Pin de Localização (Branco) */}
-        <path d="M20 10C14.477 10 10 14.477 10 20C10 25.523 20 35 20 35C20 35 30 25.523 30 20C30 14.477 25.523 10 20 10ZM20 25C17.2386 25 15 22.7614 15 20C15 17.2386 17.2386 15 20 15C22.7614 15 25 17.2386 25 20C25 22.7614 22.7614 25 20 25Z" fill="white"/>
+        {/* Sacola de Compras (Branco) */}
+        <path d="M13 15H27L25 30H15L13 15Z" fill="white"/>
+        <path d="M16 15V13C16 11.3431 17.3431 10 19 10H21C22.6569 10 24 11.3431 24 13V15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         
-        {/* Seta de Rapidez (Accent Green) */}
-        <path d="M20 15L25 20L20 25L15 20L20 15Z" fill="#00D4AA" opacity="0.8"/>
-        <path d="M20 15L20 25" stroke="#00D4AA" strokeWidth="2" strokeLinecap="round"/>
+        {/* Raio (Flash) Verde Vibrante (#00D4AA) */}
+        <path d="M20 20L18 25H22L20 30" stroke="#00D4AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M20 20L22 25H18L20 30" fill="#00D4AA"/>
       </svg>
       
       {showText && (
