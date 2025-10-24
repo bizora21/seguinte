@@ -1,7 +1,7 @@
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store, MessageCircle, ShoppingCart, Star } from 'lucide-react'
+import { Eye, Store, ShoppingCart, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/badge'
 
@@ -20,7 +20,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const formatStock = (stock: number) => {
     if (stock === 0) return 'Fora de estoque'
     if (stock <= 5) return `Apenas ${stock} unidades`
-    return `${stock} unidades disponíveis`
+    return `${stock} unidades`
   }
 
   const getStockColor = (stock: number) => {
@@ -71,10 +71,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </CardHeader>
 
       {/* Conteúdo do Produto */}
-      <CardContent className="flex-1 p-4 space-y-3">
+      <CardContent className="flex-1 p-3 sm:p-4 space-y-2 sm:space-y-3">
         {/* Nome do Produto */}
         <Link to={`/produto/${product.id}`}>
-          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 hover:text-primary transition-colors group-hover:text-primary">
+          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 hover:text-primary transition-colors group-hover:text-primary">
             {product.name}
           </CardTitle>
         </Link>
@@ -114,11 +114,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
         {/* Preço */}
         <div className="flex items-baseline justify-between">
-          <div className="text-2xl font-bold text-primary">
+          <div className="text-xl sm:text-2xl font-bold text-primary">
             {formatPrice(product.price)}
           </div>
           {product.stock > 0 && (
-            <div className="text-xs text-gray-500">
+            <div className="hidden sm:block text-xs text-gray-500">
               <span className="line-through text-gray-400">
                 {formatPrice(product.price * 1.2)}
               </span>
@@ -128,20 +128,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
       </CardContent>
 
-      {/* Ações */}
-      <CardFooter className="p-4 pt-0 space-y-3">
+      {/* Ações - Responsivo */}
+      <CardFooter className="p-3 sm:p-4 pt-0 space-y-2 sm:space-y-3">
         {/* Botão Principal - Ver Detalhes */}
         <Link 
           to={`/produto/${product.id}`}
           className="w-full block"
         >
           <Button 
-            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 transition-all duration-200 group-hover:shadow-lg"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 sm:py-3 transition-all duration-200 group-hover:shadow-lg"
             size="lg"
             disabled={product.stock === 0}
           >
             <Eye className="w-4 h-4 mr-2" />
-            Ver mais detalhes
+            <span className="text-sm sm:text-base">Ver mais detalhes</span>
           </Button>
         </Link>
 
@@ -152,27 +152,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
         >
           <Button 
             variant="outline"
-            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-3 transition-all duration-200 group-hover:border-primary/80"
+            className="w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-2 sm:py-3 transition-all duration-200 group-hover:border-primary/80"
             size="lg"
             disabled={product.stock === 0}
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
-          </Button>
-        </Link>
-
-        {/* Botão Terciário - Chat Rápido */}
-        <Link 
-          to={`/produto/${product.id}`}
-          className="w-full block"
-        >
-          <Button 
-            variant="ghost"
-            className="w-full text-gray-600 hover:text-primary hover:bg-primary/5 font-medium py-2 transition-all duration-200"
-            size="sm"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            Conversar com vendedor
+            <span className="text-sm sm:text-base">
+              {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
+            </span>
           </Button>
         </Link>
       </CardFooter>
