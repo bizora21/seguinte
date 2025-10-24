@@ -1,310 +1,146 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { Product } from '../types/product'
+import React, { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../integrations/supabase/client'
+import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Search, Filter, Grid, List, Store, Package } from 'lucide-react'
-import { motion, Variants } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
-import CategoryFilter from '../components/CategoryFilter'
-import { useSearchParams } from 'react-router-dom'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Loader2 } from 'lucide-react'
+import { Button } from '../components/ui/button'
 
-interface ProductWithSeller extends Product {
-  seller?: {
-    id: string
-    store_name: string
-    email: string
+const fetchProducts = async (searchTerm: string, sortBy: string, category: string): Promise<ProductWithSeller[]> => {
+  let query = supabase
+    .from('products')
+    .select(`
+      *,
+      seller:profiles(id, store_name)
+    `)
+    .eq('stock', true) // Assuming 'stock' true means available
+
+  if (searchTerm) {
+    query = query.ilike('name', `%${searchTerm}%`)
   }
+
+  if (category && category !== 'all') {
+    query = query.eq('category', category)
+  }
+
+  switch (sortBy) {
+    case 'price_asc':
+      query = query.order('price', { ascending: true })
+      break
+    case 'price_desc':
+      query = query.order('price', { ascending: false })
+      break
+    case 'newest':
+      query = query.order('created_at', { ascending: false })
+      break
+    default:
+      query = query.order('created_at', { ascending: false })
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(error.message)
+  return data as ProductWithSeller[]
 }
 
 const ProductsPage = () => {
-  const [products, setProducts] = useState<ProductWithSeller[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [searchQuery, setSearchQuery] = useState('')
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
+  const [category, setCategory] = useState('all')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500)
 
-  const fetchProducts = async () => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      // 🔥 QUERY CORRIGIDA: Usando a constraint correta products_seller_id_fkey
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          seller:profiles!products_seller_id_fkey (
-            id,
-            store_name,
-            email
-          )
-        `)
-        .gt('stock', 0)  // Apenas produtos com estoque
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching products:', error)
-        setError('Não foi possível carregar os produtos. Tente novamente.')
-      } else {
-        setProducts(data || [])
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error)
-      setError('Erro inesperado ao carregar produtos.')
-    } finally {
-      setLoading(false)
+    return () => {
+      clearTimeout(handler)
     }
-  }
+  }, [searchTerm])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    navigate(`/busca?q=${encodeURIComponent(searchQuery)}`)
-  }
+  const { data: products, isLoading, isError, refetch } = useQuery<ProductWithSeller[], Error>({
+    queryKey: ['products', debouncedSearchTerm, sortBy, category],
+    queryFn: () => fetchProducts(debouncedSearchTerm, sortBy, category),
+  })
 
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  }
+  const categories = [
+    { value: 'all', label: 'Todas as Categorias' },
+    { value: 'eletronicos', label: 'Eletrônicos' },
+    { value: 'moda', label: 'Moda' },
+    { value: 'casa', label: 'Casa e Decoração' },
+    { value: 'esportes', label: 'Esportes' },
+  ]
 
-  const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: 'spring' as const,
-        stiffness: 100,
-        damping: 12
-      }
-    }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-MZ', {
-      style: 'currency',
-      currency: 'MZN'
-    }).format(price)
-  }
-
-  // Estado de carregamento
-  if (loading) {
+  if (isError) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <p className="ml-3 text-gray-600">Carregando produtos...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Estado de erro
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Package className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-red-600 mb-2">
-                Erro ao Carregar Produtos
-              </h2>
-              <p className="text-gray-600 mb-6">{error}</p>
-              <Button onClick={fetchProducts} className="bg-green-600 hover:bg-green-700">
-                Tentar Novamente
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="text-center p-8">
+        <h2 className="text-xl font-semibold text-red-600">Erro ao carregar produtos.</h2>
+        <Button onClick={() => refetch()} className="mt-4">Tentar Novamente</Button>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <h1 className="text-4xl font-bold mb-4">
-              Explore Produtos Incríveis
-            </h1>
-            <p className="text-xl mb-8 text-green-100">
-              Descubra os melhores produtos de vendedores locais em todo Moçambique
-            </p>
-            
-            {/* Barra de Busca Principal */}
-            <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  type="text"
-                  placeholder="Buscar produtos, lojas ou categorias..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-12 pr-4 py-3 text-lg h-12 bg-white text-gray-900 placeholder-gray-500"
-                />
-                <Button
-                  type="submit"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-600 hover:bg-green-700"
-                >
-                  Buscar
-                </Button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filtros e Ordenação */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Todos os Produtos
-              </h2>
-              <p className="text-gray-600 mt-1">
-                {products.length} produtos disponíveis de vendedores verificados
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Produtos Disponíveis</h1>
 
-          {/* Filtro de Categorias */}
-          <CategoryFilter />
+        {/* Filtros e Ordenação */}
+        <div className="mb-8 bg-white p-4 rounded-lg shadow-md">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0 md:space-x-4">
+            {/* Busca */}
+            <Input
+              placeholder="Buscar produtos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full md:max-w-sm"
+            />
+
+            {/* Categoria */}
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Ordenação */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Mais Recentes</SelectItem>
+                <SelectItem value="price_asc">Preço: Menor para Maior</SelectItem>
+                <SelectItem value="price_desc">Preço: Maior para Menor</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Grid de Produtos */}
-        {products.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum produto encontrado
-              </h2>
-              <p className="text-gray-600">
-                Volte em breve para novos produtos incríveis!
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className={viewMode === 'grid' 
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              : "space-y-4"
-            }
-          >
+        {/* Lista de Produtos */}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : products && products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {products.map((product) => (
-              <motion.div
-                key={product.id}
-                variants={itemVariants}
-                className={viewMode === 'list' ? 'bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow' : ''}
-              >
-                {viewMode === 'grid' ? (
-                  <ProductCard product={product} />
-                ) : (
-                  /* Visualização em Lista */
-                  <div className="p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop'
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop"
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {product.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {product.description || 'Sem descrição'}
-                        </p>
-                        <div className="flex items-center space-x-4">
-                          <span className="text-xl font-bold text-green-600">
-                            {formatPrice(product.price)}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            Estoque: {product.stock}
-                          </span>
-                          {product.seller?.store_name && (
-                            <div className="flex items-center text-sm text-gray-500">
-                              <Store className="w-3 h-3 mr-1" />
-                              {product.seller.store_name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Button
-                          onClick={() => navigate(`/produto/${product.id}`)}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
+              <ProductCard key={product.id} product={product} />
             ))}
-          </motion.div>
+          </div>
+        ) : (
+          <div className="text-center p-10 bg-white rounded-lg shadow-md">
+            <p className="text-lg text-gray-600">Nenhum produto encontrado com os filtros aplicados.</p>
+          </div>
         )}
       </div>
     </div>
