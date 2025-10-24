@@ -34,7 +34,8 @@ const SearchResults = () => {
           category:categories (
             name,
             slug
-          )
+          ),
+          seller:profiles!products_seller_id_fkey(id, store_name)
         `)
 
       // Aplicar filtros

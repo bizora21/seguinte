@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../integrations/supabase/client'
+import { supabase } from '../lib/supabase' // Importação corrigida
 import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
 import { Input } from '../components/ui/input'
@@ -13,7 +13,7 @@ const fetchProducts = async (searchTerm: string, sortBy: string, category: strin
     .from('products')
     .select(`
       *,
-      seller:profiles(id, store_name)
+      seller:profiles!products_seller_id_fkey(id, store_name)
     `)
     .eq('stock', true) // Assuming 'stock' true means available
 
