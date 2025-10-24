@@ -1,7 +1,6 @@
-0) para resolver o erro 400 Bad Request.">
 import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../lib/supabase' // Importação corrigida
+import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
 import { Input } from '../components/ui/input'
@@ -16,7 +15,7 @@ const fetchProducts = async (searchTerm: string, sortBy: string, category: strin
       *,
       seller:profiles!products_seller_id_fkey(id, store_name)
     `)
-    .gt('stock', 0) // CORREÇÃO: Filtrar por estoque maior que 0 (numérico)
+    .gt('stock', 0)
 
   if (searchTerm) {
     query = query.ilike('name', `%${searchTerm}%`)
