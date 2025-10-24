@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Product } from '../types/product'
 import ProductCard from '../components/ProductCard'
@@ -9,12 +9,14 @@ import { Search, Filter, ArrowLeft } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import SearchBar from '../components/SearchBar'
 import CategoryFilter from '../components/CategoryFilter'
+import { SEO, generateBreadcrumbSchema } from '../components/SEO'
 
 const SearchResults = () => {
   const [searchParams] = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [totalResults, setTotalResults] = useState(0)
+  const navigate = useNavigate()
 
   const query = searchParams.get('q') || ''
   const category = searchParams.get('categoria') || 'todos'
@@ -97,6 +99,12 @@ const SearchResults = () => {
       currency: 'MZN'
     }).format(price)
   }
+  
+  const breadcrumbs = [
+    { name: 'Início', url: 'https://lojarapida.co.mz/' },
+    { name: 'Busca', url: 'https://lojarapida.co.mz/busca' }
+  ];
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   if (loading) {
     return (
@@ -110,108 +118,119 @@ const SearchResults = () => {
     )
   }
 
+  const searchTitle = query ? `Resultados para "${query}"` : 'Resultados da Busca'
+  const searchDescription = `Encontrados ${totalResults} produtos em Moçambique para a busca: ${query || 'todos os produtos'}.`
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => window.history.back()}
-            className="mb-4 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-          
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Resultados da Busca
-            </h1>
+    <>
+      <SEO
+        title={searchTitle}
+        description={searchDescription}
+        url={`https://lojarapida.co.mz/busca?${searchParams.toString()}`}
+        jsonLd={[breadcrumbSchema]}
+      />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="mb-4 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
             
-            {query && (
-              <p className="text-lg text-gray-600 mb-4">
-                Buscando por: <span className="font-semibold text-green-600">&quot;{query}&quot;</span>
-              </p>
-            )}
-            
-            <div className="flex justify-center mb-8">
-              <SearchBar />
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                {searchTitle}
+              </h1>
+              
+              {query && (
+                <p className="text-lg text-gray-600 mb-4">
+                  Buscando por: <span className="font-semibold text-green-600">&quot;{query}&quot;</span>
+                </p>
+              )}
+              
+              <div className="flex justify-center mb-8">
+                <SearchBar />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Filtro de Categorias */}
-        <div className="mb-8">
-          <CategoryFilter selectedCategory={category} />
-        </div>
-
-        {/* Filtros Ativos */}
-        {(query || category !== 'todos' || maxPrice) && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center">
-                <Filter className="w-5 h-5 mr-2" />
-                Filtros Ativos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {query && (
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    Busca: {query}
-                  </span>
-                )}
-                {category !== 'todos' && (
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    Categoria: {category}
-                  </span>
-                )}
-                {maxPrice && (
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-                    Preço Máximo: {formatPrice(parseFloat(maxPrice))}
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Resultados */}
-        {products.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum produto encontrado
-              </h2>
-              <p className="text-gray-600">
-                Tente ajustar os filtros ou usar termos diferentes na busca.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div>
-            <p className="text-gray-600 mb-6">
-              {totalResults} produto{totalResults !== 1 ? 's' : ''} encontrado{totalResults !== 1 ? 's' : ''}
-            </p>
-            
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              {products.map((product) => (
-                <motion.div key={product.id} variants={itemVariants}>
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </motion.div>
+          {/* Filtro de Categorias */}
+          <div className="mb-8">
+            <CategoryFilter selectedCategory={category} />
           </div>
-        )}
+
+          {/* Filtros Ativos */}
+          {(query || category !== 'todos' || maxPrice) && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Filter className="w-5 h-5 mr-2" />
+                  Filtros Ativos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {query && (
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      Busca: {query}
+                    </span>
+                  )}
+                  {category !== 'todos' && (
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                      Categoria: {category}
+                    </span>
+                  )}
+                  {maxPrice && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                      Preço Máximo: {formatPrice(parseFloat(maxPrice))}
+                    </span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Resultados */}
+          {products.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Nenhum produto encontrado
+                </h2>
+                <p className="text-gray-600">
+                  Tente ajustar os filtros ou usar termos diferentes na busca.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div>
+              <p className="text-gray-600 mb-6">
+                {totalResults} produto{totalResults !== 1 ? 's' : ''} encontrado{totalResults !== 1 ? 's' : ''}
+              </p>
+              
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              >
+                {products.map((product) => (
+                  <motion.div key={product.id} variants={itemVariants}>
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

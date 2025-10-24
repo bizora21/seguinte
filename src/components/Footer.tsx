@@ -40,10 +40,10 @@ const Footer = () => {
   ]
 
   const contactInfo = [
-    { icon: Phone, text: '+258 86 318 1415' },
-    { icon: Mail, text: 'suporte@lojarapida.com' },
-    { icon: MapPin, text: 'Maputo, Moçambique' },
-    { icon: Clock, text: 'Seg-Sex: 8h-18h, Sáb: 9h-14h' }
+    { icon: Phone, text: '+258 86 318 1415', isExternal: true, href: 'https://wa.me/258863181415' },
+    { icon: Mail, text: 'suporte@lojarapida.com', isExternal: true, href: 'mailto:suporte@lojarapida.com' },
+    { icon: MapPin, text: 'Maputo, Moçambique', isExternal: false, href: '#' },
+    { icon: Clock, text: 'Seg-Sex: 8h-18h, Sáb: 9h-14h', isExternal: false, href: '#' }
   ]
 
   const quickLinks = [
@@ -150,7 +150,18 @@ const Footer = () => {
               {contactInfo.map((info, index) => (
                 <div key={index} className="flex items-center">
                   <info.icon className="w-4 h-4 mr-2 text-primary" />
-                  <span className="text-sm">{info.text}</span>
+                  {info.isExternal ? (
+                    <a 
+                      href={info.href} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-sm hover:text-primary transition-colors"
+                    >
+                      {info.text}
+                    </a>
+                  ) : (
+                    <span className="text-sm">{info.text}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -165,6 +176,8 @@ const Footer = () => {
                   className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-primary transition-colors"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <social.icon className="w-5 h-5" />
                 </motion.a>

@@ -77,14 +77,26 @@ const ContatoPage = () => {
                   <Phone className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="font-medium">Telefone / WhatsApp</p>
-                    <a href="https://wa.me/258863181415" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">+258 86 318 1415</a>
+                    <a 
+                      href="https://wa.me/258863181415" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-blue-600 hover:underline"
+                    >
+                      +258 86 318 1415
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="font-medium">Email de Suporte</p>
-                    <a href="mailto:suporte@lojarapida.com" className="text-blue-600 hover:underline">suporte@lojarapida.com</a>
+                    <a 
+                      href="mailto:suporte@lojarapida.com" 
+                      className="text-blue-600 hover:underline"
+                    >
+                      suporte@lojarapida.com
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
