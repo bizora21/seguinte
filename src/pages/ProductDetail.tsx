@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -31,6 +31,7 @@ interface Message {
   content: string;
   sender_id: string;
   created_at: string;
+  chat_id: string; // Adicionado para corrigir TS2353
   sender?: {
     email: string;
     store_name?: string;
