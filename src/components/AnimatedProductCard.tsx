@@ -17,7 +17,8 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'MZN'
+      currency: 'MZN',
+      minimumFractionDigits: 2
     }).format(price)
   }
 

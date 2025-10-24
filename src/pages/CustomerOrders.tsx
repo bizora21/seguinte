@@ -91,9 +91,10 @@ const CustomerOrders = () => {
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'MZN',
+      minimumFractionDigits: 2
     }).format(price)
   }
 

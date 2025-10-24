@@ -505,7 +505,7 @@ const ProductDetail = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Truck className="w-4 h-4 mr-2 text-blue-600" />
-                        <span>Entrega grátis em todo Moçambique</span>
+                        <span>Entrega grátis em todo Moçambique (1-5 dias úteis)</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <CreditCard className="w-4 h-4 mr-2 text-purple-600" />

@@ -6,7 +6,7 @@ const PaymentBanner = () => {
       <div className="max-w-7xl mx-auto flex justify-center items-center space-x-8">
         <div className="flex items-center space-x-1">
           <Truck className="w-4 h-4" />
-          <span className="text-sm">Entrega Grátis em Moçambique</span>
+          <span className="text-sm">Entrega Grátis em Moçambique (1-5 dias úteis)</span>
         </div>
         <span className="text-green-100">Encomende online e receba na porta. Seguro e fácil.</span>
         <div className="flex items-center space-x-1">

@@ -21,7 +21,7 @@ const About = () => {
     {
       icon: <Truck className="w-8 h-8 text-purple-600" />,
       title: 'Entrega Rápida em Todo MZ',
-      description: 'Frete grátis para todo Moçambique com entrega em 5-10 dias úteis em Maputo, Matola, Beira e mais.'
+      description: 'Frete grátis para todo Moçambique com entrega em 1-5 dias úteis em Maputo, Matola, Beira e mais.'
     },
     {
       icon: <Shield className="w-8 h-8 text-red-600" />,

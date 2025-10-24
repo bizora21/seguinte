@@ -13,7 +13,8 @@ const Cart = () => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'MZN'
+      currency: 'MZN',
+      minimumFractionDigits: 2
     }).format(price)
   }
 
@@ -186,7 +187,7 @@ const Cart = () => {
 
                 <div className="flex items-center text-sm text-gray-600">
                   <Truck className="w-4 h-4 mr-2" />
-                  <span>Entrega em 5-10 dias úteis em todo Moçambique</span>
+                  <span>Entrega em 1-5 dias úteis em todo Moçambique</span>
                 </div>
 
                 <Button

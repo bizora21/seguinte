@@ -213,7 +213,8 @@ const ConfirmarEncomendaPage = () => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
-      currency: 'MZN'
+      currency: 'MZN',
+      minimumFractionDigits: 2
     }).format(price)
   }
 
@@ -434,7 +435,7 @@ const ConfirmarEncomendaPage = () => {
                 <div className="space-y-3 text-sm text-gray-600">
                   <div className="flex items-center">
                     <Truck className="w-4 h-4 mr-2" />
-                    <span>Entrega em 5-10 dias úteis</span>
+                    <span>Entrega em 1-5 dias úteis</span>
                   </div>
                   <div className="flex items-center">
                     <CreditCard className="w-4 h-4 mr-2" />
