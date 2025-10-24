@@ -31,7 +31,7 @@ interface Message {
   content: string;
   sender_id: string;
   created_at: string;
-  chat_id: string; // Adicionado para corrigir TS2353
+  chat_id: string;
   sender?: {
     email: string;
     store_name?: string;
@@ -41,7 +41,7 @@ interface Message {
 const ProductDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { id: productId } = useParams<{ id: string }>(); // Usando 'id' conforme a rota
+  const { id: productId } = useParams<{ id: string }>();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +50,7 @@ const ProductDetail = () => {
   const [newMessage, setNewMessage] = useState('');
   const [chatId, setChatId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Efeito para buscar os dados do produto
@@ -104,60 +105,6 @@ const ProductDetail = () => {
       return;
     }
 
-    const setupChat = async () => {
-      console.log('🔍 Configurando chat para o produto:', productId);
-      
-      try {
-        // 1. Encontrar ou criar o chat
-        let { data: chatData, error: chatError } = await supabase
-          .from('chats')
-          .select('id')
-          .eq('product_id', productId)
-          .eq('client_id', user.id)
-          .eq('seller_id', product.seller_id)
-          .single();
-
-        if (chatError && chatError.code !== 'PGRST116') {
-          console.error('Erro ao buscar chat:', chatError);
-          return;
-        }
-
-        let currentChatId = chatData?.id;
-
-        if (!currentChatId) {
-          console.log('🔨 Criando novo chat...');
-          const { data: newChat, error: createError } = await supabase
-            .from('chats')
-            .insert({
-              product_id: productId,
-              client_id: user.id,
-              seller_id: product.seller_id,
-            })
-            .select('id')
-            .single();
-          
-          if (createError) {
-            console.error('Erro ao criar chat:', createError);
-            showError('Erro ao iniciar conversa');
-            return;
-          }
-
-          currentChatId = newChat.id;
-          console.log('✅ Novo chat criado:', currentChatId);
-        } else {
-          console.log('✅ Chat encontrado:', currentChatId);
-        }
-
-        setChatId(currentChatId);
-        await fetchMessages(currentChatId);
-        setupRealtimeSubscription(currentChatId);
-
-      } catch (error) {
-        console.error('Erro ao configurar chat:', error);
-        showError('Erro ao configurar conversa');
-      }
-    };
-
     setupChat();
   }, [user, product, productId]);
 
@@ -165,6 +112,64 @@ const ProductDetail = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const setupChat = async () => {
+    if (!user || !product || !product.seller_id) return;
+
+    setChatLoading(true);
+    console.log('🔍 Configurando chat para o produto:', productId);
+    
+    try {
+      // 1. Encontrar ou criar o chat
+      const { data: existingChat, error: fetchError } = await supabase
+        .from('chats')
+        .select('id')
+        .eq('product_id', productId)
+        .eq('client_id', user.id)
+        .eq('seller_id', product.seller_id)
+        .single();
+
+      let currentChatId = existingChat?.id;
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Erro ao buscar chat existente:', fetchError);
+      }
+
+      if (!currentChatId) {
+        console.log('🔨 Criando novo chat...');
+        const { data: newChat, error: createError } = await supabase
+          .from('chats')
+          .insert({
+            product_id: productId,
+            client_id: user.id,
+            seller_id: product.seller_id,
+          })
+          .select('id')
+          .single();
+        
+        if (createError) {
+          console.error('Erro ao criar chat:', createError);
+          showError('Erro ao iniciar conversa');
+          return;
+        }
+
+        currentChatId = newChat.id;
+        console.log('✅ Novo chat criado:', currentChatId);
+      } else {
+        console.log('✅ Chat encontrado:', currentChatId);
+      }
+
+      setChatId(currentChatId);
+      await fetchMessages(currentChatId);
+      setupRealtimeSubscription(currentChatId);
+
+    } catch (error) {
+      console.error('Erro ao configurar chat:', error);
+      showError('Erro ao configurar conversa');
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -203,6 +208,8 @@ const ProductDetail = () => {
           filter: `chat_id=eq.${chatId}`
         },
         async (payload) => {
+          console.log('📨 Nova mensagem recebida via realtime:', payload);
+          
           const newMessage = payload.new as Message;
           
           if (newMessage.sender_id !== user?.id) {
@@ -217,14 +224,23 @@ const ProductDetail = () => {
               sender: senderData || { email: 'Desconhecido' }
             };
 
+            console.log('✅ Adicionando mensagem ao estado:', messageWithSender);
             setMessages(prev => [...prev, messageWithSender]);
+          } else {
+            console.log('📤 Esta é minha própria mensagem, não adicionando ao realtime');
           }
         }
       )
       .subscribe((status) => {
         console.log(`📡 Status da subscription: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          console.log(`✅ Realtime subscription ativa para o chat ${chatId}`);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Erro na subscription em tempo real');
+        }
       });
 
+    console.log('🔗 Canal criado:', channel);
     return () => {
       supabase.removeChannel(channel);
     };
@@ -248,7 +264,11 @@ const ProductDetail = () => {
       }
     };
     
-    setMessages(prev => [...prev, optimisticMessage]);
+    setMessages(prev => {
+      const updated = [...prev, optimisticMessage];
+      console.log('📝 Adicionando mensagem otimista:', updated);
+      return updated;
+    });
     setNewMessage('');
 
     try {
@@ -261,12 +281,14 @@ const ProductDetail = () => {
         });
 
       if (error) {
-        console.error('Erro ao enviar mensagem:', error);
+        console.error('❌ Erro ao enviar mensagem:', error);
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
         showError('Erro ao enviar mensagem');
+      } else {
+        console.log('✅ Mensagem enviada com sucesso');
       }
     } catch (error) {
-      console.error('Erro inesperado ao enviar mensagem:', error);
+      console.error('❌ Erro inesperado ao enviar mensagem:', error);
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       showError('Erro ao enviar mensagem');
     } finally {
@@ -314,7 +336,6 @@ const ProductDetail = () => {
     if (Array.isArray(product.image_url)) {
       return product.image_url;
     } else if (typeof product.image_url === 'string') {
-      // Simulação de múltiplas imagens se for apenas uma string
       return [
         product.image_url,
         product.image_url.replace(/w=\d+&h=\d+/, 'w=800&h=600'),
@@ -329,19 +350,33 @@ const ProductDetail = () => {
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
   const productUrl = `https://lojarapida.co.mz/produto/${productId}`;
 
-  const jsonLd = [
-    // ... (SEO schema generation)
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Produto não encontrado</h2>
+          <Button onClick={() => navigate('/produtos')}>Voltar para produtos</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
       <SEO
-        title={`${product?.name || 'Produto'} | ${storeName}`}
-        description={`${product?.description || `Converse diretamente com o vendedor sobre ${product?.name} na LojaRápida.`} ${product?.stock > 0 ? 'Disponível para entrega em todo Moçambique.' : 'Produto temporariamente indisponível.'}`}
+        title={`${product.name} | ${storeName}`}
+        description={`${product.description || `Converse diretamente com o vendedor sobre ${product.name} na LojaRápida.`} ${product.stock > 0 ? 'Disponível para entrega em todo Moçambique.' : 'Produto temporariamente indisponível.'}`}
         image={productImages[0] || '/og-image.jpg'}
         url={productUrl}
         type="product"
-        jsonLd={jsonLd}
       />
       
       <div className="min-h-screen bg-gray-50">
@@ -354,7 +389,7 @@ const ProductDetail = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
-                <h1 className="text-lg font-semibold ml-4">{product?.name}</h1>
+                <h1 className="text-lg font-semibold ml-4">{product.name}</h1>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -381,7 +416,7 @@ const ProductDetail = () => {
                   <div className="relative">
                     <img 
                       src={mainImage} 
-                      alt={product?.name} 
+                      alt={product.name} 
                       className="w-full h-96 object-cover rounded-lg"
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
@@ -410,24 +445,24 @@ const ProductDetail = () => {
               {/* Informações do Produto */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl">{product?.name}</CardTitle>
+                  <CardTitle className="text-2xl">{product.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="text-3xl font-bold text-green-600">
-                      {formatPrice(product?.price || 0)}
+                      {formatPrice(product.price)}
                     </div>
                     <div className={`text-sm font-medium ${
-                      product?.stock > 0 ? 'text-green-600' : 'text-red-600'
+                      product.stock > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {product?.stock > 0 ? `${product.stock} unidades` : 'Fora de estoque'}
+                      {product.stock > 0 ? `${product.stock} unidades` : 'Fora de estoque'}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <h3 className="font-semibold">Descrição</h3>
                     <p className="text-gray-600 whitespace-pre-wrap">
-                      {product?.description || 'Nenhuma descrição disponível.'}
+                      {product.description || 'Nenhuma descrição disponível.'}
                     </p>
                   </div>
 
@@ -469,10 +504,10 @@ const ProductDetail = () => {
                     onClick={handleEncomendar}
                     className="w-full"
                     size="lg"
-                    disabled={product?.stock === 0}
+                    disabled={product.stock === 0}
                   >
                     <Package className="w-5 h-5 mr-2" />
-                    {product?.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda'}
+                    {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda'}
                   </Button>
                 </CardContent>
               </Card>
@@ -511,7 +546,7 @@ const ProductDetail = () => {
                     </div>
                   ) : (
                     <>
-                      {user.id === product?.seller_id ? (
+                      {user.id === product.seller_id ? (
                         <div className="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
                           <p>Você é o vendedor deste produto. Não é possível iniciar um chat consigo mesmo.</p>
                         </div>
@@ -519,7 +554,12 @@ const ProductDetail = () => {
                         <>
                           {/* Área de Mensagens */}
                           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.length === 0 ? (
+                            {chatLoading ? (
+                              <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                                <p className="text-gray-600">Carregando conversa...</p>
+                              </div>
+                            ) : messages.length === 0 ? (
                               <div className="text-center py-8">
                                 <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                 <p className="text-gray-600">Inicie a conversa!</p>
