@@ -10,7 +10,7 @@ import { Store, Star, MessageCircle, ArrowLeft, Package } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
-import { SEO, generateStoreSchema } from '../components/SEO'
+import { SEO, generateStoreSchema, generateBreadcrumbSchema } from '../components/SEO'
 
 const StorePage = () => {
   const { sellerId } = useParams<{ sellerId: string }>()
@@ -128,6 +128,13 @@ const StorePage = () => {
   const storeName = seller.store_name || `Loja ${seller.email.split('@')[0]}`;
   const storeUrl = `https://lojarapida.co.mz/loja/${sellerId}`;
   const storeSchema = generateStoreSchema(storeName, sellerId!);
+  
+  const breadcrumbs = [
+    { name: 'Início', url: 'https://lojarapida.co.mz/' },
+    { name: 'Lojas', url: 'https://lojarapida.co.mz/lojas' },
+    { name: storeName, url: storeUrl }
+  ];
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   return (
     <>
@@ -136,7 +143,7 @@ const StorePage = () => {
         description={`Explore todos os ${products.length} produtos de ${storeName}. Compre com pagamento na entrega e frete grátis na LojaRápida.`}
         url={storeUrl}
         type="profile"
-        jsonLd={[storeSchema]}
+        jsonLd={[storeSchema, breadcrumbSchema]}
       />
       <div className="min-h-screen bg-gray-50">
         {/* Header da Loja */}

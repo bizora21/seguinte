@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { showSuccess, showError } from '../utils/toast';
-import { SEO, generateProductSchema } from '../components/SEO';
+import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO';
 
 // Interface para os dados do produto
 interface Product {
@@ -385,6 +385,14 @@ const ProductDetail = () => {
   
   // Gerar JSON-LD do produto
   const productSchema = generateProductSchema(product as any, storeName);
+  
+  // Gerar Breadcrumbs
+  const breadcrumbs = [
+    { name: 'Início', url: 'https://lojarapida.co.mz/' },
+    { name: 'Produtos', url: 'https://lojarapida.co.mz/produtos' },
+    { name: product.name, url: productUrl }
+  ];
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   return (
     <>
@@ -394,7 +402,7 @@ const ProductDetail = () => {
         image={productImages[0] || '/og-image.jpg'}
         url={productUrl}
         type="product"
-        jsonLd={[productSchema]}
+        jsonLd={[productSchema, breadcrumbSchema]}
       />
       
       <div className="min-h-screen bg-gray-50">
