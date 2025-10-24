@@ -16,14 +16,8 @@ import {
   Users,
   MapPin,
   ArrowRight,
-  Loader2,
-  CheckCircle,
-  DollarSign,
-  MessageCircle,
-  TrendingUp,
-  User
+  Loader2
 } from 'lucide-react'
-import { showSuccess, showError } from '../utils/toast'
 
 // Tipagem para as estatísticas (mockadas ou reais)
 interface Stat {
@@ -41,8 +35,37 @@ interface Feature {
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
   const [featuredProducts, setFeaturedProducts] = useState<ProductWithSeller[]>([])
-  const [loadingProducts, setLoadingProducts] = useState<boolean>(false)
-  const [productsLoaded, setProductsLoaded] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchFeaturedProducts()
+  }, [])
+
+  const fetchFeaturedProducts = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Busca robusta: 3 produtos mais recentes com estoque > 0
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          seller:profiles!products_seller_id_fkey(id, store_name)
+        `)
+        .gt('stock', 0)
+        .order('created_at', { ascending: false })
+        .limit(3) // Limite estrito de 3 produtos
+
+      if (error) throw error
+      setFeaturedProducts(data || [])
+    } catch (err: any) {
+      console.error('Error fetching featured products:', err)
+      setError('Não foi possível carregar os produtos em destaque.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Animações
   const containerVariants: Variants = {
@@ -65,34 +88,6 @@ const HomePage: React.FC = () => {
         stiffness: 100,
         damping: 12
       }
-    }
-  }
-
-  // Lógica de carregamento de produtos sob demanda
-  const fetchFeaturedProducts = async () => {
-    if (productsLoaded) return // Evita recarregar
-
-    setLoadingProducts(true)
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          seller:profiles!products_seller_id_fkey(id, store_name)
-        `)
-        .gt('stock', 0)
-        .order('created_at', { ascending: false })
-        .limit(3) // Limite estrito de 3 produtos
-
-      if (error) throw error
-      setFeaturedProducts(data || [])
-      setProductsLoaded(true)
-      showSuccess('Produtos em destaque carregados!')
-    } catch (err: any) {
-      console.error('Error fetching featured products:', err)
-      showError('Não foi possível carregar os produtos em destaque.')
-    } finally {
-      setLoadingProducts(false)
     }
   }
 
@@ -148,11 +143,11 @@ const HomePage: React.FC = () => {
             >
               <Button 
                 size="lg" 
-                onClick={() => navigate('/produtos')}
+                onClick={() => navigate('/lojas')}
                 className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-4 text-lg"
               >
-                <Package className="w-5 h-5 mr-2" />
-                Explorar Produtos
+                <Store className="w-5 h-5 mr-2" />
+                Explorar Lojas
               </Button>
               <Button 
                 size="lg"
@@ -167,8 +162,32 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Por que LojaRápida? (Cutout 1) */}
-      <section className="py-20 bg-white">
+      {/* Features/Vantagens Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true, amount: 0.5 }}
+                className="p-6 border rounded-lg shadow-sm hover:shadow-lg transition-shadow"
+              >
+                <div className="flex justify-center mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Us / Stats Section */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -178,28 +197,24 @@ const HomePage: React.FC = () => {
               viewport={{ once: true }}
             >
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Por que escolher a LojaRápida?
+                Sobre a LojaRápida
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                Somos o marketplace de Moçambique focado em segurança e confiança. Nossa plataforma foi construída para garantir que você tenha a melhor experiência de compra e venda.
+                Nascemos em Moçambique para revolucionar o e-commerce local. Nossa missão é simples: 
+                oferecer uma plataforma segura, rápida e confiável, conectando o melhor do comércio local 
+                diretamente aos consumidores, com a tranquilidade do pagamento na entrega.
               </p>
-              <ul className="space-y-3 text-lg text-gray-700">
-                <li className="flex items-start">
-                  <CheckCircle className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <span>Pagamento na Entrega: Zero risco para o cliente.</span>
-                </li>
-                <li className="flex items-start">
-                  <Truck className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <span>Frete Grátis: Entregamos em todas as províncias.</span>
-                </li>
-                <li className="flex items-start">
-                  <Store className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <span>Apoio Local: Fortalecendo o comércio moçambicano.</span>
-                </li>
-              </ul>
+              <div className="grid grid-cols-3 gap-4 mt-8">
+                {stats.map((stat, index) => (
+                  <div key={index} className="text-center p-4 bg-white rounded-lg shadow-md">
+                    <div className="text-2xl font-bold text-green-600 mb-1">{stat.number}</div>
+                    <div className="text-sm text-gray-600">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
               <Link to="/sobre-nos">
-                <Button variant="link" className="mt-6 px-0 text-green-600 hover:text-green-700">
-                  Saiba Mais Sobre Nós <ArrowRight className="w-4 h-4 ml-1" />
+                <Button variant="link" className="mt-4 px-0 text-green-600 hover:text-green-700">
+                  Leia nossa história <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </Link>
             </motion.div>
@@ -220,67 +235,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Como Funciona? (Cutout 2 - Invertido) */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="order-2 lg:order-1"
-            >
-              <img 
-                src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?w=600&h=400&fit=crop" 
-                alt="Processo de Compra" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="order-1 lg:order-2"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Como Funciona? Simples e Rápido
-              </h2>
-              <div className="space-y-6">
-                {/* Passo 1: Cliente */}
-                <div className="flex items-start space-x-4 p-4 bg-white rounded-lg shadow-md">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Para Clientes</h3>
-                    <p className="text-gray-600">1. Encontre o produto. 2. Faça a encomenda. 3. Pague na entrega.</p>
-                  </div>
-                </div>
-                {/* Passo 2: Vendedor */}
-                <div className="flex items-start space-x-4 p-4 bg-white rounded-lg shadow-md">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Store className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Para Vendedores</h3>
-                    <p className="text-gray-600">1. Cadastre sua loja. 2. Adicione produtos. 3. Receba pedidos e envie.</p>
-                  </div>
-                </div>
-              </div>
-              <Link to="/faq">
-                <Button variant="link" className="mt-6 px-0 text-green-600 hover:text-green-700">
-                  Ver Perguntas Frequentes <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Produtos em Destaque (On-Demand) */}
+      {/* Featured Products Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -294,198 +249,60 @@ const HomePage: React.FC = () => {
               Produtos em Destaque
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Veja uma amostra dos melhores produtos disponíveis hoje.
+              Os melhores produtos selecionados para você
             </p>
           </motion.div>
 
-          {!productsLoaded ? (
-            <div className="text-center">
-              <Button
-                onClick={fetchFeaturedProducts}
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
-                disabled={loadingProducts}
-              >
-                {loadingProducts ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Carregando Destaques...
-                  </>
-                ) : (
-                  <>
-                    <Package className="w-5 h-5 mr-2" />
-                    Veja os Produtos em Destaque
-                  </>
-                )}
-              </Button>
+          {loading && (
+            <div className="flex justify-center items-center h-40">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600" />
             </div>
-          ) : (
-            <>
-              {featuredProducts.length > 0 ? (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"
-                >
-                  {featuredProducts.map((product) => (
-                    <motion.div
-                      key={product.id}
-                      variants={itemVariants}
-                    >
-                      <ProductCard product={product} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              ) : (
-                <div className="text-center p-12 bg-gray-50 rounded-lg">
-                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Nenhum produto em destaque no momento.</p>
-                </div>
-              )}
-              
-              <div className="text-center">
-                <Button
-                  onClick={() => navigate('/produtos')}
-                  size="lg"
-                  variant="outline"
-                >
-                  Ver Catálogo Completo
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            </>
           )}
-        </div>
-      </section>
+          
+          {error && (
+            <div className="text-center text-red-600 p-8">{error}</div>
+          )}
 
-      {/* Vantagens para Clientes (Cutout 3) */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {!loading && !error && featuredProducts.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={{ once: true }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"
             >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Vantagens para Clientes
-              </h2>
-              <ul className="space-y-4 text-lg text-gray-700">
-                <li className="flex items-start">
-                  <Shield className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Zero Risco</h3>
-                    <p className="text-gray-600 text-base">Pague somente após receber e verificar o produto.</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <MessageCircle className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Comunicação Direta</h3>
-                    <p className="text-gray-600 text-base">Converse com o vendedor antes de finalizar a compra.</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <Truck className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Entrega Rápida</h3>
-                    <p className="text-gray-600 text-base">Logística eficiente para todo o território moçambicano.</p>
-                  </div>
-                </li>
-              </ul>
-              <Button 
-                onClick={() => navigate('/lojas')}
-                className="mt-8 bg-blue-600 hover:bg-blue-700"
-                size="lg"
-              >
-                <Store className="w-5 h-5 mr-2" />
-                Encontre sua Loja Favorita
-              </Button>
+              {featuredProducts.map((product) => (
+                <motion.div
+                  key={product.id}
+                  variants={itemVariants}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
             </motion.div>
+          )}
+          
+          {!loading && featuredProducts.length === 0 && !error && (
+            <div className="text-center p-12 bg-gray-50 rounded-lg">
+              <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Nenhum produto em destaque no momento.</p>
+            </div>
+          )}
 
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
+          <div className="text-center">
+            <Button
+              onClick={() => navigate('/produtos')}
+              size="lg"
+              className="bg-green-600 hover:bg-green-700"
             >
-              <img 
-                src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=400&fit=crop" 
-                alt="Vantagens para Clientes" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
-            </motion.div>
+              Ver Catálogo Completo
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Vantagens para Vendedores (Cutout 4 - Invertido) */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="order-2 lg:order-1"
-            >
-              <img 
-                src="https://images.unsplash.com/photo-1556745745-e40110300f2d?w=600&h=400&fit=crop" 
-                alt="Vantagens para Vendedores" 
-                className="w-full h-auto rounded-xl shadow-2xl object-cover"
-              />
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="order-1 lg:order-2"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Vantagens para Vendedores
-              </h2>
-              <ul className="space-y-4 text-lg text-gray-700">
-                <li className="flex items-start">
-                  <TrendingUp className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Aumento de Vendas</h3>
-                    <p className="text-gray-600 text-base">Alcance clientes em todas as províncias de Moçambique.</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <DollarSign className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Comissões Claras</h3>
-                    <p className="text-gray-600 text-base">Estrutura de comissão justa e transparente.</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <Users className="w-6 h-6 text-green-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold">Gestão Simplificada</h3>
-                    <p className="text-gray-600 text-base">Dashboard completo para gerenciar produtos e pedidos.</p>
-                  </div>
-                </li>
-              </ul>
-              <Button
-                onClick={() => navigate('/register')}
-                className="mt-8 bg-green-600 hover:bg-green-700"
-                size="lg"
-              >
-                <Store className="w-5 h-5 mr-2" />
-                Cadastre sua Loja Agora
-              </Button>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Final */}
+      {/* CTA for Sellers Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -495,28 +312,30 @@ const HomePage: React.FC = () => {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Comece a Comprar ou Vender Hoje!
+              Venda Mais em Moçambique
             </h2>
             <p className="text-xl mb-8 text-blue-100">
-              A LojaRápida é a sua porta de entrada para o e-commerce em Moçambique.
+              Junte-se à nossa rede de vendedores e alcance milhares de clientes em todo o país.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
-                onClick={() => navigate('/produtos')}
+                onClick={() => navigate('/register')}
                 className="bg-yellow-400 hover:bg-yellow-500 text-blue-900 font-semibold px-8 py-4 text-lg"
                 size="lg"
               >
-                <Package className="w-5 h-5 mr-2" />
-                Ver Produtos
+                <Store className="w-5 h-5 mr-2" />
+                Começar a Vender Agora
               </Button>
-              <Button
-                onClick={() => navigate('/register')}
-                className="bg-white hover:bg-gray-100 text-blue-700 font-semibold px-8 py-4 text-lg border-0"
-                size="lg"
-              >
-                <Users className="w-5 h-5 mr-2" />
-                Criar Conta
-              </Button>
+              <Link to="/politica-vendedor">
+                <Button
+                  variant="outline"
+                  className="bg-white hover:bg-gray-100 text-blue-700 font-semibold px-8 py-4 text-lg border-0"
+                  size="lg"
+                >
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Política do Vendedor
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>
