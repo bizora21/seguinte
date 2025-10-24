@@ -88,9 +88,10 @@ const SellerOrders = () => {
       let tableError = 'RPC not available'
       
       try {
-        const result = await supabase.rpc('get_table_info', { table_name: 'order_items' })
-        tableInfo = result.data
-        tableError = result.error?.message
+        // Nota: get_table_info é um RPC que pode não existir, mantendo o código de debug
+        // const result = await supabase.rpc('get_table_info', { table_name: 'order_items' })
+        // tableInfo = result.data
+        // tableError = result.error?.message
       } catch (rpcError) {
         tableError = 'RPC not available'
       }
@@ -257,10 +258,13 @@ const SellerOrders = () => {
     setUpdatingStatus(orderId)
     
     try {
+      // 1. Atualizar status do pedido
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
+        // 🔥 Adicionando .select() para garantir que o realtime trigger seja disparado
+        .select() 
 
       if (error) {
         showError('Erro ao atualizar status: ' + error.message)
@@ -268,11 +272,13 @@ const SellerOrders = () => {
       }
       
       showSuccess('Status atualizado com sucesso!')
+      
+      // 2. Atualizar estado local (para feedback imediato)
       setOrders(prev => prev.map(order => 
         order.id === orderId ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() } : order
       ))
 
-      // 🔥 GATILHO DE MONETIZAÇÃO: Criar comissão se o pedido for entregue
+      // 3. GATILHO DE MONETIZAÇÃO: Criar comissão se o pedido for entregue
       if (newStatus === 'delivered') {
         const order = orders.find(o => o.id === orderId)
         if (order) {
@@ -356,7 +362,7 @@ const SellerOrders = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
               <Button
                 variant="ghost"
@@ -373,7 +379,7 @@ const SellerOrders = () => {
               </p>
             </div>
             
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 mt-4 sm:mt-0">
               <Button
                 variant="outline"
                 onClick={debugDatabase}
@@ -466,10 +472,10 @@ const SellerOrders = () => {
               return (
                 <Card key={order.id}>
                   <CardHeader>
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div>
                         <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center space-x-4 mt-2 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
                             {formatDate(order.created_at)}
@@ -480,7 +486,7 @@ const SellerOrders = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mt-3 sm:mt-0">
                         <Badge className={statusInfo.color}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
@@ -490,7 +496,7 @@ const SellerOrders = () => {
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                             disabled={updatingStatus === order.id}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-full sm:w-32">
                               <SelectValue placeholder="Atualizar" />
                             </SelectTrigger>
                             <SelectContent>
@@ -510,7 +516,7 @@ const SellerOrders = () => {
                     <div className="space-y-3">
                       {order.order_items.map((item) => (
                         <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                          <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                             {item.product.image_url ? (
                               <img
                                 src={item.product.image_url}
@@ -528,13 +534,13 @@ const SellerOrders = () => {
                               />
                             )}
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.product.name}</h4>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{item.product.name}</h4>
                             <p className="text-sm text-gray-600">
                               {item.quantity}x {formatPrice(item.price)}
                             </p>
                           </div>
-                          <div className="font-semibold">
+                          <div className="font-semibold flex-shrink-0">
                             {formatPrice(item.price * item.quantity)}
                           </div>
                         </div>
@@ -543,10 +549,10 @@ const SellerOrders = () => {
 
                     {/* Endereço de Entrega */}
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
-                      <MapPin className="w-4 h-4 text-blue-600 mt-0.5" />
+                      <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-blue-900">Endereço de Entrega:</p>
-                        <p className="text-sm text-blue-700">{order.delivery_address}</p>
+                        <p className="text-sm text-blue-700 break-words">{order.delivery_address}</p>
                       </div>
                     </div>
 
