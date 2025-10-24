@@ -20,6 +20,28 @@ const Header = () => {
     navigate('/')
   }
 
+  const getAvatarFallbackText = () => {
+    if (!user) return '?'
+    
+    const profile = user.profile
+    
+    if (profile?.store_name) {
+      // Usa as duas primeiras letras do nome da loja
+      return profile.store_name.slice(0, 2).toUpperCase()
+    }
+    
+    if (user.email) {
+      // Usa a primeira letra do email
+      return user.email.charAt(0).toUpperCase()
+    }
+    
+    // Usa a primeira letra do papel (V ou C)
+    if (profile?.role === 'vendedor') return 'V'
+    if (profile?.role === 'cliente') return 'C'
+    
+    return 'U'
+  }
+
   const navLinks = [
     { name: 'Início', href: '/', icon: Home },
     { name: 'Produtos', href: '/produtos', icon: Package },
@@ -94,8 +116,10 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10 bg-secondary text-white">
+                      {/* Se houver avatar_url, use AvatarImage */}
+                      {/* <AvatarImage src={user.profile?.avatar_url} alt="Avatar" /> */}
                       <AvatarFallback>
-                        {user.email.charAt(0).toUpperCase()}
+                        {getAvatarFallbackText()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -166,7 +190,7 @@ const Header = () => {
                       <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
                         <Avatar className="h-10 w-10 bg-secondary text-white">
                           <AvatarFallback>
-                            {user.email.charAt(0).toUpperCase()}
+                            {getAvatarFallbackText()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
