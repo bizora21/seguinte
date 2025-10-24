@@ -42,7 +42,7 @@ interface ProcessedOrder {
   id: string
   user_id: string
   total_amount: number
-  status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled'
+  status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'completed' | 'cancelled'
   delivery_address: string
   created_at: string
   updated_at: string
@@ -259,11 +259,12 @@ const SellerOrders = () => {
     
     try {
       // 1. Atualizar status do pedido
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
         .select() // Garante que o evento Realtime seja disparado
+        .single()
 
       if (error) {
         showError('Erro ao atualizar status: ' + error.message)
@@ -272,9 +273,9 @@ const SellerOrders = () => {
       
       showSuccess('Status atualizado com sucesso!')
       
-      // 2. Atualizar estado local (para feedback imediato)
+      // 2. Atualizar estado local com o dado retornado (mais seguro)
       setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() } : order
+        order.id === orderId ? { ...order, status: data.status as ProcessedOrder['status'], updated_at: data.updated_at } : order
       ))
 
       // 3. GATILHO DE MONETIZAÇÃO: Criar comissão se o pedido for entregue
@@ -284,12 +285,6 @@ const SellerOrders = () => {
           await createCommission(order)
         }
       }
-      
-      // 🔥 MUDANÇA: Forçar a busca de dados após um pequeno atraso para garantir a sincronização
-      setTimeout(() => {
-        fetchOrders()
-      }, 500)
-
 
     } catch (error) {
       showError('Erro inesperado ao atualizar status')

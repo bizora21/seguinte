@@ -6,56 +6,30 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, Package, MapPin, Calendar, CheckCircle, CreditCard } from 'lucide-react'
+import { ArrowLeft, Package, MapPin, Calendar, CheckCircle, CreditCard, AlertTriangle } from 'lucide-react'
 import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { useOrderDetails } from '../hooks/useOrderDetails'
 
 const CustomerOrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [order, setOrder] = useState<OrderWithItems | null>(null)
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
+  // 🔥 USANDO O NOVO HOOK COM REACT QUERY E REALTIME
+  const { order, isLoading, error, refetch } = useOrderDetails(orderId, user?.id)
+
   useEffect(() => {
-    if (orderId && user?.profile?.role === 'cliente') {
-      fetchOrderDetails()
-    } else if (!user) {
+    if (!user && !isLoading) {
       navigate('/login')
     }
-  }, [orderId, user])
-
-  const fetchOrderDetails = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            product:products (
-              name,
-              image_url
-            )
-          )
-        `)
-        .eq('id', orderId!)
-        .eq('user_id', user!.id)
-        .single()
-
-      if (error) throw error
-      setOrder(data)
-    } catch (error) {
-      console.error('Error fetching order details:', error)
-      showError('Pedido não encontrado ou acesso negado.')
-      navigate('/meus-pedidos')
-    } finally {
-      setLoading(false)
+    if (error) {
+      showError(error.message || 'Erro ao carregar detalhes do pedido.')
+      // Não redireciona imediatamente, permite que o usuário veja a mensagem de erro
     }
-  }
+  }, [user, isLoading, error, navigate])
 
   const handleConfirmPayment = async () => {
     if (!order) return
@@ -64,17 +38,17 @@ const CustomerOrderDetails = () => {
     const toastId = showLoading('Confirmando pagamento...')
 
     try {
-      // Atualizar status para 'completed'
+      // 1. Atualizar status para 'completed'
       const { error } = await supabase
         .from('orders')
         .update({ status: 'completed' })
         .eq('id', order.id)
         .eq('user_id', user!.id) // Garantir que apenas o cliente possa atualizar
+        .select() // Dispara o evento Realtime
 
       if (error) throw error
 
-      // Atualizar estado local
-      setOrder(prev => prev ? { ...prev, status: 'completed' as OrderWithItems['status'] } : null)
+      // 2. O Realtime/React Query cuidará da atualização do estado local (order)
       
       dismissToast(toastId)
       showSuccess('Pagamento confirmado! O vendedor será notificado para gerar a comissão.')
@@ -106,8 +80,22 @@ const CustomerOrderDetails = () => {
     }).format(new Date(dateString))
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>
-  if (!order) return null // Redirecionamento já tratado no useEffect
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>
+  
+  if (error || !order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-12 text-center">
+            <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-600 mb-2">Erro ao Carregar Pedido</h2>
+            <p className="text-gray-600 mb-6">{error?.message || 'Pedido não encontrado ou acesso negado.'}</p>
+            <Button onClick={() => navigate('/meus-pedidos')}>Voltar para Pedidos</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const statusInfo = getStatusInfo(order.status)
   const isDelivered = order.status === 'delivered'
@@ -174,7 +162,7 @@ const CustomerOrderDetails = () => {
               </div>
             )}
 
-            {/* Detalhes do Pedido */}
+            {/* Detalhes do Pedido - Responsividade Corrigida */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 flex items-center mb-1">
