@@ -93,8 +93,8 @@ const AddProduct = () => {
     setLoading(true)
 
     try {
-      // Usar a primeira imagem como image_url principal
-      const imageUrl = formData.images.length > 0 ? formData.images[0] : null
+      // 🔥 MUDANÇA: Serializar o array de URLs em uma string JSON para salvar no campo TEXT
+      const imageUrlsJson = JSON.stringify(formData.images)
 
       const { error } = await supabase
         .from('products')
@@ -103,7 +103,8 @@ const AddProduct = () => {
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price),
-          image_url: imageUrl,
+          // Salva o JSON do array de URLs
+          image_url: imageUrlsJson, 
           stock: parseInt(formData.stock)
         })
 

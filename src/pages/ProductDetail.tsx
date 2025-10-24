@@ -16,7 +16,8 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  image_url: string | string[];
+  // 🔥 MUDANÇA: image_url agora é string (JSON serializado) ou null
+  image_url: string | null; 
   stock: number;
   seller_id: string;
   seller?: {
@@ -85,12 +86,10 @@ const ProductDetail = () => {
         console.log('✅ Produto encontrado:', data);
         setProduct(data);
         
-        const imageUrl = data.image_url;
-        if (Array.isArray(imageUrl)) {
-          setMainImage(imageUrl[0] || '');
-        } else {
-          setMainImage(imageUrl || '');
-        }
+        // 🔥 MUDANÇA: Definir a imagem principal a partir do array de URLs
+        const images = getProductImages(data.image_url);
+        setMainImage(images[0] || '');
+
       } catch (error) {
         console.error('❌ Erro ao buscar produto:', error);
         setError('Erro ao carregar produto');
@@ -344,19 +343,27 @@ const ProductDetail = () => {
     return message.sender_id === user?.id;
   };
 
-  const getProductImages = (): string[] => {
-    if (!product?.image_url) return [];
+  // 🔥 MUDANÇA: Função para desserializar o campo image_url
+  const getProductImages = (imageUrl: string | null): string[] => {
+    if (!imageUrl) return [];
     
-    if (Array.isArray(product.image_url)) {
-      return product.image_url;
-    } else if (typeof product.image_url === 'string') {
-      return [product.image_url];
+    try {
+      // Tenta desserializar o JSON
+      const urls = JSON.parse(imageUrl);
+      if (Array.isArray(urls)) {
+        return urls.filter(url => typeof url === 'string');
+      }
+    } catch (e) {
+      // Se falhar, assume que é uma string de URL única (para compatibilidade com dados antigos)
+      if (typeof imageUrl === 'string') {
+        return [imageUrl];
+      }
     }
     
     return [];
   };
 
-  const productImages = getProductImages();
+  const productImages = getProductImages(product?.image_url || null);
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
   const productUrl = `https://lojarapidamz.com/produto/${productId}`; // Usando domínio canônico
   
@@ -442,7 +449,7 @@ const ProductDetail = () => {
                 <CardContent className="p-6">
                   <div className="relative">
                     <img 
-                      src={mainImage} 
+                      src={mainImage || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'} 
                       alt={`Imagem principal do produto ${product.name}`}
                       className="w-full h-96 object-cover rounded-lg"
                       loading="eager" // Imagem principal deve ser carregada rapidamente
