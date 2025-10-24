@@ -10,33 +10,6 @@ import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, C
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 
-// Interface para dados brutos do order_item
-interface RawOrderItem {
-  id: string
-  order_id: string
-  product_id: string
-  quantity: number
-  price: number
-  seller_id: string
-  user_id: string
-  created_at: string
-  orders: {
-    id: string
-    user_id: string
-    total_amount: number
-    status: string
-    delivery_address: string
-    created_at: string
-    updated_at: string
-  }
-  products: {
-    id: string
-    name: string
-    image_url?: string
-    seller_id: string
-  }
-}
-
 // Interface para pedido processado
 interface ProcessedOrder {
   id: string
@@ -67,6 +40,7 @@ const SellerOrders = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true) // Corrigido: Adicionado estado 'loading'
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
@@ -169,7 +143,7 @@ const SellerOrders = () => {
   const fetchOrders = async () => {
     if (!user) return
     
-    setLoading(true)
+    setLoading(true) // Corrigido: Acesso ao setLoading
     setError(null)
     
     try {
@@ -258,7 +232,7 @@ const SellerOrders = () => {
       console.error('❌ Erro ao buscar pedidos:', error)
       setError(error.message || 'Erro desconhecido')
     } finally {
-      setLoading(false)
+      setLoading(false) // Corrigido: Acesso ao setLoading
     }
   }
 
@@ -274,7 +248,6 @@ const SellerOrders = () => {
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        .eq('user_id', user!.id) // Segurança adicional
         .select() // Importante para disparar o evento Realtime
 
       if (error) {
@@ -334,7 +307,7 @@ const SellerOrders = () => {
         return
       }
 
-      // Criar notificação no banco
+      // Criar notificação no banco (assumindo que a tabela 'notifications' existe)
       const { error: notificationError } = await supabase
         .from('notifications')
         .insert({
@@ -465,7 +438,7 @@ const SellerOrders = () => {
               </p>
             </div>
             
-            <div className="flex space-x-2 mt-4">
+            <div className="flex space-x-2 mt-4 sm:mt-0">
               <Button
                 variant="outline"
                 onClick={debugDatabase}
@@ -578,9 +551,8 @@ const SellerOrders = () => {
                             value=""
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                             disabled={updatingStatus === order.id}
-                            className="w-full sm:w-32"
                           >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full sm:w-32">
                               <SelectValue placeholder="Atualizar" />
                             </SelectTrigger>
                             <SelectContent>
@@ -673,7 +645,7 @@ const SellerOrders = () => {
           </div>
         )}
       </div>
-    )
+    </div>
   )
 }
 
