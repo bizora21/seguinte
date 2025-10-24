@@ -284,13 +284,18 @@ const SellerOrders = () => {
           await createCommission(order)
         }
       }
+      
+      // 🔥 MUDANÇA: Forçar a busca de dados após um pequeno atraso para garantir a sincronização
+      setTimeout(() => {
+        fetchOrders()
+      }, 500)
+
 
     } catch (error) {
       showError('Erro inesperado ao atualizar status')
       console.error('Update status error:', error)
     } finally {
       setUpdatingStatus(null)
-      // 🔥 REMOVIDO: Não chamar fetchOrders aqui para evitar buscar dados antigos
     }
   }
 
