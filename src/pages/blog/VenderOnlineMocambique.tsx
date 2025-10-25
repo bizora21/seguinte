@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { SEO } from '../../components/SEO'
 
 // Use uma imagem natural hospedada em public/ (caminho absoluto na aplicação)
-// Certifique-se de que public/blog/vender-online-mocambique.jpg exista (já incluída no projeto)
+// Imagem profissional de vendedor moçambicano com produtos
 const ARTICLE_PATH = '/blog/vender-online-mocambique.jpg'
 const ARTICLE_URL = 'https://lojarapidamz.com/blog/vender-online-mocambique'
 const PUBLISH_DATE = '2024-08-15T10:00:00+02:00'
@@ -24,7 +24,7 @@ const generateArticleSchema = () => {
       "url": imageUrl,
       "width": 1200,
       "height": 630,
-      "caption": "Empreendedor moçambicano vendendo online com sucesso na LojaRápida."
+      "caption": "Vendedor moçambicano com produtos prontos para venda online na LojaRápida."
     },
     "author": {
       "@type": "Organization",
@@ -104,8 +104,9 @@ const VenderOnlineMocambique = () => {
               <figure className="mb-8">
                 <img
                   src={ARTICLE_PATH}
-                  alt="Empreendedor moçambicano sorrindo ao lado de caixas de produtos, simbolizando sucesso no e-commerce."
+                  alt="Vendedor moçambicano organizando produtos para venda online, mostrando o potencial do e-commerce no país."
                   className="w-full h-auto rounded-lg shadow-md object-cover"
+                  loading="eager"
                 />
                 <figcaption className="text-center text-sm text-gray-500 mt-2">
                   A LojaRápida conecta vendedores locais a milhares de clientes em todo Moçambique.
