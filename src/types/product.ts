@@ -7,6 +7,7 @@ export interface Product {
   image_url?: string
   stock: number
   created_at: string
+  category?: string // Adicionado
 }
 
 export interface ProductWithSeller extends Product {
