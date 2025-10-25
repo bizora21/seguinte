@@ -44,6 +44,11 @@
   <meta name="geo.region" content="MZ" />
   <meta name="geo.placename" content="Maputo" />
   <meta name="geo.position" content="-25.9692;32.5732" />
+
+  <!-- Otimização de Carregamento de CSS (Non-blocking) -->
+  <!-- O arquivo CSS gerado pelo build do Vite (ex: /assets/index-DDGOhPjK.css) será carregado de forma assíncrona. -->
+  <link rel="preload" href="/src/globals.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="/src/globals.css"></noscript>
 </head>
 
 <body>
