@@ -23,7 +23,8 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import SellerFinanceTab from '../components/SellerFinanceTab'
-import StoreSettingsTab from '../components/StoreSettingsTab' // Importado
+import StoreSettingsTab from '../components/StoreSettingsTab'
+import SellerProductsTab from '../components/SellerProductsTab' // Importado
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -198,9 +199,9 @@ const Dashboard = () => {
     },
     { 
       name: 'Meus Produtos', 
-      href: '/adicionar-produto', 
+      href: '/dashboard?tab=products', 
       icon: Package, 
-      description: 'Adicione novos produtos ou edite os existentes.',
+      description: 'Adicione, edite ou exclua seus produtos.',
       variant: 'default' as const
     },
     { 
@@ -287,10 +288,15 @@ const Dashboard = () => {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
+            <TabsTrigger value="products">Meus Produtos</TabsTrigger>
             <TabsTrigger value="finance">Finanças</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
           
+          <TabsContent value="products">
+            <SellerProductsTab />
+          </TabsContent>
+
           <TabsContent value="settings">
             <StoreSettingsTab />
           </TabsContent>

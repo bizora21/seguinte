@@ -18,7 +18,7 @@ import ProductsPage from "./pages/ProductsPage";
 import LojasPage from "./pages/LojasPage";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import AddProduct from "./pages/AddProduct";
+import ManageProduct from "./pages/ManageProduct"; // Importação corrigida
 import ProductDetail from "./pages/ProductDetail"; // Importação corrigida
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -86,7 +86,7 @@ const App = () => (
                       path="/adicionar-produto" 
                       element={
                         <ProtectedRoute requiredRole="vendedor">
-                          <AddProduct />
+                          <ManageProduct />
                         </ProtectedRoute>
                       } 
                     />

@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
-import { showSuccess, showError } from '../utils/toast'
-import { ArrowLeft } from 'lucide-react'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { ArrowLeft, Save, Plus } from 'lucide-react'
 import ImageUpload from '../components/ImageUpload'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Product } from '../types/product'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -27,10 +29,14 @@ const CATEGORIES = [
   { value: 'outros', label: 'Outros' }
 ]
 
-const AddProduct = () => {
+const ManageProduct = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const [searchParams] = useSearchParams()
+  const productId = searchParams.get('id')
+
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -42,10 +48,54 @@ const AddProduct = () => {
   const [allowedCategories, setAllowedCategories] = useState<string[]>([])
 
   useEffect(() => {
-    if (user?.profile?.role === 'vendedor' && user.profile.store_categories) {
-      setAllowedCategories(user.profile.store_categories)
+    if (user?.profile?.role === 'vendedor') {
+      setAllowedCategories(user.profile.store_categories || [])
+      if (productId) {
+        fetchProduct(productId)
+      } else {
+        setLoading(false)
+      }
     }
-  }, [user])
+  }, [user, productId])
+
+  const fetchProduct = async (id: string) => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .eq('seller_id', user!.id)
+        .single()
+
+      if (error || !data) {
+        showError('Produto não encontrado ou você não tem permissão para editá-lo.')
+        navigate('/dashboard')
+        return
+      }
+
+      // O tipo 'data' é implicitamente 'Product' devido ao select('*') e single()
+      const product = data as Product
+      let images: string[] = []
+      try {
+        images = JSON.parse(product.image_url || '[]')
+      } catch {}
+
+      setFormData({
+        name: product.name,
+        description: product.description || '',
+        price: product.price.toString(),
+        images: images,
+        stock: product.stock.toString(),
+        category: product.category || '' // Acessando a propriedade 'category'
+      })
+    } catch (error) {
+      showError('Erro ao carregar produto para edição.')
+      navigate('/dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (user?.profile?.role !== 'vendedor') {
     return (
@@ -54,7 +104,7 @@ const AddProduct = () => {
           <CardHeader>
             <CardTitle className="text-center text-red-600">Acesso Negado</CardTitle>
             <CardDescription className="text-center">
-              Apenas vendedores podem adicionar produtos
+              Apenas vendedores podem gerenciar produtos
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,6 +113,14 @@ const AddProduct = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -87,32 +145,26 @@ const AddProduct = () => {
       showError('O nome do produto é obrigatório')
       return false
     }
-
     if (!formData.price || parseFloat(formData.price) <= 0) {
       showError('O preço deve ser maior que zero')
       return false
     }
-
     if (!formData.stock || parseInt(formData.stock) < 0) {
       showError('O estoque não pode ser negativo')
       return false
     }
-
     if (formData.images.length === 0) {
       showError('Adicione pelo menos uma imagem do produto')
       return false
     }
-    
     if (!formData.category) {
       showError('Selecione a categoria do produto')
       return false
     }
-    
     if (!allowedCategories.includes(formData.category)) {
       showError('A categoria selecionada não está nas categorias permitidas para sua loja.')
       return false
     }
-
     return true
   }
 
@@ -123,49 +175,58 @@ const AddProduct = () => {
       return
     }
 
-    setLoading(true)
+    setSubmitting(true)
+    const action = productId ? 'Atualizando' : 'Adicionando'
+    const toastId = showLoading(`${action} produto...`)
 
     try {
       const imageUrlsJson = JSON.stringify(formData.images)
+      const productData = {
+        seller_id: user.id,
+        name: formData.name,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        image_url: imageUrlsJson, 
+        stock: parseInt(formData.stock),
+        category: formData.category
+      }
 
-      const { error } = await supabase
-        .from('products')
-        .insert({
-          seller_id: user.id,
-          name: formData.name,
-          description: formData.description || null,
-          price: parseFloat(formData.price),
-          image_url: imageUrlsJson, 
-          stock: parseInt(formData.stock),
-          category: formData.category // Adiciona a categoria
-        })
+      let error
+      if (productId) {
+        const result = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', productId)
+          .eq('seller_id', user!.id)
+        error = result.error
+      } else {
+        const result = await supabase
+          .from('products')
+          .insert(productData)
+        error = result.error
+      }
 
       if (error) {
-        showError('Erro ao adicionar produto: ' + error.message)
+        showError(`${action} falhou: ` + error.message)
       } else {
-        showSuccess('Produto adicionado com sucesso!')
-        setFormData({
-          name: '',
-          description: '',
-          price: '',
-          images: [],
-          stock: '',
-          category: ''
-        })
+        dismissToast(toastId)
+        showSuccess(`Produto ${productId ? 'atualizado' : 'adicionado'} com sucesso!`)
         
         setTimeout(() => {
-          navigate('/dashboard')
-        }, 2000)
+          navigate('/dashboard?tab=products')
+        }, 1500)
       }
     } catch (error) {
-      showError('Erro inesperado ao adicionar produto')
-      console.error('Add product error:', error)
+      showError('Erro inesperado ao processar produto')
+      console.error('Manage product error:', error)
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
+  // Corrigido: availableCategories é um array de objetos CATEGORIES filtrados
   const availableCategories = CATEGORIES.filter(cat => allowedCategories.includes(cat.value))
+  const isEditing = !!productId
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -173,14 +234,18 @@ const AddProduct = () => {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/dashboard?tab=products')}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para Dashboard
+            Voltar para Produtos
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Adicionar Novo Produto</h1>
-          <p className="text-gray-600 mt-2">Preencha as informações do produto abaixo</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isEditing ? 'Editar Produto' : 'Adicionar Novo Produto'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {isEditing ? `Editando: ${formData.name}` : 'Preencha as informações do novo produto'}
+          </p>
         </div>
 
         <Card>
@@ -201,7 +266,7 @@ const AddProduct = () => {
                   onChange={handleInputChange}
                   required
                   placeholder="Ex: iPhone 15 Pro"
-                  disabled={loading}
+                  disabled={submitting}
                 />
               </div>
 
@@ -214,7 +279,7 @@ const AddProduct = () => {
                   onChange={handleInputChange}
                   placeholder="Descreva o produto, suas características, etc."
                   rows={3}
-                  disabled={loading}
+                  disabled={submitting}
                 />
               </div>
 
@@ -231,7 +296,7 @@ const AddProduct = () => {
                     onChange={handleInputChange}
                     required
                     placeholder="0.00"
-                    disabled={loading}
+                    disabled={submitting}
                   />
                 </div>
 
@@ -246,7 +311,7 @@ const AddProduct = () => {
                     onChange={handleInputChange}
                     required
                     placeholder="0"
-                    disabled={loading}
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -256,7 +321,7 @@ const AddProduct = () => {
                 <Select 
                   value={formData.category} 
                   onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                  disabled={loading || availableCategories.length === 0}
+                  disabled={submitting || availableCategories.length === 0}
                 >
                   <SelectTrigger id="category">
                     <SelectValue placeholder="Selecione a categoria" />
@@ -266,6 +331,7 @@ const AddProduct = () => {
                       <div className="p-2 text-sm text-gray-500">Nenhuma categoria definida na loja</div>
                     ) : (
                       availableCategories.map((cat) => {
+                        // Corrigido: cat é o objeto de categoria, usamos cat.value e cat.label
                         return (
                           <SelectItem key={cat.value} value={cat.value}>
                             {cat.label}
@@ -299,15 +365,19 @@ const AddProduct = () => {
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={loading}
+                  disabled={submitting}
                 >
-                  {loading ? 'Adicionando...' : 'Adicionar Produto'}
+                  {isEditing ? (
+                    <><Save className="w-4 h-4 mr-2" /> {submitting ? 'Salvando...' : 'Salvar Alterações'}</>
+                  ) : (
+                    <><Plus className="w-4 h-4 mr-2" /> {submitting ? 'Adicionando...' : 'Adicionar Produto'}</>
+                  )}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/dashboard')}
-                  disabled={loading}
+                  onClick={() => navigate('/dashboard?tab=products')}
+                  disabled={submitting}
                 >
                   Cancelar
                 </Button>
@@ -320,4 +390,4 @@ const AddProduct = () => {
   )
 }
 
-export default AddProduct
+export default ManageProduct
