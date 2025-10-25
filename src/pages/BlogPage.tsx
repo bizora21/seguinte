@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { ArrowLeft, Calendar, User, Tag } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 
 const Blog = () => {
   const navigate = useNavigate()
@@ -9,12 +9,13 @@ const Blog = () => {
   const blogPosts = [
     {
       id: 1,
-      title: "Como Vender Online em Moçambique: Guia Completo",
-      excerpt: "Aprenda as melhores estratégias para vender seus produtos online e alcançar mais clientes em todo o país.",
+      title: "Como Vender Online em Moçambique: O Guia Completo da LojaRápida",
+      excerpt: "Descubra o guia completo para começar a vender online em Moçambique. Aprenda a usar o Pagamento na Entrega, otimizar seus produtos para SEO e alcançar clientes em Maputo, Matola e todo o país.",
       author: "Equipe LojaRápida",
-      date: "15 Jan 2025",
-      tags: ["Vendas", "E-commerce", "Moçambique"],
-      image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop"
+      date: "15 Ago 2024",
+      tags: ["Vendas", "E-commerce", "Moçambique", "SEO"],
+      image: "/blog/vender-online-mocambique.jpg",
+      link: "/blog/vender-online-mocambique"
     },
     {
       id: 2,
@@ -23,7 +24,8 @@ const Blog = () => {
       author: "Maria Silva",
       date: "10 Jan 2025",
       tags: ["Fotografia", "Marketing", "Produtos"],
-      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop"
+      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop",
+      link: "/blog" // Link temporário
     },
     {
       id: 3,
@@ -32,7 +34,8 @@ const Blog = () => {
       author: "João Santos",
       date: "5 Jan 2025",
       tags: ["Pagamentos", "Segurança", "Vendas"],
-      image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop"
+      image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop",
+      link: "/blog" // Link temporário
     }
   ]
 
@@ -56,43 +59,45 @@ const Blog = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {blogPosts.map((post) => (
-            <Card key={post.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="aspect-video overflow-hidden rounded-t-lg">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <CardHeader>
-                <CardTitle className="text-xl line-clamp-2">{post.title}</CardTitle>
-                <div className="flex items-center text-sm text-gray-500 space-x-4">
-                  <div className="flex items-center">
-                    <User className="w-4 h-4 mr-1" />
-                    {post.author}
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    {post.date}
-                  </div>
+            <Link to={post.link} key={post.id}>
+              <Card className="h-full flex flex-col hover:shadow-lg transition-shadow cursor-pointer">
+                <div className="aspect-video overflow-hidden rounded-t-lg">
+                  <img
+                    src={post.image}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {post.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
-                    >
-                      <Tag className="w-3 h-3 mr-1" />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <Button className="w-full">Ler Mais</Button>
-              </CardContent>
-            </Card>
+                <CardHeader className="flex-1">
+                  <CardTitle className="text-xl line-clamp-2">{post.title}</CardTitle>
+                  <div className="flex items-center text-sm text-gray-500 space-x-4">
+                    <div className="flex items-center">
+                      <User className="w-4 h-4 mr-1" />
+                      {post.author}
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      {post.date}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4 line-clamp-3">{post.excerpt}</p>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {post.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"
+                      >
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <Button className="w-full">Ler Mais</Button>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

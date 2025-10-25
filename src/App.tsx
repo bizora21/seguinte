@@ -39,6 +39,7 @@ import TermosDeUsoPage from "./pages/TermosDeUsoPage";
 import PoliticaDePrivacidadePage from "./pages/PoliticaDePrivacidadePage";
 import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
 import CustomerOrderDetails from "./pages/CustomerOrderDetails";
+import VenderOnlineMocambique from "./pages/blog/VenderOnlineMocambique"; // Novo Artigo
 import { HelmetProvider } from "react-helmet-async";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,7 @@ const App = () => (
                     {/* ROTAS INFORMATIVAS */}
                     <Route path="/sobre-nos" element={<SobreNosPage />} />
                     <Route path="/blog" element={<BlogPage />} />
+                    <Route path="/blog/vender-online-mocambique" element={<VenderOnlineMocambique />} />
                     <Route path="/faq" element={<FaqPage />} />
                     <Route path="/contato" element={<ContatoPage />} />
                     {/* ROTAS DE ENCOMENDA */}
