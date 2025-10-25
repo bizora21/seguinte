@@ -10,85 +10,118 @@ interface SEOProps {
   jsonLd?: object[]
 }
 
-export const SEO: React.FC<SEOProps> = ({ 
-  title, 
-  description, 
-  image, 
-  url, 
+const DEFAULT_SITE = 'LojaRápida'
+const BASE_URL = 'https://lojarapidamz.com' // domínio principal usado pelo site
+const DEFAULT_IMAGE_PATH = '/og-image.jpg'
+
+function ensureAbsoluteUrl(input?: string) {
+  if (!input) return `${BASE_URL}${DEFAULT_IMAGE_PATH}`
+  try {
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+      return input
+    }
+    if (input.startsWith('/')) {
+      return `${BASE_URL}${input}`
+    }
+    // fallback
+    return `${BASE_URL}/${input}`
+  } catch {
+    return `${BASE_URL}${DEFAULT_IMAGE_PATH}`
+  }
+}
+
+export const SEO: React.FC<SEOProps> = ({
+  title,
+  description,
+  image,
+  url,
   type = 'website',
-  jsonLd 
+  jsonLd
 }) => {
-  const siteName = 'LojaRápida'
-  const defaultImage = 'https://lojarapida.co.mz/og-image.jpg'
-  const baseUrl = 'https://lojarapida.co.mz'
+  const absoluteImage = ensureAbsoluteUrl(image)
+  const absoluteUrl = url ? (url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 
   return (
     <Helmet>
-      {/* Basic Meta Tags */}
       <title>{title}</title>
       <meta name="description" content={description} />
-      
-      {/* Canonical URL */}
-      {url && <link rel="canonical" href={url} />}
-      
-      {/* Open Graph / Facebook */}
+      <link rel="canonical" href={absoluteUrl} />
+
+      {/* Open Graph */}
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={image || defaultImage} />
+      <meta property="og:image" content={absoluteImage} />
+      <meta property="og:image:secure_url" content={absoluteImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
-      <meta property="og:url" content={url || baseUrl} />
-      <meta property="og:site_name" content={siteName} />
+      <meta property="og:url" content={absoluteUrl} />
+      <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
-      
+
       {/* Twitter */}
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:title" content={title} />
-      <meta property="twitter:description" content={description} />
-      <meta property="twitter:image" content={image || defaultImage} />
-      <meta property="twitter:url" content={url || baseUrl} />
-      
-      {/* Additional Meta Tags */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={absoluteImage} />
+
+      {/* Generic / Discovery hints */}
+      <meta name="image" content={absoluteImage} />
+      <meta name="author" content={DEFAULT_SITE} />
+      <meta name="keywords" content="LojaRápida, marketplace, Moçambique, comprar online, vender online" />
       <meta name="robots" content="index, follow" />
-      <meta name="author" content={siteName} />
-      <meta name="keywords" content="marketplace Moçambique, comprar online Maputo, vender online Moçambique, LojaRápida, e-commerce Moçambique" />
-      
-      {/* Structured Data (JSON-LD) */}
-      {jsonLd && jsonLd.map((schema, index) => (
-        <script key={index} type="application/ld+json">
-          {JSON.stringify(schema)}
-        </script>
-      ))}
+
+      {/* Structured Data */}
+      {jsonLd &&
+        jsonLd.map((schema, index) => {
+          // Ensure image URLs inside the provided jsonLd are absolute when they are simple strings
+          try {
+            const cloned = JSON.parse(JSON.stringify(schema), (key, value) => {
+              if (key === 'image' && typeof value === 'string') {
+                return ensureAbsoluteUrl(value)
+              }
+              return value
+            })
+            return (
+              <script key={index} type="application/ld+json">
+                {JSON.stringify(cloned)}
+              </script>
+            )
+          } catch {
+            return (
+              <script key={index} type="application/ld+json">
+                {JSON.stringify(schema)}
+              </script>
+            )
+          }
+        })}
     </Helmet>
   )
 }
 
-// --- Funções Auxiliares para JSON-LD ---
+// --- Funções Auxiliares para JSON-LD (mantidas para conveniência) ---
 
-// 1. Schema WebSite (Para a Homepage)
 export const generateWebSiteSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "LojaRápida",
-    "url": "https://lojarapida.co.mz/",
+    "url": `${BASE_URL}/`,
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://lojarapida.co.mz/busca?q={search_term_string}",
+      "target": `${BASE_URL}/busca?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   }
 }
 
-// 2. Schema LocalBusiness (Para a Homepage)
 export const generateLocalBusinessSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "LojaRápida Marketplace",
-    "image": "https://lojarapida.co.mz/og-image.jpg",
-    "url": "https://lojarapida.co.mz/",
+    "image": ensureAbsoluteUrl(DEFAULT_IMAGE_PATH),
+    "url": `${BASE_URL}/`,
     "telephone": "+258 86 318 1415",
     "address": {
       "@type": "PostalAddress",
@@ -115,24 +148,21 @@ export const generateLocalBusinessSchema = () => {
   }
 }
 
-// 3. Schema Product (Para a Página de Detalhes do Produto)
 export const generateProductSchema = (product: ProductWithSeller, storeName: string) => {
-  const productUrl = `https://lojarapida.co.mz/produto/${product.id}`
-  
+  const productUrl = `${BASE_URL}/produto/${product.id}`
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
     description: product.description || `Compre ${product.name} na LojaRápida`,
-    image: product.image_url || 'https://lojarapida.co.mz/og-image.jpg',
+    image: ensureAbsoluteUrl(product.image_url || DEFAULT_IMAGE_PATH),
     url: productUrl,
     offers: {
       '@type': 'Offer',
       price: product.price,
       priceCurrency: 'MZN',
-      availability: product.stock > 0 
-        ? 'https://schema.org/InStock' 
-        : 'https://schema.org/OutOfStock',
+      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       seller: {
         '@type': 'Store',
         name: storeName
@@ -144,21 +174,20 @@ export const generateProductSchema = (product: ProductWithSeller, storeName: str
     },
     aggregateRating: {
       "@type": "AggregateRating",
-      "ratingValue": "4.8", // Mocked rating
-      "reviewCount": "125" // Mocked count
+      "ratingValue": "4.8",
+      "reviewCount": "125"
     }
   }
 }
 
-// 4. Schema Store (Para a Página da Loja do Vendedor)
 export const generateStoreSchema = (storeName: string, sellerId: string) => {
-  const storeUrl = `https://lojarapida.co.mz/loja/${sellerId}`
+  const storeUrl = `${BASE_URL}/loja/${sellerId}`
   return {
     "@context": "https://schema.org",
     "@type": "Store",
     "name": storeName,
     "url": storeUrl,
-    "image": "https://lojarapida.co.mz/og-image.jpg",
+    "image": ensureAbsoluteUrl(DEFAULT_IMAGE_PATH),
     "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
     "address": {
       "@type": "PostalAddress",
@@ -169,7 +198,6 @@ export const generateStoreSchema = (storeName: string, sellerId: string) => {
   }
 }
 
-// Função para gerar schema de breadcrumbs (já existente, mantida)
 export const generateBreadcrumbSchema = (breadcrumbs: Array<{ name: string; url: string }>) => {
   return {
     '@context': 'https://schema.org',
@@ -178,7 +206,7 @@ export const generateBreadcrumbSchema = (breadcrumbs: Array<{ name: string; url:
       '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: item.url
+      item: item.url.startsWith('http') ? item.url : `${BASE_URL}${item.url.startsWith('/') ? item.url : '/' + item.url}`
     }))
   }
 }
