@@ -2,28 +2,28 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Product } from '../types/product'
-import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
 import { 
   Plus, 
   ShoppingBag, 
   Package, 
   TrendingUp, 
-  Users, 
   MessageCircle,
   Eye,
   Store,
   ArrowRight,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Settings,
+  CreditCard
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { showSuccess } from '../utils/toast'
 import SellerFinanceTab from '../components/SellerFinanceTab'
+import StoreSettingsTab from '../components/StoreSettingsTab' // Importado
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -34,7 +34,7 @@ const Dashboard = () => {
     totalRevenue: 0,
     pendingOrders: 0
   })
-  const [recentOrders, setRecentOrders] = useState<OrderWithItems[]>([])
+  const [recentOrders, setRecentOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -95,7 +95,7 @@ const Dashboard = () => {
         pendingOrders: pendingCount
       })
 
-      setRecentOrders(sellerOrders.slice(0, 3) as OrderWithItems[])
+      setRecentOrders(sellerOrders.slice(0, 3))
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -180,6 +180,37 @@ const Dashboard = () => {
       changeType: 'negative'
     }
   ]
+  
+  const actionButtons = [
+    { 
+      name: 'Gerenciar Pedidos', 
+      href: '/meus-pedidos', 
+      icon: ShoppingBag, 
+      description: 'Visualize e atualize o status de todos os pedidos recebidos.',
+      variant: 'default' as const
+    },
+    { 
+      name: 'Finanças e Comissões', 
+      href: '/dashboard?tab=finance', 
+      icon: CreditCard, 
+      description: 'Monitore suas comissões e gerencie pagamentos.',
+      variant: 'default' as const
+    },
+    { 
+      name: 'Meus Produtos', 
+      href: '/adicionar-produto', 
+      icon: Package, 
+      description: 'Adicione novos produtos ou edite os existentes.',
+      variant: 'default' as const
+    },
+    { 
+      name: 'Configurações da Loja', 
+      href: '/dashboard?tab=settings', 
+      icon: Settings, 
+      description: 'Atualize o nome, descrição e categorias da sua loja.',
+      variant: 'outline' as const
+    },
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -192,6 +223,29 @@ const Dashboard = () => {
           <p className="text-gray-600">
             Bem-vindo(a), {user.profile?.store_name || user.email}!
           </p>
+        </div>
+
+        {/* Ações Principais Destacadas */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {actionButtons.map((action, index) => (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => navigate(action.href)}
+                  className={`h-20 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 ${
+                    action.variant === 'default' ? 'bg-primary hover:bg-green-700 text-white' : 'bg-white hover:bg-gray-100 border-2 border-primary text-primary'
+                  }`}
+                  variant={action.variant}
+                >
+                  <action.icon className="w-6 h-6 mb-1" />
+                  <span className="text-xs font-semibold">{action.name}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{action.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          ))}
         </div>
 
         {/* Stats Grid */}
@@ -230,11 +284,16 @@ const Dashboard = () => {
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="finance">Finanças</TabsTrigger>
             <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
+            <TabsTrigger value="finance">Finanças</TabsTrigger>
+            <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="settings">
+            <StoreSettingsTab />
+          </TabsContent>
           
           <TabsContent value="finance">
             <SellerFinanceTab />
@@ -298,52 +357,8 @@ const Dashboard = () => {
             <div className="space-y-6">
               {/* Ações Rápidas */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Ações Rápidas */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2" />
-                      Ações Rápidas
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button
-                      onClick={() => navigate('/adicionar-produto')}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar Produto
-                    </Button>
-                    <Button
-                      onClick={() => navigate('/meus-pedidos')}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Gerenciar Pedidos
-                    </Button>
-                    <Button
-                      onClick={() => navigate('/meus-chats')}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Mensagens
-                    </Button>
-                    <Button
-                      onClick={() => navigate(`/loja/${user.id}`)}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Ver Minha Loja
-                    </Button>
-                  </CardContent>
-                </Card>
-
                 {/* Minha Loja Pública */}
-                <Card className="mt-6">
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Store className="w-5 h-5 mr-2" />
@@ -358,8 +373,36 @@ const Dashboard = () => {
                       onClick={() => navigate(`/loja/${user.id}`)}
                       className="w-full"
                     >
-                      <Store className="w-4 h-4 mr-2" />
+                      <Eye className="w-4 h-4 mr-2" />
                       Ver Minha Loja
+                    </Button>
+                  </CardContent>
+                </Card>
+                
+                {/* Outras Ações */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Comunicação
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button
+                      onClick={() => navigate('/meus-chats')}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Mensagens com Clientes
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/politica-vendedor')}
+                      className="w-full justify-start"
+                      variant="outline"
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Política do Vendedor
                     </Button>
                   </CardContent>
                 </Card>

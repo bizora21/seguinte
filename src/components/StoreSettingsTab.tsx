@@ -1,0 +1,191 @@
+import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Textarea } from './ui/textarea'
+import { Checkbox } from './ui/checkbox'
+import { Settings, Save, Store, AlertTriangle } from 'lucide-react'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+
+const CATEGORIES = [
+  { value: 'eletronicos', label: 'Eletrônicos' },
+  { value: 'moda', label: 'Moda' },
+  { value: 'casa', label: 'Casa & Jardim' },
+  { value: 'esportes', label: 'Esportes' },
+  { value: 'livros', label: 'Livros' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'moveis', label: 'Móveis' },
+  { value: 'alimentos', label: 'Alimentos' },
+  { value: 'beleza', label: 'Beleza & Cosméticos' },
+  { value: 'saude', label: 'Saúde' },
+  { value: 'automotivo', label: 'Automotivo' },
+  { value: 'outros', label: 'Outros' }
+]
+
+const StoreSettingsTab = () => {
+  const { user, loading: authLoading } = useAuth()
+  const [storeName, setStoreName] = useState('')
+  const [storeDescription, setStoreDescription] = useState('')
+  const [storeLogo, setStoreLogo] = useState('/store-default.svg')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (user?.profile) {
+      // Acessando campos opcionais com segurança
+      setStoreName(user.profile.store_name || '')
+      setStoreDescription(user.profile.store_description || '')
+      setStoreLogo(user.profile.store_logo || '/store-default.svg')
+      setSelectedCategories(user.profile.store_categories || [])
+    }
+  }, [user])
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(prev => [...prev, category])
+    } else {
+      setSelectedCategories(prev => prev.filter(cat => cat !== category))
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    if (!user) return
+    if (!storeName.trim()) {
+      showError('O nome da loja é obrigatório.')
+      return
+    }
+    if (selectedCategories.length === 0) {
+      showError('Selecione pelo menos uma categoria para sua loja.')
+      return
+    }
+
+    setLoading(true)
+    const toastId = showLoading('Salvando configurações...')
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          store_name: storeName.trim(),
+          store_description: storeDescription.trim(),
+          store_categories: selectedCategories,
+          // store_logo não é editável aqui, mas mantemos o valor
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      dismissToast(toastId)
+      showSuccess('Configurações da loja salvas com sucesso!')
+      
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro ao salvar: ' + error.message)
+      console.error('Save settings error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (authLoading) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Settings className="w-5 h-5 mr-2" />
+          Configurações da Loja
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Informações Básicas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2">Identidade da Loja</h3>
+              <p className="text-sm text-gray-600">Informações públicas da sua loja.</p>
+            </div>
+            <div className="md:col-span-2 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="storeName">Nome da Loja *</Label>
+                <Input
+                  id="storeName"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="Nome da sua loja"
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="storeDescription">Descrição da Loja</Label>
+                <Textarea
+                  id="storeDescription"
+                  value={storeDescription}
+                  onChange={(e) => setStoreDescription(e.target.value)}
+                  placeholder="Descreva sua loja e o que você vende"
+                  rows={3}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Logo da Loja</Label>
+                <div className="flex items-center space-x-4">
+                  <img src={storeLogo} alt="Logo da Loja" className="w-16 h-16 rounded-full object-cover border" />
+                  <p className="text-sm text-gray-600">
+                    Logo atual. Para alterar, entre em contato com o suporte.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Categorias */}
+          <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2">Categorias de Produtos *</h3>
+              <p className="text-sm text-gray-600">Selecione as categorias que você tem permissão para vender. Isso garante a organização do catálogo.</p>
+              {selectedCategories.length === 0 && (
+                <p className="text-xs text-red-500 mt-2 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  Mínimo de 1 categoria obrigatória.
+                </p>
+              )}
+            </div>
+            <div className="md:col-span-2 grid grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
+              {CATEGORIES.map((category) => (
+                <div key={category.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`cat-${category.value}`}
+                    checked={selectedCategories.includes(category.value)}
+                    onCheckedChange={(checked) => handleCategoryChange(category.value, checked as boolean)}
+                    disabled={loading}
+                  />
+                  <Label htmlFor={`cat-${category.value}`} className="text-sm font-normal cursor-pointer">
+                    {category.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Botão Salvar */}
+          <div className="border-t pt-6">
+            <Button
+              onClick={handleSaveSettings}
+              disabled={loading || !storeName.trim() || selectedCategories.length === 0}
+              className="w-full md:w-auto"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {loading ? 'Salvando...' : 'Salvar Alterações'}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default StoreSettingsTab

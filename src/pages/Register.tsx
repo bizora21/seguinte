@@ -6,8 +6,25 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Checkbox } from '../components/ui/checkbox'
 import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
+import { Textarea } from '../components/ui/textarea'
+
+const CATEGORIES = [
+  { value: 'eletronicos', label: 'Eletrônicos' },
+  { value: 'moda', label: 'Moda' },
+  { value: 'casa', label: 'Casa & Jardim' },
+  { value: 'esportes', label: 'Esportes' },
+  { value: 'livros', label: 'Livros' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'moveis', label: 'Móveis' },
+  { value: 'alimentos', label: 'Alimentos' },
+  { value: 'beleza', label: 'Beleza & Cosméticos' },
+  { value: 'saude', label: 'Saúde' },
+  { value: 'automotivo', label: 'Automotivo' },
+  { value: 'outros', label: 'Outros' }
+]
 
 const Register = () => {
   const [email, setEmail] = useState('')
@@ -15,9 +32,19 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole] = useState<'cliente' | 'vendedor'>('cliente')
   const [storeName, setStoreName] = useState('')
+  const [storeDescription, setStoreDescription] = useState('')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(prev => [...prev, category])
+    } else {
+      setSelectedCategories(prev => prev.filter(cat => cat !== category))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,15 +59,21 @@ const Register = () => {
       return
     }
 
-    if (role === 'vendedor' && !storeName.trim()) {
-      showError('Vendedores precisam informar o nome da loja')
-      return
+    if (role === 'vendedor') {
+      if (!storeName.trim()) {
+        showError('Vendedores precisam informar o nome da loja')
+        return
+      }
+      if (selectedCategories.length === 0) {
+        showError('Vendedores precisam selecionar pelo menos uma categoria')
+        return
+      }
     }
 
     setLoading(true)
 
     try {
-      const { error } = await signUp(email, password, role, storeName)
+      const { error } = await signUp(email, password, role, storeName, storeDescription, selectedCategories)
 
       if (error) {
         showError(error)
@@ -58,7 +91,7 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl text-center">Criar Conta</CardTitle>
           <CardDescription className="text-center">
@@ -117,23 +150,58 @@ const Register = () => {
               </Select>
             </div>
             {role === 'vendedor' && (
-              <div className="space-y-2">
-                <Label htmlFor="storeName">Nome da Loja</Label>
-                <Input
-                  id="storeName"
-                  type="text"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  required
-                  placeholder="Nome da sua loja"
-                  disabled={loading}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="storeName">Nome da Loja *</Label>
+                  <Input
+                    id="storeName"
+                    type="text"
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    required
+                    placeholder="Nome da sua loja"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="storeDescription">Descrição da Loja</Label>
+                  <Textarea
+                    id="storeDescription"
+                    value={storeDescription}
+                    onChange={(e) => setStoreDescription(e.target.value)}
+                    placeholder="Descreva sua loja e seus produtos"
+                    rows={3}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Categorias da Loja *</Label>
+                  <p className="text-sm text-gray-600">Selecione as categorias de produtos que você vende (mínimo 1):</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-lg bg-gray-50">
+                    {CATEGORIES.map((category) => (
+                      <div key={category.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={category.value}
+                          checked={selectedCategories.includes(category.value)}
+                          onCheckedChange={(checked) => handleCategoryChange(category.value, checked as boolean)}
+                          disabled={loading}
+                        />
+                        <Label htmlFor={category.value} className="text-sm font-normal cursor-pointer">
+                          {category.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCategories.length === 0 && (
+                    <p className="text-xs text-red-500">Selecione pelo menos uma categoria.</p>
+                  )}
+                </div>
+              </>
             )}
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading}
+              disabled={loading || (role === 'vendedor' && selectedCategories.length === 0)}
             >
               {loading ? 'Criando conta...' : 'Criar Conta'}
             </Button>

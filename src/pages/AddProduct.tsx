@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -10,6 +10,22 @@ import { supabase } from '../lib/supabase'
 import { showSuccess, showError } from '../utils/toast'
 import { ArrowLeft } from 'lucide-react'
 import ImageUpload from '../components/ImageUpload'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+
+const CATEGORIES = [
+  { value: 'eletronicos', label: 'Eletrônicos' },
+  { value: 'moda', label: 'Moda' },
+  { value: 'casa', label: 'Casa & Jardim' },
+  { value: 'esportes', label: 'Esportes' },
+  { value: 'livros', label: 'Livros' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'moveis', label: 'Móveis' },
+  { value: 'alimentos', label: 'Alimentos' },
+  { value: 'beleza', label: 'Beleza & Cosméticos' },
+  { value: 'saude', label: 'Saúde' },
+  { value: 'automotivo', label: 'Automotivo' },
+  { value: 'outros', label: 'Outros' }
+]
 
 const AddProduct = () => {
   const { user } = useAuth()
@@ -20,10 +36,17 @@ const AddProduct = () => {
     description: '',
     price: '',
     images: [] as string[],
-    stock: ''
+    stock: '',
+    category: ''
   })
+  const [allowedCategories, setAllowedCategories] = useState<string[]>([])
 
-  // Verificar se usuário é vendedor
+  useEffect(() => {
+    if (user?.profile?.role === 'vendedor' && user.profile.store_categories) {
+      setAllowedCategories(user.profile.store_categories)
+    }
+  }, [user])
+
   if (user?.profile?.role !== 'vendedor') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -79,6 +102,16 @@ const AddProduct = () => {
       showError('Adicione pelo menos uma imagem do produto')
       return false
     }
+    
+    if (!formData.category) {
+      showError('Selecione a categoria do produto')
+      return false
+    }
+    
+    if (!allowedCategories.includes(formData.category)) {
+      showError('A categoria selecionada não está nas categorias permitidas para sua loja.')
+      return false
+    }
 
     return true
   }
@@ -93,7 +126,6 @@ const AddProduct = () => {
     setLoading(true)
 
     try {
-      // 🔥 MUDANÇA: Serializar o array de URLs em uma string JSON para salvar no campo TEXT
       const imageUrlsJson = JSON.stringify(formData.images)
 
       const { error } = await supabase
@@ -103,9 +135,9 @@ const AddProduct = () => {
           name: formData.name,
           description: formData.description || null,
           price: parseFloat(formData.price),
-          // Salva o JSON do array de URLs
           image_url: imageUrlsJson, 
-          stock: parseInt(formData.stock)
+          stock: parseInt(formData.stock),
+          category: formData.category // Adiciona a categoria
         })
 
       if (error) {
@@ -117,10 +149,10 @@ const AddProduct = () => {
           description: '',
           price: '',
           images: [],
-          stock: ''
+          stock: '',
+          category: ''
         })
         
-        // Redirecionar para o dashboard após 2 segundos
         setTimeout(() => {
           navigate('/dashboard')
         }, 2000)
@@ -132,6 +164,8 @@ const AddProduct = () => {
       setLoading(false)
     }
   }
+
+  const availableCategories = CATEGORIES.filter(cat => allowedCategories.includes(cat.value))
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -216,6 +250,38 @@ const AddProduct = () => {
                   />
                 </div>
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria *</Label>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  disabled={loading || availableCategories.length === 0}
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCategories.length === 0 ? (
+                      <SelectItem value="" disabled>Nenhuma categoria definida na loja</SelectItem>
+                    ) : (
+                      availableCategories.map((cat) => {
+                        // Corrigido: cat é o objeto de categoria filtrado
+                        return (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        )
+                      })
+                    )}
+                  </SelectContent>
+                </Select>
+                {allowedCategories.length === 0 && (
+                  <p className="text-sm text-red-500">
+                    Defina as categorias da sua loja nas Configurações do Dashboard.
+                  </p>
+                )}
+              </div>
 
               <div className="space-y-2">
                 <Label>Imagens do Produto *</Label>
@@ -226,7 +292,7 @@ const AddProduct = () => {
                   maxSizeMB={1}
                 />
                 <p className="text-sm text-gray-500">
-                  Adicione até 2 imagens. A primeira imagem será a principal do produto.
+                  Envie até 2 imagens. A primeira imagem será a principal.
                 </p>
               </div>
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
+import { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
 
@@ -7,7 +7,14 @@ interface AuthContextType {
   user: AuthUser | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any; redirectTo?: string }>
-  signUp: (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => Promise<{ error: any }>
+  signUp: (
+    email: string,
+    password: string,
+    role: 'cliente' | 'vendedor',
+    storeName?: string,
+    storeDescription?: string,
+    storeCategories?: string[]
+  ) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
 
@@ -40,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null
       }
       
-      return data
+      return data as Profile
     } catch (error) {
       console.error('Unexpected error fetching profile:', error)
       return null
@@ -169,13 +176,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Buscar perfil em background para determinar redirecionamento
         const profile = await fetchUserProfile(data.user.id)
         
-        // 🔥 CORREÇÃO: Redirecionamento correto baseado no role
         let redirectTo = '/'  // Página principal com produtos
         
         if (profile?.role === 'vendedor') {
           redirectTo = '/dashboard'  // Vendedores vão para o dashboard
         } else if (profile?.role === 'cliente') {
-          redirectTo = '/lojas'  // 🔥 CLIENTES VÃO PARA A PÁGINA DE LOJAS
+          redirectTo = '/lojas'  // CLIENTES VÃO PARA A PÁGINA DE LOJAS
         }
 
         return { error: null, redirectTo }
@@ -188,7 +194,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   // Função de registro otimizada
-  const signUp = async (email: string, password: string, role: 'cliente' | 'vendedor', storeName?: string) => {
+  const signUp = async (
+    email: string, 
+    password: string, 
+    role: 'cliente' | 'vendedor', 
+    storeName?: string,
+    storeDescription?: string,
+    storeCategories?: string[]
+  ) => {
     try {
       const { data, error: authError } = await supabase.auth.signUp({
         email,
@@ -204,7 +217,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: data.user.id,
           email: email,
           role: role,
-          store_name: role === 'vendedor' ? storeName : null
+          store_name: role === 'vendedor' ? storeName : null,
+          store_description: role === 'vendedor' ? storeDescription : null,
+          store_logo: role === 'vendedor' ? '/store-default.svg' : null, // Imagem padrão
+          store_categories: role === 'vendedor' ? storeCategories : null
         }
         
         const { error: profileError } = await supabase

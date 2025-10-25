@@ -73,7 +73,7 @@ interface FinancialTransaction {
 const AdminDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [commissions, setCommissions] = useState<Commission[]>([])
+  const [commissions, setCommissions] = useState<Commission[]>([]) // Mantido para compatibilidade com SellerFinanceTab
   const [deliveredOrders, setDeliveredOrders] = useState<DeliveredOrder[]>([])
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
   const [stats, setStats] = useState({
@@ -146,6 +146,7 @@ const AdminDashboard = () => {
 
       setCommissions(commissionData || [])
       
+      // 2. Calcular estatísticas usando a tabela de comissões (para manter o SellerFinanceTab funcionando)
       const pending = commissionData?.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0) || 0
       const paid = commissionData?.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0) || 0
       
@@ -155,7 +156,7 @@ const AdminDashboard = () => {
         totalRevenue: paid
       })
 
-      // 2. Buscar Pedidos Entregues (Aguardando Confirmação do Cliente)
+      // 3. Buscar Pedidos Entregues (Aguardando Confirmação do Cliente)
       const { data: deliveredData, error: deliveredError } = await supabase
         .from('orders')
         .select(`
@@ -189,12 +190,14 @@ const AdminDashboard = () => {
     }
   }
 
+  // Esta função agora apenas atualiza o status do pedido para 'completed'.
+  // O trigger do Supabase fará o cálculo e registro da comissão.
   const handleConfirmPaymentAndGenerateCommission = async (order: DeliveredOrder) => {
     setSubmitting(true)
     const toastId = showLoading('Confirmando pagamento e gerando comissão...')
 
     try {
-      // 1. Atualizar status do pedido para 'completed' (irá disparar trigger de transação financeira, se existir)
+      // 1. Atualizar status do pedido para 'completed'
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'completed' })
@@ -202,24 +205,10 @@ const AdminDashboard = () => {
 
       if (orderError) throw new Error('Erro ao atualizar status do pedido: ' + orderError.message)
 
-      // 2. Gerar comissão (10% do total) - compatibilidade com fluxo atual
-      const commissionAmount = order.total_amount * 0.10
-      const sellerId = order.order_items[0]?.seller_id
-      if (!sellerId) throw new Error('Vendedor não encontrado para este pedido.')
-
-      const { error: commissionError } = await supabase
-        .from('commissions')
-        .insert({
-          order_id: order.id,
-          seller_id: sellerId,
-          amount: commissionAmount,
-          status: 'pending'
-        })
+      // 2. O trigger do banco de dados agora cuida da criação da comissão e transação.
       
-      if (commissionError) throw new Error('Erro ao criar comissão: ' + commissionError.message)
-
       dismissToast(toastId)
-      showSuccess(`Pagamento confirmado e comissão de ${formatPrice(commissionAmount)} gerada para o vendedor!`)
+      showSuccess(`Pagamento confirmado! A comissão será registrada automaticamente.`)
       
       // Recarregar dados
       fetchDashboardData()
@@ -365,7 +354,7 @@ const AdminDashboard = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center text-xl text-blue-800">
               <CheckCircle className="w-6 h-6 mr-2" />
-              Confirmações de Pagamento Pendentes ({deliveredOrders.length})
+              Pedidos Entregues (Aguardando Confirmação do Cliente) ({deliveredOrders.length})
             </CardTitle>
             <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -395,7 +384,7 @@ const AdminDashboard = () => {
                       disabled={submitting}
                       className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
                     >
-                      {submitting ? 'Processando...' : 'Confirmar Pagamento & Gerar Comissão'}
+                      {submitting ? 'Processando...' : 'Confirmar Recebimento (Admin)'}
                     </Button>
                   </div>
                 ))}
@@ -404,12 +393,12 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Comissões Recentes */}
+        {/* Comissões Recentes (Mantido para SellerFinanceTab) */}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">
               <DollarSign className="w-5 h-5 mr-2" />
-              Histórico de Comissões
+              Histórico de Comissões (Vendedores)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -462,7 +451,7 @@ const AdminDashboard = () => {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="flex items-center">
               <Filter className="w-5 h-5 mr-2" />
-              Transações Financeiras
+              Transações Financeiras (Comissões Deduzidas)
             </CardTitle>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Select value={statusFilter} onValueChange={(v: 'all' | 'commission_deducted') => setStatusFilter(v)}>
@@ -517,7 +506,7 @@ const AdminDashboard = () => {
                           </p>
                         </div>
                         <div className="text-right ml-4">
-                          <p className="font-semibold">{formatPrice(tx.commission_amount)}</p>
+                          <p className="font-semibold text-red-600">-{formatPrice(tx.commission_amount)}</p>
                           <p className="text-xs text-gray-500">{new Date(tx.created_at).toLocaleDateString('pt-MZ')}</p>
                         </div>
                       </div>

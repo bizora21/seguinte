@@ -1,9 +1,8 @@
-<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="160" height="160" rx="24" fill="#0A2540"/>
-  <path d="M48 60H112L106 120H54L48 60Z" fill="white" opacity="0.95"/>
-  <path d="M60 60V54C60 47.3726 65.3726 42 72 42H88C94.6274 42 100 47.3726 100 54V60" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M80 76L74.5 92H85.5L80 108" stroke="#00D4AA" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M80 76L85.5 92H74.5L80 108" fill="#00D4AA" opacity="0.9"/>
-  <circle cx="40" cy="120" r="14" fill="#00D4AA" opacity="0.85"/>
-  <circle cx="120" cy="40" r="10" fill="#00D4AA" opacity="0.85"/>
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" rx="200" fill="#F0F4F8"/>
+<path d="M100 150H300L275 350H125L100 150Z" fill="#0A2540"/>
+<path d="M150 150V125C150 111.193 161.193 100 175 100H225C238.807 100 250 111.193 250 125V150" stroke="#0A2540" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M200 200L180 250H220L200 300" stroke="#00D4AA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M200 200L220 250H180L200 300" fill="#00D4AA"/>
+<text x="200" y="380" font-family="Arial, sans-serif" font-size="30" fill="#0A2540" text-anchor="middle">LojaRápida</text>
 </svg>

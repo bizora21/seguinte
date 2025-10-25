@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle, Maximize } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
+import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { showSuccess, showError } from '../utils/toast';
 import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO';
+import { getFirstImageUrl } from '../utils/images';
 
 // Interface para os dados do produto
 interface Product {
@@ -16,7 +18,6 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  // 🔥 MUDANÇA: image_url agora é string (JSON serializado) ou null
   image_url: string | null; 
   stock: number;
   seller_id: string;
@@ -56,7 +57,6 @@ const ProductDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Efeito para buscar os dados do produto
   useEffect(() => {
     if (!productId) return;
 
@@ -65,8 +65,6 @@ const ProductDetail = () => {
       setError(null);
       
       try {
-        console.log('🔍 Buscando produto:', productId);
-        
         const { data, error } = await supabase
           .from('products')
           .select(`
@@ -77,21 +75,16 @@ const ProductDetail = () => {
           .single();
 
         if (error) {
-          console.error('❌ Erro ao buscar produto:', error);
           setError('Produto não encontrado');
           setProduct(null);
           return;
         }
 
-        console.log('✅ Produto encontrado:', data);
         setProduct(data);
-        
-        // 🔥 MUDANÇA: Definir a imagem principal a partir do array de URLs
         const images = getProductImages(data.image_url);
         setMainImage(images[0] || '');
 
       } catch (error) {
-        console.error('❌ Erro ao buscar produto:', error);
         setError('Erro ao carregar produto');
       } finally {
         setLoading(false);
@@ -101,11 +94,9 @@ const ProductDetail = () => {
     fetchProduct();
   }, [productId, navigate]);
 
-  // Efeito para buscar ou criar o chat e carregar mensagens
   useEffect(() => {
     if (!user || !product || !product.seller_id) return;
 
-    // Impedir que o vendedor converse consigo mesmo
     if (user.id === product.seller_id) {
       setChatId('VENDEDOR_PROPRIO');
       return;
@@ -114,7 +105,6 @@ const ProductDetail = () => {
     setupChat();
   }, [user, product, productId]);
 
-  // Efeito para rolar até o final das mensagens
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -123,10 +113,8 @@ const ProductDetail = () => {
     if (!user || !product || !product.seller_id) return;
 
     setChatLoading(true);
-    console.log('🔍 Configurando chat para o produto:', productId);
     
     try {
-      // 1. Encontrar ou criar o chat
       const { data: existingChat, error: fetchError } = await supabase
         .from('chats')
         .select('id')
@@ -142,7 +130,6 @@ const ProductDetail = () => {
       }
 
       if (!currentChatId) {
-        console.log('🔨 Criando novo chat...');
         const { data: newChat, error: createError } = await supabase
           .from('chats')
           .insert({
@@ -154,15 +141,11 @@ const ProductDetail = () => {
           .single();
         
         if (createError) {
-          console.error('❌ Erro ao criar chat:', createError);
           showError('Erro ao iniciar conversa');
           return;
         }
 
         currentChatId = newChat.id;
-        console.log('✅ Novo chat criado:', currentChatId);
-      } else {
-        console.log('✅ Chat encontrado:', currentChatId);
       }
 
       setChatId(currentChatId);
@@ -170,7 +153,6 @@ const ProductDetail = () => {
       setupRealtimeSubscription(currentChatId);
 
     } catch (error) {
-      console.error('❌ Erro ao configurar chat:', error);
       showError('Erro ao configurar conversa');
     } finally {
       setChatLoading(false);
@@ -183,8 +165,6 @@ const ProductDetail = () => {
 
   const fetchMessages = async (chatId: string) => {
     try {
-      console.log('📨 Buscando mensagens do chat:', chatId);
-      
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -194,33 +174,21 @@ const ProductDetail = () => {
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('❌ Erro ao buscar mensagens:', error);
-      } else {
-        console.log('✅ Mensagens encontradas:', data?.length || 0);
+      if (!error) {
         setMessages(data || []);
       }
     } catch (error) {
-      console.error('❌ Erro ao buscar mensagens:', error);
+      console.error('Erro ao buscar mensagens:', error);
     }
   };
 
   const setupRealtimeSubscription = (chatId: string) => {
-    console.log('🔧 Configurando subscription em tempo real para:', chatId);
-    
     const channel = supabase
       .channel(`chat:${chatId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `chat_id=eq.${chatId}`
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
         async (payload) => {
-          console.log('📨 Nova mensagem recebida via realtime:', payload);
-          
           const newMessage = payload.new as Message;
           
           if (newMessage.sender_id !== user?.id) {
@@ -235,23 +203,16 @@ const ProductDetail = () => {
               sender: senderData || { email: 'Desconhecido' }
             };
 
-            console.log('✅ Adicionando mensagem ao estado:', messageWithSender);
             setMessages(prev => [...prev, messageWithSender]);
-          } else {
-            console.log('📤 Esta é minha própria mensagem, não adicionando ao realtime');
           }
         }
       )
       .subscribe((status) => {
-        console.log(`📡 Status da subscription: ${status}`);
-        if (status === 'SUBSCRIBED') {
-          console.log(`✅ Realtime subscription ativa para o chat ${chatId}`);
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('❌ Erro na subscription em tempo real');
         }
       });
 
-    console.log('🔗 Canal criado:', channel);
     return () => {
       supabase.removeChannel(channel);
     };
@@ -262,8 +223,6 @@ const ProductDetail = () => {
 
     setSending(true);
     const messageContent = newMessage.trim();
-
-    console.log('📤 Enviando mensagem:', messageContent);
 
     const optimisticMessage: Message = {
       id: Date.now().toString(),
@@ -277,11 +236,7 @@ const ProductDetail = () => {
       }
     };
     
-    setMessages(prev => {
-      const updated = [...prev, optimisticMessage];
-      console.log('📝 Adicionando mensagem otimista:', updated);
-      return updated;
-    });
+    setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
 
     try {
@@ -294,14 +249,10 @@ const ProductDetail = () => {
         });
 
       if (error) {
-        console.error('❌ Erro ao enviar mensagem:', error);
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
         showError('Erro ao enviar mensagem');
-      } else {
-        console.log('✅ Mensagem enviada com sucesso');
       }
     } catch (error) {
-      console.error('❌ Erro inesperado ao enviar mensagem:', error);
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       showError('Erro ao enviar mensagem');
     } finally {
@@ -343,19 +294,16 @@ const ProductDetail = () => {
     return message.sender_id === user?.id;
   };
 
-  // 🔥 MUDANÇA: Função para desserializar o campo image_url
   const getProductImages = (imageUrl: string | null): string[] => {
     if (!imageUrl) return [];
     
     try {
-      // Tenta desserializar o JSON
       const urls = JSON.parse(imageUrl);
       if (Array.isArray(urls)) {
         return urls.filter(url => typeof url === 'string');
       }
     } catch (e) {
-      // Se falhar, assume que é uma string de URL única (para compatibilidade com dados antigos)
-      if (typeof imageUrl === 'string') {
+      if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
         return [imageUrl];
       }
     }
@@ -365,7 +313,7 @@ const ProductDetail = () => {
 
   const productImages = getProductImages(product?.image_url || null);
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
-  const productUrl = `https://lojarapidamz.com/produto/${productId}`; // Usando domínio canônico
+  const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   
   if (loading) {
     return (
@@ -390,10 +338,8 @@ const ProductDetail = () => {
     );
   }
   
-  // Gerar JSON-LD do produto
   const productSchema = generateProductSchema(product as any, storeName);
   
-  // Gerar Breadcrumbs
   const breadcrumbs = [
     { name: 'Início', url: 'https://lojarapidamz.com/' },
     { name: 'Produtos', url: 'https://lojarapidamz.com/produtos' },
@@ -413,7 +359,6 @@ const ProductDetail = () => {
       />
       
       <div className="min-h-screen bg-gray-50">
-        {/* Header com Navegação */}
         <header className="bg-white shadow-sm border-b sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
@@ -440,7 +385,6 @@ const ProductDetail = () => {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Adicionado max-w-full para garantir que o grid não force o overflow */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
             {/* Coluna da Esquerda: Detalhes do Produto */}
             <div className="space-y-6">
@@ -451,12 +395,33 @@ const ProductDetail = () => {
                     <img 
                       src={mainImage || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'} 
                       alt={`Imagem principal do produto ${product.name}`}
-                      className="w-full h-96 object-cover rounded-lg"
-                      loading="eager" // Imagem principal deve ser carregada rapidamente
+                      className="w-full h-96 object-contain rounded-lg bg-gray-100"
+                      loading="eager"
                       onError={(e) => {
                         e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
                       }}
                     />
+                    
+                    {/* Botão de Zoom/Lightbox */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="secondary" 
+                          size="icon" 
+                          className="absolute top-4 right-4 bg-white/80 hover:bg-white"
+                          aria-label="Zoom na imagem"
+                        >
+                          <Maximize className="w-5 h-5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                        <img 
+                          src={mainImage || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=900&fit=contain'} 
+                          alt={`Zoom de ${product.name}`}
+                          className="w-full h-full max-h-[90vh] object-contain"
+                        />
+                      </DialogContent>
+                    </Dialog>
                   </div>
                   
                   {productImages.length > 1 && (

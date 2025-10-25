@@ -11,6 +11,7 @@ import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useOrderDetails } from '../hooks/useOrderDetails'
+import { getFirstImageUrl } from '../utils/images'
 
 const CustomerOrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>()
@@ -18,7 +19,6 @@ const CustomerOrderDetails = () => {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
 
-  // 🔥 USANDO O NOVO HOOK COM REACT QUERY E REALTIME
   const { order, isLoading, error, refetch } = useOrderDetails(orderId, user?.id)
 
   useEffect(() => {
@@ -27,36 +27,37 @@ const CustomerOrderDetails = () => {
     }
     if (error) {
       showError(error.message || 'Erro ao carregar detalhes do pedido.')
-      // Não redireciona imediatamente, permite que o usuário veja a mensagem de erro
     }
   }, [user, isLoading, error, navigate])
 
-  const handleConfirmPayment = async () => {
+  const handleConfirmReceipt = async () => {
     if (!order) return
 
     setSubmitting(true)
-    const toastId = showLoading('Confirmando pagamento...')
+    const toastId = showLoading('Confirmando recebimento...')
 
     try {
       // 1. Atualizar status para 'completed'
+      // O trigger no Supabase cuidará de calcular a comissão e registrar a transação.
       const { error } = await supabase
         .from('orders')
         .update({ status: 'completed' })
         .eq('id', order.id)
-        .eq('user_id', user!.id) // Garantir que apenas o cliente possa atualizar
-        .select() // Dispara o evento Realtime
+        .eq('user_id', user!.id)
+        .select()
 
       if (error) throw error
 
-      // 2. O Realtime/React Query cuidará da atualização do estado local (order)
-      
       dismissToast(toastId)
-      showSuccess('Pagamento confirmado! O vendedor será notificado para gerar a comissão.')
+      showSuccess('Recebimento confirmado! O pagamento foi processado e a comissão gerada.')
+      
+      // O hook useOrderDetails deve recarregar via Realtime/React Query
+      refetch()
 
     } catch (error: any) {
       dismissToast(toastId)
-      showError('Erro ao confirmar pagamento: ' + error.message)
-      console.error('Payment confirmation error:', error)
+      showError('Erro ao confirmar recebimento: ' + error.message)
+      console.error('Receipt confirmation error:', error)
     } finally {
       setSubmitting(false)
     }
@@ -98,6 +99,7 @@ const CustomerOrderDetails = () => {
   }
 
   const statusInfo = getStatusInfo(order.status)
+  // Status 'delivered' significa que o vendedor enviou e o cliente precisa confirmar o recebimento/pagamento
   const isDelivered = order.status === 'delivered'
   const isCompleted = order.status === 'completed'
 
@@ -130,22 +132,22 @@ const CustomerOrderDetails = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             
-            {/* Ação de Confirmação de Pagamento */}
+            {/* Ação de Confirmação de Recebimento */}
             {isDelivered && (
               <div className="p-4 bg-green-100 border border-green-300 rounded-lg text-center space-y-3">
                 <h3 className="text-lg font-semibold text-green-800 flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Pagamento Pendente de Confirmação
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Confirmar Recebimento do Produto
                 </h3>
                 <p className="text-green-700">
-                  Se você já recebeu o produto e efetuou o pagamento ao agente de entrega, por favor, confirme abaixo.
+                  Se você já recebeu o produto e efetuou o pagamento ao agente de entrega, por favor, confirme abaixo para liberar o pagamento ao vendedor.
                 </p>
                 <Button
-                  onClick={handleConfirmPayment}
+                  onClick={handleConfirmReceipt}
                   disabled={submitting}
                   className="bg-green-600 hover:bg-green-700 w-full md:w-auto"
                 >
-                  {submitting ? 'Confirmando...' : 'Confirmar Pagamento Efectuado'}
+                  {submitting ? 'Confirmando...' : 'Confirmar Recebimento'}
                 </Button>
               </div>
             )}
@@ -157,12 +159,12 @@ const CustomerOrderDetails = () => {
                   Pedido Concluído
                 </h3>
                 <p className="text-blue-700">
-                  O pagamento foi confirmado. Obrigado por comprar na LojaRápida!
+                  Obrigado por comprar na LojaRápida! O pagamento foi processado.
                 </p>
               </div>
             )}
 
-            {/* Detalhes do Pedido - Responsividade Corrigida */}
+            {/* Detalhes do Pedido */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm font-medium text-gray-900 flex items-center mb-1">
@@ -181,30 +183,32 @@ const CustomerOrderDetails = () => {
             {/* Itens do Pedido */}
             <h3 className="text-lg font-semibold border-t pt-4">Itens Comprados</h3>
             <div className="space-y-3">
-              {order.order_items.map((item) => (
-                <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg bg-white">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
-                    {item.product.image_url ? (
+              {order.order_items.map((item) => {
+                const img = getFirstImageUrl(item.product.image_url) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop'
+                return (
+                  <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg bg-white">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
                       <img
-                        src={item.product.image_url}
+                        src={img}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop'
+                        }}
                       />
-                    ) : (
-                      <Package className="w-full h-full p-2 text-gray-400" />
-                    )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium">{item.product.name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {item.quantity}x {formatPrice(item.price)}
+                      </p>
+                    </div>
+                    <div className="font-semibold">
+                      {formatPrice(item.price * item.quantity)}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">{item.product.name}</h4>
-                    <p className="text-sm text-gray-600">
-                      {item.quantity}x {formatPrice(item.price)}
-                    </p>
-                  </div>
-                  <div className="font-semibold">
-                    {formatPrice(item.price * item.quantity)}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
