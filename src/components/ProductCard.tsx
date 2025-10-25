@@ -4,6 +4,7 @@ import { Button } from './ui/button'
 import { Eye, Store, ShoppingCart, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/badge'
+import { getFirstImageUrl } from '../utils/images' // Importar utilitário
 
 interface ProductCardProps {
   product: ProductWithSeller
@@ -28,6 +29,10 @@ const ProductCard = ({ product }: ProductCardProps) => {
     if (stock <= 5) return 'text-orange-600 bg-orange-50'
     return 'text-green-600 bg-green-50'
   }
+  
+  // Usar o utilitário para obter a URL da primeira imagem
+  const imageUrl = getFirstImageUrl(product.image_url)
+  const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
 
   return (
     <Card className="group h-full flex flex-col hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:shadow-2xl">
@@ -40,12 +45,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
         >
           <div className="relative w-full h-full bg-gray-100">
             <img
-              src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'}
+              src={imageUrl || defaultImage}
               alt={`Imagem do produto ${product.name}`}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
               onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
+                e.currentTarget.src = defaultImage
               }}
             />
             

@@ -222,6 +222,7 @@ const SearchResults = () => {
               >
                 {products.map((product) => (
                   <motion.div key={product.id} variants={itemVariants}>
+                    {/* Garantido que ProductCard é usado, que agora usa getFirstImageUrl */}
                     <ProductCard product={product} />
                   </motion.div>
                 ))}

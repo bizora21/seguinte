@@ -194,6 +194,7 @@ const Dashboard = () => {
     }
   ]
   
+  // Botões de Ação CONSOLIDADOS
   const actionButtons = [
     { 
       name: 'Gerenciar Pedidos', 
@@ -246,8 +247,8 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Ações Principais Destacadas (Melhor Visibilidade) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Ações Principais Destacadas (Layout responsivo) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {actionButtons.map((action, index) => (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
@@ -262,7 +263,7 @@ const Dashboard = () => {
                   variant={action.variant}
                 >
                   <action.icon className="w-6 h-6 mb-1" />
-                  <span className="text-xs font-semibold mt-1">{action.name}</span>
+                  <span className="text-xs font-semibold mt-1 text-center leading-tight">{action.name}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -272,8 +273,8 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stats Grid (Layout responsivo: 2 colunas em mobile, 4 em desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {statCards.map((stat, index) => (
             <motion.div
               key={index}
@@ -282,22 +283,22 @@ const Dashboard = () => {
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                       <div className="flex items-center mt-2">
-                        <span className={`text-sm font-medium ${
+                        <span className={`text-xs font-medium ${
                           stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {stat.change}
                         </span>
-                        <span className="text-xs text-gray-500 ml-1">vs mês passado</span>
+                        <span className="text-xs text-gray-500 ml-1 hidden sm:inline">vs mês passado</span>
                       </div>
                     </div>
-                    <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                      <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    <div className={`p-2 sm:p-3 rounded-lg ${stat.bgColor}`}>
+                      <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
                     </div>
                   </div>
                 </CardContent>
@@ -308,12 +309,13 @@ const Dashboard = () => {
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
-            <TabsTrigger value="products">Meus Produtos</TabsTrigger>
-            <TabsTrigger value="finance">Finanças</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
+          {/* Tabs List responsiva */}
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1">
+            <TabsTrigger value="overview" className="py-2 text-xs sm:text-sm">Visão Geral</TabsTrigger>
+            <TabsTrigger value="activity" className="py-2 text-xs sm:text-sm">Atividade</TabsTrigger>
+            <TabsTrigger value="products" className="py-2 text-xs sm:text-sm">Produtos</TabsTrigger>
+            <TabsTrigger value="finance" className="py-2 text-xs sm:text-sm">Finanças</TabsTrigger>
+            <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm">Configurações</TabsTrigger>
           </TabsList>
           
           <TabsContent value="products">
@@ -333,7 +335,7 @@ const Dashboard = () => {
               {/* Pedidos Recentes */}
               <Card>
                 <CardHeader className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-lg">
                     <ShoppingBag className="w-5 h-5 mr-2" />
                     Pedidos Recentes
                   </CardTitle>
@@ -387,7 +389,7 @@ const Dashboard = () => {
               {/* Instrução de Confiança */}
               <Card className="bg-yellow-50 border-yellow-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-yellow-800">
+                  <CardTitle className="flex items-center text-yellow-800 text-lg">
                     <AlertTriangle className="w-5 h-5 mr-2" />
                     Aviso Importante: Confiança do Cliente
                   </CardTitle>
@@ -401,7 +403,7 @@ const Dashboard = () => {
                   </p>
                   <Button
                     onClick={() => navigate('/meus-pedidos')}
-                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white"
+                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white w-full"
                   >
                     <ShoppingBag className="w-4 h-4 mr-2" />
                     Ir para Gerenciar Pedidos

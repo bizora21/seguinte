@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useCart } from '../contexts/CartContext'
 import { showSuccess } from '../utils/toast'
+import { getFirstImageUrl } from '../utils/images' // Importar utilitário
 
 interface AnimatedProductCardProps {
   product: Product
@@ -37,6 +38,9 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
     
     showSuccess(`${product.name} adicionado ao carrinho!`)
   }
+  
+  const imageUrl = getFirstImageUrl(product.image_url)
+  const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
 
   return (
     <motion.div
@@ -47,13 +51,13 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
         <CardHeader className="p-0">
           <div className="aspect-square w-full overflow-hidden bg-gray-100">
             <motion.img
-              src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'}
+              src={imageUrl || defaultImage}
               alt={product.name}
               className="h-full w-full object-cover"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
               onError={(e) => {
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
+                e.currentTarget.src = defaultImage
               }}
             />
           </div>
