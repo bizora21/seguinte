@@ -41,6 +41,7 @@ import PoliticaVendedorPage from "./pages/PoliticaVendedorPage";
 import CustomerOrderDetails from "./pages/CustomerOrderDetails";
 import VenderOnlineMocambique from "./pages/blog/VenderOnlineMocambique"; // Novo Artigo
 import { HelmetProvider } from "react-helmet-async";
+import ScrollToTop from "./components/ScrollToTop"; // Importado
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
                 v7_relativeSplatPath: true,
               }}
             >
+              <ScrollToTop /> {/* Adicionado aqui */}
               <div className="min-h-screen bg-gray-50 flex flex-col">
                 <Header />
                 <PaymentBanner />
