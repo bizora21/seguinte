@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Calendar as CalendarIcon } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { OrderWithItems } from '../types/order'
+import { Input } from '../components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 // Defina o email do administrador aqui
 const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
@@ -45,11 +47,27 @@ interface DeliveredOrder {
     quantity: number
     price: number
     seller_id: string
-    // Corrigido: Supabase retorna um array de objetos para a relação 1:1 ou 1:N
     product: Array<{
       name: string
     }>
   }>
+}
+
+interface FinancialTransaction {
+  id: string
+  order_id: string
+  seller_id: string
+  commission_amount: number
+  status: string
+  created_at: string
+  seller?: {
+    store_name: string
+    email: string
+  }
+  order?: {
+    id: string
+    total_amount: number
+  }
 }
 
 const AdminDashboard = () => {
@@ -57,6 +75,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate()
   const [commissions, setCommissions] = useState<Commission[]>([])
   const [deliveredOrders, setDeliveredOrders] = useState<DeliveredOrder[]>([])
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
   const [stats, setStats] = useState({
     totalPending: 0,
     totalPaid: 0,
@@ -65,13 +84,44 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
+  // Filtros da tabela de transações
+  const [statusFilter, setStatusFilter] = useState<'all' | 'commission_deducted'>('all')
+  const [sellerQuery, setSellerQuery] = useState('')
+  const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
+
   useEffect(() => {
     if (user?.email !== ADMIN_EMAIL) {
       navigate('/')
       return
     }
     fetchDashboardData()
+    fetchTransactions()
   }, [user, navigate])
+
+  const fetchTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('financial_transactions')
+        .select(`
+          *,
+          seller:profiles!financial_transactions_seller_id_fkey (
+            store_name,
+            email
+          ),
+          order:orders!financial_transactions_order_id_fkey (
+            id,
+            total_amount
+          )
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setTransactions(data || [])
+    } catch (error: any) {
+      console.error('Error fetching transactions:', error)
+      showError('Erro ao carregar transações financeiras')
+    }
+  }
 
   const fetchDashboardData = async () => {
     setLoading(true)
@@ -144,7 +194,7 @@ const AdminDashboard = () => {
     const toastId = showLoading('Confirmando pagamento e gerando comissão...')
 
     try {
-      // 1. Atualizar status do pedido para 'completed'
+      // 1. Atualizar status do pedido para 'completed' (irá disparar trigger de transação financeira, se existir)
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'completed' })
@@ -152,16 +202,10 @@ const AdminDashboard = () => {
 
       if (orderError) throw new Error('Erro ao atualizar status do pedido: ' + orderError.message)
 
-      // 2. Gerar comissão (10% do total)
+      // 2. Gerar comissão (10% do total) - compatibilidade com fluxo atual
       const commissionAmount = order.total_amount * 0.10
-      
-      // Como um pedido pode ter itens de vários vendedores, precisamos gerar uma comissão por vendedor.
-      // No entanto, o fluxo atual de checkout só permite 1 produto por encomenda, então assumimos 1 vendedor por pedido.
       const sellerId = order.order_items[0]?.seller_id
-
-      if (!sellerId) {
-        throw new Error('Vendedor não encontrado para este pedido.')
-      }
+      if (!sellerId) throw new Error('Vendedor não encontrado para este pedido.')
 
       const { error: commissionError } = await supabase
         .from('commissions')
@@ -179,6 +223,7 @@ const AdminDashboard = () => {
       
       // Recarregar dados
       fetchDashboardData()
+      fetchTransactions()
 
     } catch (error: any) {
       dismissToast(toastId)
@@ -199,7 +244,7 @@ const AdminDashboard = () => {
       if (error) throw error
 
       showSuccess('Comissão marcada como paga!')
-      fetchDashboardData() // Recarregar dados
+      fetchDashboardData()
     } catch (error: any) {
       console.error('Error marking commission as paid:', error)
       showError('Erro ao atualizar status da comissão')
@@ -212,6 +257,32 @@ const AdminDashboard = () => {
       currency: 'MZN'
     }).format(price)
   }
+
+  const filteredTransactions = useMemo(() => {
+    const now = new Date()
+    const fromDate =
+      dateRange === '7d'
+        ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        : dateRange === '30d'
+        ? new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        : null
+
+    return transactions.filter(tx => {
+      const byStatus =
+        statusFilter === 'all' ? true : tx.status === statusFilter
+
+      const bySeller =
+        sellerQuery.trim().length === 0
+          ? true
+          : (tx.seller?.store_name || '').toLowerCase().includes(sellerQuery.toLowerCase()) ||
+            (tx.seller?.email || '').toLowerCase().includes(sellerQuery.toLowerCase())
+
+      const byDate =
+        !fromDate ? true : new Date(tx.created_at) >= fromDate
+
+      return byStatus && bySeller && byDate
+    })
+  }, [transactions, statusFilter, sellerQuery, dateRange])
 
   if (user?.email !== ADMIN_EMAIL) {
     return (
@@ -289,14 +360,14 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Confirmações de Pagamento Pendentes (Novo) */}
+        {/* Confirmações de Pagamento Pendentes */}
         <Card className="mb-8 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center text-xl text-blue-800">
               <CheckCircle className="w-6 h-6 mr-2" />
               Confirmações de Pagamento Pendentes ({deliveredOrders.length})
             </CardTitle>
-            <Button onClick={fetchDashboardData} variant="outline" size="sm">
+            <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
             </Button>
@@ -333,8 +404,8 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Comissões Recentes (Histórico) */}
-        <Card>
+        {/* Comissões Recentes */}
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center">
               <DollarSign className="w-5 h-5 mr-2" />
@@ -379,6 +450,81 @@ const AdminDashboard = () => {
                         </Button>
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Transações Financeiras (automação) */}
+        <Card>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="flex items-center">
+              <Filter className="w-5 h-5 mr-2" />
+              Transações Financeiras
+            </CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Select value={statusFilter} onValueChange={(v: 'all' | 'commission_deducted') => setStatusFilter(v)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="commission_deducted">Comissão Deduzida</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={dateRange} onValueChange={(v: 'all' | '7d' | '30d') => setDateRange(v)}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo período</SelectItem>
+                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative w-full sm:w-[240px]">
+                <Input
+                  placeholder="Filtrar por vendedor (nome/email)"
+                  value={sellerQuery}
+                  onChange={(e) => setSellerQuery(e.target.value)}
+                />
+              </div>
+              <Button variant="outline" onClick={fetchTransactions}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {filteredTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Nenhuma transação encontrada com os filtros atuais.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredTransactions.map((tx) => (
+                  <div key={tx.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
+                            {tx.seller?.store_name || tx.seller?.email || 'Vendedor'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Pedido #{(tx.order?.id || tx.order_id).slice(0, 8)} • Valor do pedido: {tx.order?.total_amount ? formatPrice(tx.order.total_amount) : '--'}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="font-semibold">{formatPrice(tx.commission_amount)}</p>
+                          <p className="text-xs text-gray-500">{new Date(tx.created_at).toLocaleDateString('pt-MZ')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <Badge className="ml-4" variant="secondary">
+                      {tx.status === 'commission_deducted' ? 'Comissão Deduzida' : tx.status}
+                    </Badge>
                   </div>
                 ))}
               </div>
