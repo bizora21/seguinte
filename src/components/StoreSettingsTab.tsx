@@ -3,9 +3,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Label } from './ui/label'
-import { Textarea } from './ui/textarea'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Textarea } from '../components/ui/textarea'
 import { Checkbox } from './ui/checkbox'
 import { Settings, Save, Store, AlertTriangle } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
@@ -39,7 +39,8 @@ const StoreSettingsTab = () => {
       setStoreName(user.profile.store_name || '')
       setStoreDescription(user.profile.store_description || '')
       setStoreLogo(user.profile.store_logo || '/store-default.svg')
-      setSelectedCategories(user.profile.store_categories || [])
+      // Garantir que é um array de strings, mesmo que venha como null
+      setSelectedCategories((user.profile.store_categories as string[] | null) || [])
     }
   }, [user])
 
@@ -71,8 +72,7 @@ const StoreSettingsTab = () => {
         .update({
           store_name: storeName.trim(),
           store_description: storeDescription.trim(),
-          store_categories: selectedCategories,
-          // store_logo não é editável aqui, mas mantemos o valor
+          store_categories: selectedCategories, // Enviando array de strings
         })
         .eq('id', user.id)
 
