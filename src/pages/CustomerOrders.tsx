@@ -192,12 +192,12 @@ const CustomerOrders = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                          <div className="flex flex-wrap items-center space-x-4 mt-2 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-x-4 mt-2 text-sm text-gray-600">
                             <div className="flex items-center">
                               <Calendar className="w-4 h-4 mr-1" />
                               {formatDate(order.created_at)}
                             </div>
-                            {/* CORREÇÃO DE RESPONSIVIDADE: Removido 'hidden sm:flex' */}
+                            {/* CORREÇÃO: Usar flex-wrap e garantir que o elemento não seja ocultado */}
                             {order.updated_at !== order.created_at && (
                               <div className="flex items-center text-blue-600 mt-1 sm:mt-0">
                                 <span className="w-2 h-2 bg-blue-500 rounded-full mr-1 animate-pulse"></span>
