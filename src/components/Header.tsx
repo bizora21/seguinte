@@ -114,11 +114,11 @@ const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
                     <Avatar className="h-10 w-10 bg-secondary text-white">
                       {/* Se houver avatar_url, use AvatarImage */}
                       {/* <AvatarImage src={user.profile?.avatar_url} alt="Avatar" /> */}
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-secondary text-white">
                         {getAvatarFallbackText()}
                       </AvatarFallback>
                     </Avatar>
@@ -189,7 +189,7 @@ const Header = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
                         <Avatar className="h-10 w-10 bg-secondary text-white">
-                          <AvatarFallback>
+                          <AvatarFallback className="bg-secondary text-white">
                             {getAvatarFallbackText()}
                           </AvatarFallback>
                         </Avatar>

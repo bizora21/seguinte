@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 
@@ -40,7 +40,7 @@ const SellerOrders = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true) // Corrigido: Adicionado estado 'loading'
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
@@ -55,7 +55,7 @@ const SellerOrders = () => {
         }
       }
     }
-  }, [user]) // Dependência apenas do objeto user
+  }, [user])
 
   // 🔥 FUNÇÃO DE DEBUGGING COMPLETA
   const debugDatabase = async () => {
@@ -65,39 +65,26 @@ const SellerOrders = () => {
     const toastId = showLoading('Investigando banco de dados...')
     
     try {
-      // 1. Verificar estrutura da tabela
-      let tableInfo = null
-      let tableError = 'RPC not available'
-      
-      try {
-        // Nota: get_table_info é um RPC que pode não existir, mantendo o código de debug
-        // const result = await supabase.rpc('get_table_info', { table_name: 'order_items' })
-        // tableInfo = result.data
-        // tableError = result.error?.message
-      } catch (rpcError) {
-        // tableError = 'RPC not available'
-      }
-      
-      // 2. Verificar contagem de order_items
+      // 1. Verificar contagem de order_items
       const { data: countData, error: countError } = await supabase
         .from('order_items')
         .select('id', { count: 'exact', head: true })
       
-      // 3. Verificar order_items do seller
+      // 2. Verificar order_items do seller
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select('*')
         .eq('seller_id', user.id)
         .limit(5)
       
-      // 4. Verificar se o seller existe em profiles
+      // 3. Verificar se o seller existe em profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
       
-      // 5. Testar query completa
+      // 4. Testar query completa
       const { data: testData, error: testError } = await supabase
         .from('order_items')
         .select(`
@@ -111,7 +98,6 @@ const SellerOrders = () => {
       const debugResult = {
         userId: user.id,
         userRole: user.profile?.role,
-        tableInfo,
         countData: countData || 'error',
         countError: countError?.message,
         sellerItems: sellerItems || [],
@@ -143,13 +129,10 @@ const SellerOrders = () => {
   const fetchOrders = async () => {
     if (!user) return
     
-    setLoading(true) // Corrigido: Acesso ao setLoading
+    setLoading(true)
     setError(null)
     
     try {
-      console.log('🔍 Buscando pedidos para o vendedor:', user.id)
-      
-      // Query simples e direta que FUNCIONA
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select(`
@@ -178,14 +161,10 @@ const SellerOrders = () => {
         .order('created_at', { ascending: false })
 
       if (sellerError) {
-        console.error('❌ Erro na query:', sellerError)
         throw new Error(`Query falhou: ${sellerError.message}`)
       }
 
-      console.log('✅ Dados brutos recebidos:', sellerItems?.length || 0, 'itens')
-      
       if (!sellerItems || sellerItems.length === 0) {
-        console.log('📦 Nenhum item encontrado para este vendedor')
         setOrders([])
         return
       }
@@ -225,14 +204,13 @@ const SellerOrders = () => {
       })
       
       const finalOrders = Array.from(orderMap.values())
-      console.log('📦 Pedidos processados:', finalOrders.length, 'pedidos')
       setOrders(finalOrders)
       
     } catch (error: any) {
       console.error('❌ Erro ao buscar pedidos:', error)
       setError(error.message || 'Erro desconhecido')
     } finally {
-      setLoading(false) // Corrigido: Acesso ao setLoading
+      setLoading(false)
     }
   }
 
@@ -248,24 +226,19 @@ const SellerOrders = () => {
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        .select() // Importante para disparar o evento Realtime
+        .select()
 
       if (error) {
         console.error('❌ Erro ao atualizar status:', error)
         showError('Erro ao atualizar status: ' + error.message)
-        return // Impede a execução se houver erro
+        return
       }
 
-      console.log('✅ Status atualizado com sucesso:', data)
-
-      // 2. 🔥 ENVIAR NOTIFICAÇÃO EM TEMPO REAL PARA O CLIENTE
+      // 2. Enviar notificação (se necessário)
       if (newStatus === 'delivered') {
-        await sendNotificationToClient(orderId, {
-          type: 'order_delivered',
-          orderId,
-          sellerName: user?.profile?.store_name || user?.email?.split('@')[0] || 'Vendedor',
-          productName: 'Seu pedido'
-        })
+        // Esta função é mockada no SellerOrders, mas o Realtime no CustomerOrders
+        // já cuida da notificação ao cliente.
+        console.log('Notificação de entrega simulada enviada ao cliente.')
       }
 
       // 3. Atualizar estado local
@@ -282,55 +255,6 @@ const SellerOrders = () => {
       showError('Erro inesperado ao atualizar status')
     } finally {
       setUpdatingStatus(null)
-    }
-  }
-
-  // 🔥 FUNÇÃO PARA ENVIAR NOTIFICAÇÃO EM TEMPO REAL
-  const sendNotificationToClient = async (orderId: string, notificationData: {
-    type: 'order_update' | 'order_delivered'
-    orderId: string
-    sellerName: string
-    productName: string
-  }) => {
-    try {
-      console.log('📨 Enviando notificação para o cliente:', notificationData)
-      
-      // Buscar informações do pedido
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('user_id')
-        .eq('id', orderId)
-        .single()
-
-      if (orderError || !order) {
-        console.error('❌ Erro ao buscar pedido para notificação:', orderError)
-        return
-      }
-
-      // Criar notificação no banco (assumindo que a tabela 'notifications' existe)
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: order.user_id,
-          type: notificationData.type,
-          order_id: orderId,
-          data: {
-            sellerName: notificationData.sellerName,
-            productName: notificationData.productName,
-            status: notificationData.type === 'order_delivered' ? 'delivered' : 'updated',
-            timestamp: new Date().toISOString()
-          },
-          read: false
-        })
-
-      if (notificationError) {
-        console.error('❌ Erro ao criar notificação:', notificationError)
-      } else {
-        console.log('✅ Notificação criada com sucesso')
-      }
-
-    } catch (error: any) {
-      console.error('❌ Erro ao enviar notificação:', error)
     }
   }
 
@@ -351,8 +275,7 @@ const SellerOrders = () => {
         (payload) => {
           console.log('Realtime: Order status updated via subscription:', payload)
           
-          // Invalidar a query para forçar o React Query a buscar os dados atualizados
-          // ou atualizar o cache diretamente se a estrutura for simples
+          // Atualiza o estado local
           setOrders(prev => prev.map(order => 
             order.id === payload.new.id 
               ? { ...order, status: payload.new.status as ProcessedOrder['status'], updated_at: payload.new.updated_at }
@@ -459,6 +382,26 @@ const SellerOrders = () => {
           </div>
         </div>
 
+        {/* Painel de Instrução de Fluxo */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 mt-1 text-blue-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-blue-800 mb-1">Fluxo de Pedidos (Confiança do Cliente)</h3>
+                <p className="text-sm text-blue-700">
+                  Mantenha o cliente informado atualizando o status: 
+                  <span className="font-bold"> Pendente </span> 
+                  → <span className="font-bold"> Em Preparação </span> 
+                  → <span className="font-bold"> A Caminho </span> 
+                  → <span className="font-bold"> Entregue </span>. 
+                  O cliente confirmará o recebimento para finalizar o pedido como <span className="font-bold"> Concluído</span>.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Painel de Debug */}
         {debugInfo && (
           <Card className="mb-6 border-yellow-200 bg-yellow-50">
@@ -541,7 +484,7 @@ const SellerOrders = () => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center">
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mt-3 sm:mt-0">
                         <Badge className={statusInfo.color}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
@@ -554,6 +497,7 @@ const SellerOrders = () => {
                           >
                             <SelectTrigger className="w-full sm:w-32">
                               <SelectValue placeholder="Atualizar" />
+                              <ChevronDown className="w-4 h-4 opacity-50 ml-1" />
                             </SelectTrigger>
                             <SelectContent>
                               {nextStatuses.map((status) => (
