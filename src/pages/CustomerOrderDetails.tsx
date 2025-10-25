@@ -49,7 +49,7 @@ const CustomerOrderDetails = () => {
       if (error) throw error
 
       dismissToast(toastId)
-      showSuccess('Recebimento confirmado! O pagamento foi processado e a comissão gerada.')
+      showSuccess('Recebimento confirmado! O pagamento ao vendedor será processado.')
       
       // O hook useOrderDetails deve recarregar via Realtime/React Query
       refetch()
@@ -137,10 +137,11 @@ const CustomerOrderDetails = () => {
               <div className="p-4 bg-green-100 border border-green-300 rounded-lg text-center space-y-3">
                 <h3 className="text-lg font-semibold text-green-800 flex items-center justify-center">
                   <CheckCircle className="w-5 h-5 mr-2" />
-                  Confirmar Recebimento do Produto
+                  Confirmação de Entrega e Pagamento
                 </h3>
                 <p className="text-green-700">
-                  Se você já recebeu o produto e efetuou o pagamento ao agente de entrega, por favor, confirme abaixo para liberar o pagamento ao vendedor.
+                  Se você já recebeu o produto e efetuou o pagamento ao agente de entrega, por favor, confirme abaixo. 
+                  Isso finaliza o pedido e libera o pagamento ao vendedor.
                 </p>
                 <Button
                   onClick={handleConfirmReceipt}
@@ -159,7 +160,7 @@ const CustomerOrderDetails = () => {
                   Pedido Concluído
                 </h3>
                 <p className="text-blue-700">
-                  Obrigado por comprar na LojaRápida! O pagamento foi processado.
+                  Obrigado por comprar na LojaRápida! O pagamento ao vendedor foi processado.
                 </p>
               </div>
             )}

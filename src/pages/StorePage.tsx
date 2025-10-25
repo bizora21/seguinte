@@ -126,12 +126,12 @@ const StorePage = () => {
   }
   
   const storeName = seller.store_name || `Loja ${seller.email.split('@')[0]}`;
-  const storeUrl = `https://lojarapida.co.mz/loja/${sellerId}`;
+  const storeUrl = `https://lojarapidamz.com/loja/${sellerId}`;
   const storeSchema = generateStoreSchema(storeName, sellerId!);
   
   const breadcrumbs = [
-    { name: 'Início', url: 'https://lojarapida.co.mz/' },
-    { name: 'Lojas', url: 'https://lojarapida.co.mz/lojas' },
+    { name: 'Início', url: 'https://lojarapidamz.com/' },
+    { name: 'Lojas', url: 'https://lojarapidamz.com/lojas' },
     { name: storeName, url: storeUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
@@ -175,7 +175,8 @@ const StorePage = () => {
               </h1>
               
               <p className="text-xl mb-6 opacity-90">
-                {seller.email}
+                {/* Removido o email público */}
+                Vendedor verificado na LojaRápida
               </p>
               
               <div className="flex items-center justify-center space-x-6 mb-6">
