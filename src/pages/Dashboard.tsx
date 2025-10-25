@@ -19,12 +19,15 @@ import {
   DollarSign,
   BarChart3,
   Settings,
-  CreditCard
+  CreditCard,
+  AlertTriangle,
+  User
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import SellerFinanceTab from '../components/SellerFinanceTab'
 import StoreSettingsTab from '../components/StoreSettingsTab'
 import SellerProductsTab from '../components/SellerProductsTab' // Importado
+import { Avatar, AvatarFallback } from '../components/ui/avatar'
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -114,6 +117,15 @@ const Dashboard = () => {
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('pt-MZ').format(num)
   }
+  
+  const getAvatarFallbackText = () => {
+    if (!user) return '?'
+    const profile = user.profile
+    if (profile?.store_name) {
+      return profile.store_name.slice(0, 2).toUpperCase()
+    }
+    return user.email.charAt(0).toUpperCase()
+  }
 
   if (user?.profile?.role !== 'vendedor') {
     return (
@@ -191,17 +203,17 @@ const Dashboard = () => {
       variant: 'default' as const
     },
     { 
-      name: 'Finanças e Comissões', 
-      href: '/dashboard?tab=finance', 
-      icon: CreditCard, 
-      description: 'Monitore suas comissões e gerencie pagamentos.',
-      variant: 'default' as const
-    },
-    { 
       name: 'Meus Produtos', 
       href: '/dashboard?tab=products', 
       icon: Package, 
       description: 'Adicione, edite ou exclua seus produtos.',
+      variant: 'default' as const
+    },
+    { 
+      name: 'Finanças e Comissões', 
+      href: '/dashboard?tab=finance', 
+      icon: CreditCard, 
+      description: 'Monitore suas comissões e gerencie pagamentos.',
       variant: 'default' as const
     },
     { 
@@ -216,30 +228,41 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Dashboard Vendedor
-          </h1>
-          <p className="text-gray-600">
-            Bem-vindo(a), {user.profile?.store_name || user.email}!
-          </p>
+        {/* Header com Avatar */}
+        <div className="mb-8 flex items-center space-x-4">
+          <Avatar className="h-16 w-16 bg-secondary text-white border-4 border-white shadow-lg">
+            {/* Aqui você usaria user.profile?.store_logo se estivesse implementado */}
+            <AvatarFallback className="text-2xl font-bold">
+              {getAvatarFallbackText()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+              Dashboard Vendedor
+            </h1>
+            <p className="text-gray-600">
+              Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span>
+            </p>
+          </div>
         </div>
 
-        {/* Ações Principais Destacadas */}
+        {/* Ações Principais Destacadas (Melhor Visibilidade) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {actionButtons.map((action, index) => (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <Button
                   onClick={() => navigate(action.href)}
-                  className={`h-20 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 ${
-                    action.variant === 'default' ? 'bg-primary hover:bg-green-700 text-white' : 'bg-white hover:bg-gray-100 border-2 border-primary text-primary'
+                  className={`h-24 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 shadow-md ${
+                    // Destaque para Finanças e Pedidos
+                    action.name === 'Finanças e Comissões' || action.name === 'Gerenciar Pedidos'
+                      ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-800'
+                      : 'bg-white hover:bg-gray-100 border-2 border-gray-300 text-gray-800'
                   }`}
                   variant={action.variant}
                 >
                   <action.icon className="w-6 h-6 mb-1" />
-                  <span className="text-xs font-semibold">{action.name}</span>
+                  <span className="text-xs font-semibold mt-1">{action.name}</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -285,7 +308,7 @@ const Dashboard = () => {
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
             <TabsTrigger value="products">Meus Produtos</TabsTrigger>
@@ -361,9 +384,33 @@ const Dashboard = () => {
 
           <TabsContent value="overview">
             <div className="space-y-6">
-              {/* Ações Rápidas */}
+              {/* Instrução de Confiança */}
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-yellow-800">
+                    <AlertTriangle className="w-5 h-5 mr-2" />
+                    Aviso Importante: Confiança do Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-yellow-700 mb-4">
+                    Assim que um cliente fizer uma encomenda, você deve ir para a seção **Gerenciar Pedidos** e atualizar o status para **"Em Preparação"**.
+                  </p>
+                  <p className="text-sm text-yellow-700 font-semibold">
+                    Isso garante que o cliente saiba que o pedido está sendo processado, aumentando a confiança e reduzindo cancelamentos.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/meus-pedidos')}
+                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Ir para Gerenciar Pedidos
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              {/* Minha Loja Pública */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Minha Loja Pública */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
