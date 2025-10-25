@@ -6,6 +6,8 @@ export interface Profile {
   store_description?: string | null
   store_logo?: string | null
   store_categories?: string[] | null
+  city?: string | null // Novo
+  province?: string | null // Novo
   created_at?: string
   updated_at?: string
 }

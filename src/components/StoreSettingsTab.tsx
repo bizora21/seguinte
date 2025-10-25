@@ -7,8 +7,9 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Checkbox } from './ui/checkbox'
-import { Settings, Save, Store, AlertTriangle } from 'lucide-react'
+import { Settings, Save, Store, AlertTriangle, MapPin } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -25,11 +26,27 @@ const CATEGORIES = [
   { value: 'outros', label: 'Outros' }
 ]
 
+const PROVINCES = [
+  { value: 'maputo_cidade', label: 'Maputo (Cidade)' },
+  { value: 'maputo_provincia', label: 'Maputo (Província)' },
+  { value: 'gaza', label: 'Gaza' },
+  { value: 'inhambane', label: 'Inhambane' },
+  { value: 'sofala', label: 'Sofala' },
+  { value: 'manica', label: 'Manica' },
+  { value: 'tete', label: 'Tete' },
+  { value: 'zambezia', label: 'Zambézia' },
+  { value: 'nampula', label: 'Nampula' },
+  { value: 'cabo_delgado', label: 'Cabo Delgado' },
+  { value: 'niassa', label: 'Niassa' }
+]
+
 const StoreSettingsTab = () => {
   const { user, loading: authLoading } = useAuth()
   const [storeName, setStoreName] = useState('')
   const [storeDescription, setStoreDescription] = useState('')
   const [storeLogo, setStoreLogo] = useState('/store-default.svg')
+  const [city, setCity] = useState('')
+  const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -39,8 +56,9 @@ const StoreSettingsTab = () => {
       setStoreName(user.profile.store_name || '')
       setStoreDescription(user.profile.store_description || '')
       setStoreLogo(user.profile.store_logo || '/store-default.svg')
-      // Garantir que é um array de strings, mesmo que venha como null
       setSelectedCategories((user.profile.store_categories as string[] | null) || [])
+      setCity(user.profile.city || '')
+      setProvince(user.profile.province || '')
     }
   }, [user])
 
@@ -62,6 +80,14 @@ const StoreSettingsTab = () => {
       showError('Selecione pelo menos uma categoria para sua loja.')
       return
     }
+    if (!province) {
+      showError('Selecione sua Província.')
+      return
+    }
+    if (!city.trim()) {
+      showError('Informe sua Cidade/Distrito.')
+      return
+    }
 
     setLoading(true)
     const toastId = showLoading('Salvando configurações...')
@@ -73,6 +99,8 @@ const StoreSettingsTab = () => {
           store_name: storeName.trim(),
           store_description: storeDescription.trim(),
           store_categories: selectedCategories, // Enviando array de strings
+          city: city.trim(),
+          province: province
         })
         .eq('id', user.id)
 
@@ -141,6 +169,46 @@ const StoreSettingsTab = () => {
               </div>
             </div>
           </div>
+          
+          {/* Localização */}
+          <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <MapPin className="w-4 h-4 mr-2" />
+                Localização *
+              </h3>
+              <p className="text-sm text-gray-600">Sua localização principal em Moçambique.</p>
+            </div>
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="province">Província *</Label>
+                <Select value={province} onValueChange={setProvince} disabled={loading}>
+                  <SelectTrigger id="province">
+                    <SelectValue placeholder="Selecione sua província" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVINCES.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade / Distrito *</Label>
+                <Input
+                  id="city"
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                  placeholder="Ex: Matola, Beira"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Categorias */}
           <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -175,7 +243,7 @@ const StoreSettingsTab = () => {
           <div className="border-t pt-6">
             <Button
               onClick={handleSaveSettings}
-              disabled={loading || !storeName.trim() || selectedCategories.length === 0}
+              disabled={loading || !storeName.trim() || selectedCategories.length === 0 || !city.trim() || !province}
               className="w-full md:w-auto"
             >
               <Save className="w-4 h-4 mr-2" />

@@ -6,7 +6,7 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, Package, MapPin, Calendar, CheckCircle, CreditCard, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Package, MapPin, Calendar, CheckCircle, CreditCard, AlertTriangle, Star } from 'lucide-react'
 import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -162,6 +162,18 @@ const CustomerOrderDetails = () => {
                 <p className="text-blue-700">
                   Obrigado por comprar na LojaRápida! O pagamento ao vendedor foi processado.
                 </p>
+                
+                {/* Instrução de Avaliação */}
+                <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
+                  <h4 className="font-bold text-blue-900 flex items-center justify-center mb-2">
+                    <Star className="w-5 h-5 mr-2 text-yellow-500 fill-yellow-500" />
+                    Ajude o Vendedor!
+                  </h4>
+                  <p className="text-sm text-gray-700">
+                    Sua confirmação garante a melhor avaliação para o vendedor. 
+                    Em breve, você poderá deixar uma avaliação detalhada sobre o produto e a loja.
+                  </p>
+                </div>
               </div>
             )}
 

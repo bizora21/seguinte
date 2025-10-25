@@ -26,6 +26,20 @@ const CATEGORIES = [
   { value: 'outros', label: 'Outros' }
 ]
 
+const PROVINCES = [
+  { value: 'maputo_cidade', label: 'Maputo (Cidade)' },
+  { value: 'maputo_provincia', label: 'Maputo (Província)' },
+  { value: 'gaza', label: 'Gaza' },
+  { value: 'inhambane', label: 'Inhambane' },
+  { value: 'sofala', label: 'Sofala' },
+  { value: 'manica', label: 'Manica' },
+  { value: 'tete', label: 'Tete' },
+  { value: 'zambezia', label: 'Zambézia' },
+  { value: 'nampula', label: 'Nampula' },
+  { value: 'cabo_delgado', label: 'Cabo Delgado' },
+  { value: 'niassa', label: 'Niassa' }
+]
+
 const Register = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,6 +47,8 @@ const Register = () => {
   const [role, setRole] = useState<'cliente' | 'vendedor'>('cliente')
   const [storeName, setStoreName] = useState('')
   const [storeDescription, setStoreDescription] = useState('')
+  const [city, setCity] = useState('')
+  const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
@@ -58,6 +74,16 @@ const Register = () => {
       showError('A senha deve ter pelo menos 6 caracteres')
       return
     }
+    
+    if (!province) {
+      showError('Selecione sua Província')
+      return
+    }
+    
+    if (!city.trim()) {
+      showError('Informe sua Cidade/Distrito')
+      return
+    }
 
     if (role === 'vendedor') {
       if (!storeName.trim()) {
@@ -73,7 +99,16 @@ const Register = () => {
     setLoading(true)
 
     try {
-      const { error } = await signUp(email, password, role, storeName, storeDescription, selectedCategories)
+      const { error } = await signUp(
+        email, 
+        password, 
+        role, 
+        storeName, 
+        storeDescription, 
+        selectedCategories,
+        city, // Passando cidade
+        province // Passando província
+      )
 
       if (error) {
         showError(error)
@@ -112,31 +147,65 @@ const Register = () => {
                 disabled={loading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Mínimo 6 caracteres"
-                minLength={6}
-                disabled={loading}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  minLength={6}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Digite a senha novamente"
+                  disabled={loading}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                placeholder="Digite a senha novamente"
-                disabled={loading}
-              />
+            
+            {/* Campos de Localização */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="province">Província *</Label>
+                <Select value={province} onValueChange={setProvince} disabled={loading}>
+                  <SelectTrigger id="province">
+                    <SelectValue placeholder="Selecione sua província" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVINCES.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade / Distrito *</Label>
+                <Input
+                  id="city"
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  required
+                  placeholder="Ex: Matola, Beira"
+                  disabled={loading}
+                />
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="role">Tipo de Conta</Label>
               <Select value={role} onValueChange={(value: 'cliente' | 'vendedor') => setRole(value)} disabled={loading}>
