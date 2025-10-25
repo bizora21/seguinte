@@ -6,7 +6,7 @@ import { Profile } from '../types/auth'
 import ProductCard from '../components/ProductCard'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Store, Star, MessageCircle, ArrowLeft, Package } from 'lucide-react'
+import { Store, Star, MessageCircle, ArrowLeft, Package, MapPin } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
@@ -146,9 +146,9 @@ const StorePage = () => {
         jsonLd={[storeSchema, breadcrumbSchema]}
       />
       <div className="min-h-screen bg-gray-50">
-        {/* Header da Loja */}
+        {/* Header da Loja - Reduzido o padding vertical */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10"> {/* Reduzido py-12/16 para py-8/10 */}
             <div className="mb-4">
               <Button
                 variant="ghost"
@@ -166,29 +166,31 @@ const StorePage = () => {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <div className="w-24 h-24 bg-white rounded-full mx-auto mb-6 flex items-center justify-center">
-                <Store className="w-12 h-12 text-blue-600" />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-xl">
+                <Store className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600" />
               </div>
               
-              <h1 className="text-4xl font-bold mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-1">
                 {storeName}
               </h1>
               
-              <p className="text-xl mb-6 opacity-90">
-                {/* Removido o email público */}
+              <p className="text-md sm:text-lg mb-4 opacity-90">
                 Vendedor verificado na LojaRápida
               </p>
               
-              <div className="flex items-center justify-center space-x-6 mb-6">
+              {/* Informações da Loja em linha */}
+              <div className="flex flex-wrap items-center justify-center space-x-4 text-sm sm:text-base mb-6">
                 <div className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-400 mr-1" />
+                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
                   <span>4.8</span>
                 </div>
                 <div>
+                  <Package className="w-4 h-4 mr-1 inline" />
                   <span>{products.length} produtos</span>
                 </div>
-                <div>
-                  <span>Vendedor desde {new Date(seller.created_at!).getFullYear()}</span>
+                <div className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-1" />
+                  <span>{seller.city || 'Moçambique'}</span>
                 </div>
               </div>
               
@@ -206,11 +208,19 @@ const StorePage = () => {
           </div>
         </div>
 
+        {/* Descrição da Loja (Novo Bloco) */}
+        {seller.store_description && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-white shadow-md mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Sobre a Loja</h2>
+            <p className="text-gray-700">{seller.store_description}</p>
+          </div>
+        )}
+
         {/* Produtos da Loja */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Produtos da Loja
+              Catálogo de Produtos
             </h2>
             <p className="text-gray-600">
               Conheça todos os produtos oferecidos por {storeName}
