@@ -1,6 +1,6 @@
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
-import { ArrowLeft, CheckCircle, Store, Package, TrendingUp, Search, Shield } from 'lucide-react'
+import { ArrowLeft, CheckCircle, Store, Package, TrendingUp, Search, Shield, Users, MapPin, CreditCard, Truck, MessageCircle, Star, Gift, Globe } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { SEO } from '../../components/SEO'
 
@@ -210,6 +210,71 @@ const VenderOnlineMocambique = () => {
                 <h3 className="text-xl font-semibold mt-4 mb-2">Foco na Conversão</h3>
                 <p>
                   O SEO não é só sobre tráfego, é sobre vendas. Certifique-se de que seu preço é competitivo e que a descrição do produto inspira confiança.
+                </p>
+              </section>
+
+              <section className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                  <Users className="w-6 h-6 mr-2 text-red-600" />
+                  5. Alcance Nacional e Logística
+                </h2>
+                <p>
+                  Com a LojaRápida, você não está limitado a vender apenas na sua cidade. Nossa plataforma permite que você alcance clientes em todo Moçambique, desde Maputo até Nampula, passando por Beira e Quelimane.
+                </p>
+                <p>
+                  Nossa rede de logística é robusta e confiável, garantindo que seus produtos cheguem aos clientes em perfeitas condições e dentro do prazo. Além disso, o **pagamento na entrega** é gerenciado por nós, eliminando o risco de não pagamento.
+                </p>
+              </section>
+
+              <section className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                  <MessageCircle className="w-6 h-6 mr-2 text-blue-600" />
+                  6. Comunicação Direta com o Cliente
+                </h2>
+                <p>
+                  A comunicação é a chave para o sucesso no e-commerce. Na LojaRápida, oferecemos um sistema de chat integrado que permite que você converse diretamente com seus clientes antes, durante e após a venda.
+                </p>
+                <p>
+                  Use o chat para esclarecer dúvidas, fornecer informações adicionais sobre o produto e construir um relacionamento de confiança com o cliente. Uma boa comunicação pode ser o diferencial que leva o cliente a escolher sua loja em vez da concorrência.
+                </p>
+              </section>
+
+              <section className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                  <Star className="w-6 h-6 mr-2 text-yellow-500" />
+                  7. Avaliações e Reputação
+                </h2>
+                <p>
+                  As avaliações dos clientes são extremamente importantes para o sucesso da sua loja online. Produtos e vendedores com boas avaliações tendem a ter mais visibilidade e vendas.
+                </p>
+                <p>
+                  Incentive seus clientes a deixarem avaliações após a compra. Responda às avaliações, tanto as positivas quanto as negativas, de forma profissional e construtiva. Isso mostra que você se importa com a opinião dos seus clientes e está disposto a melhorar.
+                </p>
+              </section>
+
+              <section className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                  <Gift className="w-6 h-6 mr-2 text-purple-600" />
+                  8. Promoções e Ofertas Especiais
+                </h2>
+                <p>
+                  Promoções e ofertas especiais são uma ótima maneira de atrair novos clientes e fidelizar os existentes. Na LojaRápida, você pode criar promoções para produtos específicos ou para toda a sua loja.
+                </p>
+                <p>
+                  Anuncie suas promoções nas redes sociais e no seu chat com os clientes. Ofereça descontos progressivos, frete grátis ou brindes para compras acima de um determinado valor. As promoções podem aumentar significativamente suas vendas em curtos períodos.
+                </p>
+              </section>
+
+              <section className="mt-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+                  <Globe className="w-6 h-6 mr-2 text-green-600" />
+                  9. Expansão e Crescimento
+                </h2>
+                <p>
+                  À medida que suas vendas aumentam, você pode pensar em expandir seus negócios. Com a LojaRápida, você pode facilmente adicionar mais produtos, diversificar seu catálogo e até mesmo contratar ajuda para gerenciar suas vendas.
+                </p>
+                <p>
+                  Nossa plataforma é escalável e cresce junto com você. Oferecemos ferramentas de análise de vendas para que você possa identificar seus produtos mais vendidos, seus melhores clientes e as regiões com maior demanda. Use esses dados para tomar decisões estratégicas e expandir seus negócios de forma inteligente.
                 </p>
               </section>
 
