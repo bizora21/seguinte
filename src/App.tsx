@@ -25,6 +25,7 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmed from "./pages/OrderConfirmed";
 import MyOrders from "./pages/MyOrders";
 import MyChats from "./pages/MyChats";
+import Chat from "./pages/Chat"; // Adicionado importação do Chat
 import SearchResults from "./pages/SearchResults";
 import StorePage from "./pages/StorePage";
 import SobreNosPage from "./pages/SobreNosPage";
@@ -166,7 +167,15 @@ const App = () => (
                         </ProtectedRoute>
                       } 
                     />
-                    {/* ROTA DE CHAT OBSOLETA REMOVIDA: /chat/:productId */}
+                    {/* ROTA DE CHAT DEDICADA */}
+                    <Route 
+                      path="/chat/:chatId" 
+                      element={
+                        <ProtectedRoute>
+                          <Chat />
+                        </ProtectedRoute>
+                      } 
+                    />
                     <Route path="/busca" element={<SearchResults />} />
                     <Route path="/loja/:sellerId" element={<StorePage />} />
                     <Route path="*" element={<NotFound />} />
