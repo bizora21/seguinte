@@ -91,7 +91,8 @@ const AdminDashboard = () => {
   const [sellerQuery, setSellerQuery] = useState('')
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
-  const userEmailNormalized = user?.email?.toLowerCase().trim()
+  // Usar o email do perfil para maior robustez
+  const userEmailNormalized = (user?.profile?.email || user?.email)?.toLowerCase().trim()
   const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
   const isAdmin = userEmailNormalized === adminEmailNormalized
 
@@ -100,7 +101,6 @@ const AdminDashboard = () => {
     if (authLoading) return
 
     // 2. Se o usuário não for o administrador, redireciona para o dashboard do vendedor se for vendedor, senão para a home.
-    // Se não for admin, o componente renderizará o erro de acesso negado abaixo.
     if (!isAdmin) {
       console.log('Admin Check: Acesso negado. Redirecionando se for vendedor/cliente logado.');
       const redirectPath = user?.profile?.role === 'vendedor' ? '/dashboard' : '/'
