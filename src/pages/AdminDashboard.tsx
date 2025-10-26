@@ -91,7 +91,6 @@ const AdminDashboard = () => {
   const [sellerQuery, setSellerQuery] = useState('')
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
-  // Usar o email do perfil para maior robustez
   const userEmailNormalized = (user?.profile?.email || user?.email)?.toLowerCase().trim()
   const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
   const isAdmin = userEmailNormalized === adminEmailNormalized
@@ -100,20 +99,13 @@ const AdminDashboard = () => {
     // 1. Se o AuthContext ainda estiver carregando, espere.
     if (authLoading) return
 
-    // 2. Se o usuário não for o administrador, redireciona para o dashboard do vendedor se for vendedor, senão para a home.
-    if (!isAdmin) {
-      console.log('Admin Check: Acesso negado. Redirecionando se for vendedor/cliente logado.');
-      const redirectPath = user?.profile?.role === 'vendedor' ? '/dashboard' : '/'
-      if (user) {
-        navigate(redirectPath, { replace: true })
-      }
-      return
+    // 2. O AdminRoute garante que apenas o admin chegue aqui.
+    if (isAdmin) {
+      console.log('Admin Check: Acesso concedido. Carregando dados.');
+      fetchDashboardData()
+      fetchTransactions()
     }
-    
-    // 3. Se for o administrador, carregue os dados.
-    console.log('Admin Check: Acesso concedido. Carregando dados.');
-    fetchDashboardData()
-    fetchTransactions()
+    // Se não for admin, o AdminRoute já redirecionou.
   }, [user, authLoading, navigate, isAdmin])
 
   const fetchTransactions = async () => {
@@ -316,21 +308,10 @@ const AdminDashboard = () => {
     )
   }
   
-  // Se não for o administrador, renderize o erro de acesso negado.
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-red-600 mb-2">Acesso Restrito</h2>
-            <p className="text-gray-600 mb-6">Você não tem permissão para acessar esta área. Apenas o administrador ({ADMIN_EMAIL}) pode acessar.</p>
-            <Button onClick={() => navigate('/')}>Voltar para Home</Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // O AdminRoute garante que apenas o admin chegue aqui.
+  // Se o usuário não for o administrador, ele já foi redirecionado pelo AdminRoute.
+  // Se, por algum motivo, o isAdmin for falso aqui (o que não deveria acontecer), 
+  // podemos retornar um erro genérico, mas o AdminRoute é a primeira linha de defesa.
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

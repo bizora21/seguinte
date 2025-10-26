@@ -12,6 +12,7 @@ import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute"; // Importar AdminRoute
 import LoadingSpinner from "./components/LoadingSpinner"; // Importar LoadingSpinner
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
@@ -86,9 +87,9 @@ const App = () => (
                       <Route 
                         path="/admin" 
                         element={
-                          <ProtectedRoute>
+                          <AdminRoute>
                             <AdminDashboard />
-                          </ProtectedRoute>
+                          </AdminRoute>
                         } 
                       />
                       <Route 
