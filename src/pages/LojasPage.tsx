@@ -10,6 +10,9 @@ import { Input } from '../components/ui/input'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { SEO } from '../components/SEO'
 
+// Email do administrador a ser excluído da lista pública
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+
 const LojasPage = () => {
   const [sellers, setSellers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +64,8 @@ const LojasPage = () => {
         .from('profiles')
         .select('*')
         .eq('role', 'vendedor')
+        .neq('email', ADMIN_EMAIL) // Excluir o administrador
+        .not('store_name', 'is', null) // Excluir perfis sem nome de loja
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -153,7 +158,7 @@ const LojasPage = () => {
       <SEO
         title="Lojas em Destaque | Vendedores Locais em Moçambique | LojaRápida"
         description="Encontre as melhores lojas e vendedores em Moçambique. Explore catálogos completos e compre com segurança na LojaRápida."
-        url="https://lojarapida.co.mz/lojas"
+        url="https://lojarapidamz.com/lojas"
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Hero Section - Reduzido o padding vertical */}
@@ -258,7 +263,7 @@ const LojasPage = () => {
               {filteredSellers.length} loja{filteredSellers.length !== 1 ? 's' : ''} encontrada{filteredSellers.length !== 1 ? 's' : ''}
               {!error && sellers.length > 0 && (
                 <span className="ml-2 text-sm text-gray-500">
-                  (Total no banco: {sellers.length})
+                  (Total de lojas listadas: {sellers.length})
                 </span>
               )}
             </p>
@@ -360,7 +365,7 @@ const LojasPage = () => {
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                           <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
-                            <span>Moçambique</span>
+                            <span>{seller.city || 'Moçambique'}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
