@@ -1,0 +1,1 @@
+SELECT id, email, role, store_name FROM profiles WHERE email = 'lojarapidamz@outlook.com';

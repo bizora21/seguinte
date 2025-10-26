@@ -73,7 +73,7 @@ interface FinancialTransaction {
 }
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [commissions, setCommissions] = useState<Commission[]>([])
   const [deliveredOrders, setDeliveredOrders] = useState<DeliveredOrder[]>([])
@@ -92,16 +92,26 @@ const AdminDashboard = () => {
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
   useEffect(() => {
+    // 1. Se o AuthContext ainda estiver carregando, espere.
+    if (authLoading) return
+
     console.log('Admin Check: User Email:', user?.email, 'Required Email:', ADMIN_EMAIL);
     
+    // 2. Se o usuário não for o administrador, redirecione.
     if (user?.email !== ADMIN_EMAIL) {
-      // REMOVIDO O REDIRECIONAMENTO PARA DEBUGAR
-      setLoading(false); 
+      console.log('Admin Check: Acesso negado. Redirecionando.');
+      
+      // Redireciona para o dashboard do vendedor se for vendedor, senão para a home
+      const redirectPath = user?.profile?.role === 'vendedor' ? '/dashboard' : '/'
+      navigate(redirectPath, { replace: true })
       return
     }
+    
+    // 3. Se for o administrador, carregue os dados.
+    console.log('Admin Check: Acesso concedido. Carregando dados.');
     fetchDashboardData()
     fetchTransactions()
-  }, [user, navigate])
+  }, [user, authLoading, navigate])
 
   const fetchTransactions = async () => {
     try {
@@ -294,7 +304,8 @@ const AdminDashboard = () => {
     )
   }, [commissions])
 
-  if (loading) {
+  // Se o AuthContext estiver carregando ou o AdminDashboard estiver carregando dados, mostre o spinner.
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -302,7 +313,7 @@ const AdminDashboard = () => {
     )
   }
   
-  // Se a verificação falhar, mostre a mensagem de acesso restrito
+  // Se a verificação falhar, mostre a mensagem de acesso restrito (embora o useEffect já tenha redirecionado)
   if (user?.email !== ADMIN_EMAIL) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
