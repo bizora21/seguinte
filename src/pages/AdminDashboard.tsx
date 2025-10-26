@@ -95,7 +95,8 @@ const AdminDashboard = () => {
     console.log('Admin Check: User Email:', user?.email, 'Required Email:', ADMIN_EMAIL);
     
     if (user?.email !== ADMIN_EMAIL) {
-      navigate('/')
+      // REMOVIDO O REDIRECIONAMENTO PARA DEBUGAR
+      setLoading(false); 
       return
     }
     fetchDashboardData()
@@ -293,6 +294,15 @@ const AdminDashboard = () => {
     )
   }, [commissions])
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+  
+  // Se a verificação falhar, mostre a mensagem de acesso restrito
   if (user?.email !== ADMIN_EMAIL) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -300,18 +310,10 @@ const AdminDashboard = () => {
           <CardContent className="p-12 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-red-600 mb-2">Acesso Restrito</h2>
-            <p className="text-gray-600 mb-6">Você não tem permissão para acessar esta área.</p>
+            <p className="text-gray-600 mb-6">Você não tem permissão para acessar esta área. Apenas o administrador ({ADMIN_EMAIL}) pode acessar.</p>
             <Button onClick={() => navigate('/')}>Voltar para Home</Button>
           </CardContent>
         </Card>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
       </div>
     )
   }
