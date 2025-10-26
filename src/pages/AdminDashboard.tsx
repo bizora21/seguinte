@@ -92,6 +92,8 @@ const AdminDashboard = () => {
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
   useEffect(() => {
+    console.log('Admin Check: User Email:', user?.email, 'Required Email:', ADMIN_EMAIL);
+    
     if (user?.email !== ADMIN_EMAIL) {
       navigate('/')
       return
