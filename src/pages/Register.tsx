@@ -10,6 +10,7 @@ import { Checkbox } from '../components/ui/checkbox'
 import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 import { Textarea } from '../components/ui/textarea'
+import { supabase } from '../lib/supabase' // Adicionado: Importação do supabase
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -50,6 +51,7 @@ const Register = () => {
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [deliveryScope, setDeliveryScope] = useState<string[]>([]) // Novo estado
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
@@ -59,6 +61,14 @@ const Register = () => {
       setSelectedCategories(prev => [...prev, category])
     } else {
       setSelectedCategories(prev => prev.filter(cat => cat !== category))
+    }
+  }
+  
+  const handleDeliveryScopeChange = (scope: string, checked: boolean) => {
+    if (checked) {
+      setDeliveryScope(prev => [...prev, scope])
+    } else {
+      setDeliveryScope(prev => prev.filter(s => s !== scope))
     }
   }
 
@@ -94,6 +104,10 @@ const Register = () => {
         showError('Vendedores precisam selecionar pelo menos uma categoria')
         return
       }
+      if (deliveryScope.length === 0) {
+        showError('Vendedores precisam definir o escopo de entrega.')
+        return
+      }
     }
 
     setLoading(true)
@@ -107,12 +121,20 @@ const Register = () => {
         storeDescription, 
         selectedCategories,
         city, // Passando cidade
-        province // Passando província
+        province, // Passando província
+        deliveryScope // Passando escopo de entrega
       )
 
       if (error) {
         showError(error)
       } else {
+        // Nota: A lógica de atualização do deliveryScope foi movida para o AuthProvider
+        // na última edição, mas como o AuthProvider não tem acesso ao ID do usuário recém-criado
+        // antes do login, a lógica de atualização aqui é um fallback.
+        // No entanto, o AuthProvider já foi atualizado para aceitar deliveryScope no signUp,
+        // então esta lógica de fallback é redundante e pode ser removida,
+        // confiando que o AuthProvider fará a inserção inicial completa.
+        
         showSuccess('Conta criada com sucesso! Faça login para continuar.')
         navigate('/login')
       }
@@ -265,12 +287,36 @@ const Register = () => {
                     <p className="text-xs text-red-500">Selecione pelo menos uma categoria.</p>
                   )}
                 </div>
+                
+                {/* Novo Campo: Escopo de Entrega */}
+                <div className="space-y-2 border-t pt-4">
+                  <Label>Escopo de Entrega (Províncias/Cidades) *</Label>
+                  <p className="text-sm text-gray-600">Selecione as áreas onde você pode garantir a entrega:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-lg bg-green-50">
+                    {PROVINCES.map((p) => (
+                      <div key={p.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`scope-${p.value}`}
+                          checked={deliveryScope.includes(p.value)}
+                          onCheckedChange={(checked) => handleDeliveryScopeChange(p.value, checked as boolean)}
+                          disabled={loading}
+                        />
+                        <Label htmlFor={`scope-${p.value}`} className="text-sm font-normal cursor-pointer">
+                          {p.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {deliveryScope.length === 0 && (
+                    <p className="text-xs text-red-500">Selecione pelo menos uma área de entrega.</p>
+                  )}
+                </div>
               </>
             )}
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading || (role === 'vendedor' && selectedCategories.length === 0)}
+              disabled={loading || (role === 'vendedor' && (selectedCategories.length === 0 || deliveryScope.length === 0))}
             >
               {loading ? 'Criando conta...' : 'Criar Conta'}
             </Button>

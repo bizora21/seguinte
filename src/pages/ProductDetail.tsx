@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle, Maximize } from 'lucide-react';
+import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle, Maximize, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -25,6 +25,7 @@ interface Product {
     id: string;
     store_name: string;
     email: string;
+    delivery_scope?: string[]; // Adicionado
   };
 }
 
@@ -39,6 +40,20 @@ interface Message {
     email: string;
     store_name?: string;
   };
+}
+
+const PROVINCE_LABELS: Record<string, string> = {
+  'maputo_cidade': 'Maputo (Cidade)',
+  'maputo_provincia': 'Maputo (Província)',
+  'gaza': 'Gaza',
+  'inhambane': 'Inhambane',
+  'sofala': 'Sofala',
+  'manica': 'Manica',
+  'tete': 'Tete',
+  'zambezia': 'Zambézia',
+  'nampula': 'Nampula',
+  'cabo_delgado': 'Cabo Delgado',
+  'niassa': 'Niassa'
 }
 
 const ProductDetail = () => {
@@ -69,7 +84,7 @@ const ProductDetail = () => {
           .from('products')
           .select(`
             *,
-            seller:profiles!products_seller_id_fkey(id, store_name, email)
+            seller:profiles!products_seller_id_fkey(id, store_name, email, delivery_scope)
           `)
           .eq('id', productId)
           .single();
@@ -346,6 +361,10 @@ const ProductDetail = () => {
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
+  
+  const deliveryScope = product.seller?.delivery_scope || [];
+  // CORREÇÃO: Usar Object.keys para obter o número de províncias no objeto PROVINCE_LABELS
+  const isNationalDelivery = deliveryScope.length === Object.keys(PROVINCE_LABELS).length;
 
   return (
     <>
@@ -467,7 +486,37 @@ const ProductDetail = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
+                  {/* Novo Bloco: Escopo de Entrega */}
+                  <div className="space-y-2 border-t pt-4">
+                    <h3 className="font-semibold flex items-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Disponibilidade de Entrega
+                    </h3>
+                    {deliveryScope.length === 0 ? (
+                      <p className="text-sm text-red-600">
+                        ⚠️ O vendedor não definiu áreas de entrega. Contate-o para confirmar.
+                      </p>
+                    ) : isNationalDelivery ? (
+                      <p className="text-sm text-green-600 font-medium">
+                        ✅ Entrega disponível em todo Moçambique.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">
+                          Entrega disponível nas seguintes áreas:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {deliveryScope.map(scope => (
+                            <Badge key={scope} variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                              {PROVINCE_LABELS[scope] || scope}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2 border-t pt-4">
                     <h3 className="font-semibold">Vendido por</h3>
                     <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -492,7 +541,7 @@ const ProductDetail = () => {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Truck className="w-4 h-4 mr-2 text-blue-600" />
-                        <span>Entrega grátis em todo Moçambique (1 a 5 dias úteis)</span>
+                        <span>Frete grátis em todo Moçambique (1 a 5 dias úteis)</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <CreditCard className="w-4 h-4 mr-2 text-purple-600" />

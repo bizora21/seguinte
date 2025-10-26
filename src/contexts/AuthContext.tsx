@@ -15,7 +15,8 @@ interface AuthContextType {
     storeDescription?: string,
     storeCategories?: string[],
     city?: string, // Novo
-    province?: string // Novo
+    province?: string, // Novo
+    deliveryScope?: string[] // Novo
   ) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -204,7 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storeDescription?: string,
     storeCategories?: string[],
     city?: string, // Novo
-    province?: string // Novo
+    province?: string, // Novo
+    deliveryScope?: string[] // Novo
   ) => {
     try {
       const { data, error: authError } = await supabase.auth.signUp({
@@ -226,7 +228,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           store_logo: role === 'vendedor' ? '/store-default.svg' : null, // Imagem padrão
           store_categories: role === 'vendedor' ? storeCategories : null,
           city: city || null, // Novo
-          province: province || null // Novo
+          province: province || null, // Novo
+          delivery_scope: role === 'vendedor' ? deliveryScope : null // Novo
         }
         
         const { error: profileError } = await supabase

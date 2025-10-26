@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Checkbox } from './ui/checkbox'
-import { Settings, Save, Store, AlertTriangle, MapPin } from 'lucide-react'
+import { Settings, Save, Store, AlertTriangle, MapPin, Truck } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
@@ -48,6 +48,7 @@ const StoreSettingsTab = () => {
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [deliveryScope, setDeliveryScope] = useState<string[]>([]) // Novo estado
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -59,6 +60,7 @@ const StoreSettingsTab = () => {
       setSelectedCategories((user.profile.store_categories as string[] | null) || [])
       setCity(user.profile.city || '')
       setProvince(user.profile.province || '')
+      setDeliveryScope((user.profile.delivery_scope as string[] | null) || []) // Novo
     }
   }, [user])
 
@@ -67,6 +69,14 @@ const StoreSettingsTab = () => {
       setSelectedCategories(prev => [...prev, category])
     } else {
       setSelectedCategories(prev => prev.filter(cat => cat !== category))
+    }
+  }
+  
+  const handleDeliveryScopeChange = (scope: string, checked: boolean) => {
+    if (checked) {
+      setDeliveryScope(prev => [...prev, scope])
+    } else {
+      setDeliveryScope(prev => prev.filter(s => s !== scope))
     }
   }
 
@@ -88,6 +98,10 @@ const StoreSettingsTab = () => {
       showError('Informe sua Cidade/Distrito.')
       return
     }
+    if (deliveryScope.length === 0) {
+      showError('Defina o escopo de entrega.')
+      return
+    }
 
     setLoading(true)
     const toastId = showLoading('Salvando configurações...')
@@ -100,7 +114,8 @@ const StoreSettingsTab = () => {
           store_description: storeDescription.trim(),
           store_categories: selectedCategories, // Enviando array de strings
           city: city.trim(),
-          province: province
+          province: province,
+          delivery_scope: deliveryScope // Novo campo
         })
         .eq('id', user.id)
 
@@ -210,6 +225,38 @@ const StoreSettingsTab = () => {
             </div>
           </div>
 
+          {/* Escopo de Entrega */}
+          <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <Truck className="w-4 h-4 mr-2" />
+                Escopo de Entrega *
+              </h3>
+              <p className="text-sm text-gray-600">Selecione as províncias/cidades onde você pode entregar.</p>
+              {deliveryScope.length === 0 && (
+                <p className="text-xs text-red-500 mt-2 flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-1" />
+                  Mínimo de 1 área obrigatória.
+                </p>
+              )}
+            </div>
+            <div className="md:col-span-2 grid grid-cols-2 gap-4 p-4 border rounded-lg bg-green-50">
+              {PROVINCES.map((p) => (
+                <div key={p.value} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`scope-${p.value}`}
+                    checked={deliveryScope.includes(p.value)}
+                    onCheckedChange={(checked) => handleDeliveryScopeChange(p.value, checked as boolean)}
+                    disabled={loading}
+                  />
+                  <Label htmlFor={`scope-${p.value}`} className="text-sm font-normal cursor-pointer">
+                    {p.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Categorias */}
           <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
@@ -243,7 +290,7 @@ const StoreSettingsTab = () => {
           <div className="border-t pt-6">
             <Button
               onClick={handleSaveSettings}
-              disabled={loading || !storeName.trim() || selectedCategories.length === 0 || !city.trim() || !province}
+              disabled={loading || !storeName.trim() || selectedCategories.length === 0 || deliveryScope.length === 0 || !city.trim() || !province}
               className="w-full md:w-auto"
             >
               <Save className="w-4 h-4 mr-2" />

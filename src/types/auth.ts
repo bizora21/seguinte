@@ -8,6 +8,7 @@ export interface Profile {
   store_categories?: string[] | null
   city?: string | null // Novo
   province?: string | null // Novo
+  delivery_scope?: string[] | null // Novo: Escopo de entrega (provincias/cidades)
   created_at?: string
   updated_at?: string
 }
