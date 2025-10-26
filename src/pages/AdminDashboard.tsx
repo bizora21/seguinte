@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Calendar as CalendarIcon } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Calendar as CalendarIcon, Receipt } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { OrderWithItems } from '../types/order'
@@ -22,6 +22,8 @@ interface Commission {
   amount: number
   status: 'pending' | 'paid'
   created_at: string
+  payment_method?: string | null // Novo
+  admin_payment_reference?: string | null // Novo
   seller: {
     store_name: string
     email: string
@@ -73,7 +75,7 @@ interface FinancialTransaction {
 const AdminDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [commissions, setCommissions] = useState<Commission[]>([]) // Mantido para compatibilidade com SellerFinanceTab
+  const [commissions, setCommissions] = useState<Commission[]>([])
   const [deliveredOrders, setDeliveredOrders] = useState<DeliveredOrder[]>([])
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
   const [stats, setStats] = useState({
@@ -131,6 +133,8 @@ const AdminDashboard = () => {
         .from('commissions')
         .select(`
           *,
+          payment_method,
+          admin_payment_reference,
           seller:profiles!commissions_seller_id_fkey (
             store_name,
             email
@@ -144,9 +148,9 @@ const AdminDashboard = () => {
 
       if (commissionError) throw commissionError
 
-      setCommissions(commissionData || [])
+      setCommissions(commissionData as Commission[] || [])
       
-      // 2. Calcular estatísticas usando a tabela de comissões (para manter o SellerFinanceTab funcionando)
+      // 2. Calcular estatísticas usando a tabela de comissões
       const pending = commissionData?.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0) || 0
       const paid = commissionData?.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0) || 0
       
@@ -224,6 +228,9 @@ const AdminDashboard = () => {
   }
 
   const markCommissionAsPaid = async (commissionId: string) => {
+    setSubmitting(true)
+    const toastId = showLoading('Marcando comissão como paga...')
+    
     try {
       const { error } = await supabase
         .from('commissions')
@@ -232,11 +239,15 @@ const AdminDashboard = () => {
 
       if (error) throw error
 
-      showSuccess('Comissão marcada como paga!')
+      dismissToast(toastId)
+      showSuccess('Comissão marcada como paga! O saldo do vendedor foi zerado.')
       fetchDashboardData()
     } catch (error: any) {
+      dismissToast(toastId)
       console.error('Error marking commission as paid:', error)
       showError('Erro ao atualizar status da comissão')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -272,6 +283,13 @@ const AdminDashboard = () => {
       return byStatus && bySeller && byDate
     })
   }, [transactions, statusFilter, sellerQuery, dateRange])
+  
+  // Comissões pendentes que já têm comprovante de pagamento
+  const commissionsWithProof = useMemo(() => {
+    return commissions.filter(c => 
+      c.status === 'pending' && c.admin_payment_reference && c.payment_method
+    )
+  }, [commissions])
 
   if (user?.email !== ADMIN_EMAIL) {
     return (
@@ -348,8 +366,54 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Comissões com Comprovante Pendente de Verificação */}
+        <Card className="mb-8 border-orange-200">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center text-xl text-orange-800">
+              <Receipt className="w-6 h-6 mr-2" />
+              Comprovantes de Pagamento Pendentes ({commissionsWithProof.length})
+            </CardTitle>
+            <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {commissionsWithProof.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Nenhum comprovante de pagamento aguardando verificação.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {commissionsWithProof.map((commission) => (
+                  <div key={commission.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-orange-50">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <p className="font-medium text-orange-900 truncate">
+                        Vendedor: {commission.seller.store_name || commission.seller.email}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        Valor: <span className="font-semibold">{formatPrice(commission.amount)}</span>
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Método: {commission.payment_method} | Ref: {commission.admin_payment_reference}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => markCommissionAsPaid(commission.id)}
+                      disabled={submitting}
+                      className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
+                    >
+                      {submitting ? 'Confirmando...' : 'Confirmar Pagamento (Zerar Dívida)'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Confirmações de Pagamento Pendentes */}
+        {/* Confirmações de Pagamento Pendentes (Cliente -> Admin) */}
         <Card className="mb-8 border-blue-200">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center text-xl text-blue-800">
@@ -386,59 +450,6 @@ const AdminDashboard = () => {
                     >
                       {submitting ? 'Processando...' : 'Confirmar Recebimento (Admin)'}
                     </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Comissões Recentes (Mantido para SellerFinanceTab) */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <DollarSign className="w-5 h-5 mr-2" />
-              Histórico de Comissões (Vendedores)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {commissions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Nenhuma comissão encontrada.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {commissions.map((commission) => (
-                  <div key={commission.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <p className="font-medium">{commission.seller.store_name || commission.seller.email}</p>
-                          <p className="text-sm text-gray-600">
-                            Pedido #{commission.order.id.slice(0, 8)} • {formatPrice(commission.order.total_amount)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{formatPrice(commission.amount)}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(commission.created_at).toLocaleDateString('pt-MZ')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={commission.status === 'paid' ? 'default' : 'secondary'}>
-                        {commission.status === 'paid' ? 'Pago' : 'Pendente'}
-                      </Badge>
-                      {commission.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={() => markCommissionAsPaid(commission.id)}
-                        >
-                          Marcar como Pago
-                        </Button>
-                      )}
-                    </div>
                   </div>
                 ))}
               </div>
