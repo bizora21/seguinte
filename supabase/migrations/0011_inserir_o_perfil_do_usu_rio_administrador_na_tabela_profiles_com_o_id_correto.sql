@@ -1,0 +1,2 @@
+INSERT INTO public.profiles (id, email, role, store_name, city, province, delivery_scope)
+VALUES ('fae3bed5-8b14-441c-8154-b1137d154ed6', 'lojarapidamz@outlook.com', 'vendedor', 'Admin LojaRápida', 'Maputo', 'maputo_cidade', '{"maputo_cidade"}');
