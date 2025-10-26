@@ -91,22 +91,22 @@ const AdminDashboard = () => {
   const [sellerQuery, setSellerQuery] = useState('')
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
+  const userEmailNormalized = user?.email?.toLowerCase().trim()
+  const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
+  const isAdmin = userEmailNormalized === adminEmailNormalized
+
   useEffect(() => {
     // 1. Se o AuthContext ainda estiver carregando, espere.
     if (authLoading) return
 
-    const userEmailNormalized = user?.email?.toLowerCase().trim()
-    const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
-
-    console.log('Admin Check: User Email Normalized:', userEmailNormalized, 'Required Email:', adminEmailNormalized);
-    
-    // 2. Se o usuário não for o administrador, redirecione.
-    if (userEmailNormalized !== adminEmailNormalized) {
-      console.log('Admin Check: Acesso negado. Redirecionando.');
-      
-      // Redireciona para o dashboard do vendedor se for vendedor, senão para a home
+    // 2. Se o usuário não for o administrador, redireciona para o dashboard do vendedor se for vendedor, senão para a home.
+    // Se não for admin, o componente renderizará o erro de acesso negado abaixo.
+    if (!isAdmin) {
+      console.log('Admin Check: Acesso negado. Redirecionando se for vendedor/cliente logado.');
       const redirectPath = user?.profile?.role === 'vendedor' ? '/dashboard' : '/'
-      navigate(redirectPath, { replace: true })
+      if (user) {
+        navigate(redirectPath, { replace: true })
+      }
       return
     }
     
@@ -114,7 +114,7 @@ const AdminDashboard = () => {
     console.log('Admin Check: Acesso concedido. Carregando dados.');
     fetchDashboardData()
     fetchTransactions()
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate, isAdmin])
 
   const fetchTransactions = async () => {
     try {
@@ -316,11 +316,8 @@ const AdminDashboard = () => {
     )
   }
   
-  const userEmailNormalized = user?.email?.toLowerCase().trim()
-  const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
-
-  // Se a verificação falhar, mostre a mensagem de acesso restrito
-  if (userEmailNormalized !== adminEmailNormalized) {
+  // Se não for o administrador, renderize o erro de acesso negado.
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
