@@ -95,10 +95,13 @@ const AdminDashboard = () => {
     // 1. Se o AuthContext ainda estiver carregando, espere.
     if (authLoading) return
 
-    console.log('Admin Check: User Email:', user?.email, 'Required Email:', ADMIN_EMAIL);
+    const userEmailNormalized = user?.email?.toLowerCase().trim()
+    const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
+
+    console.log('Admin Check: User Email Normalized:', userEmailNormalized, 'Required Email:', adminEmailNormalized);
     
     // 2. Se o usuário não for o administrador, redirecione.
-    if (user?.email !== ADMIN_EMAIL) {
+    if (userEmailNormalized !== adminEmailNormalized) {
       console.log('Admin Check: Acesso negado. Redirecionando.');
       
       // Redireciona para o dashboard do vendedor se for vendedor, senão para a home
@@ -313,8 +316,11 @@ const AdminDashboard = () => {
     )
   }
   
-  // Se a verificação falhar, mostre a mensagem de acesso restrito (embora o useEffect já tenha redirecionado)
-  if (user?.email !== ADMIN_EMAIL) {
+  const userEmailNormalized = user?.email?.toLowerCase().trim()
+  const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
+
+  // Se a verificação falhar, mostre a mensagem de acesso restrito
+  if (userEmailNormalized !== adminEmailNormalized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
