@@ -23,7 +23,13 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (requiredRole && user.profile?.role !== requiredRole) {
+  // Se o usuário for o administrador, ele tem acesso a todas as rotas protegidas (exceto as estritamente de cliente, que não existem aqui)
+  const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+  const userEmailNormalized = (user.profile?.email || user.email)?.toLowerCase().trim()
+  const isAdmin = userEmailNormalized === ADMIN_EMAIL.toLowerCase().trim()
+
+  if (requiredRole && user.profile?.role !== requiredRole && !isAdmin) {
+    // Se um papel específico é exigido E o usuário não tem esse papel E não é o admin, nega o acesso.
     return <Navigate to="/login" replace />
   }
 

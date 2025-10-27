@@ -3,7 +3,7 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import Header from "./components/Header";
@@ -76,8 +76,14 @@ const App = () => (
                       <Route path="/lojas" element={<LojasPage />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
+                      
+                      {/* Redirecionamento de rotas antigas para a nova estrutura */}
+                      <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />
+                      <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />
+
+                      {/* ROTAS PROTEGIDAS POR PERFIL */}
                       <Route 
-                        path="/dashboard" 
+                        path="/dashboard/seller" 
                         element={
                           <ProtectedRoute requiredRole="vendedor">
                             <Dashboard />
@@ -85,13 +91,24 @@ const App = () => (
                         } 
                       />
                       <Route 
-                        path="/admin" 
+                        path="/dashboard/admin" 
                         element={
                           <AdminRoute>
                             <AdminDashboard />
                           </AdminRoute>
                         } 
                       />
+                      
+                      {/* Rota de Cliente (Usando /lojas como área principal do cliente) */}
+                      <Route 
+                        path="/account/customer" 
+                        element={
+                          <ProtectedRoute requiredRole="cliente">
+                            <Navigate to="/lojas" replace />
+                          </ProtectedRoute>
+                        } 
+                      />
+
                       <Route 
                         path="/adicionar-produto" 
                         element={

@@ -17,7 +17,7 @@ const Login = () => {
   const { signIn, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  const handleLogin = async (role: 'cliente' | 'vendedor') => {
+  const handleLogin = async (expectedRole: 'cliente' | 'vendedor') => {
     // Validação inicial
     if (!email || !password) {
       showError('Por favor, preencha email e senha')
@@ -28,8 +28,8 @@ const Login = () => {
     setIsSubmitting(true)
 
     try {
-      // Chamar API otimizada
-      const { error, redirectTo } = await signIn(email, password)
+      // Chamar signIn com o papel esperado
+      const { error, redirectTo } = await signIn(email, password, expectedRole)
 
       if (error) {
         showError(error)
@@ -37,10 +37,10 @@ const Login = () => {
       }
 
       // Sucesso - mostrar feedback e redirecionar
-      const roleText = role === 'vendedor' ? 'vendedor' : 'cliente'
+      const roleText = expectedRole === 'vendedor' ? 'vendedor' : 'cliente'
       showSuccess(`Login realizado com sucesso! Bem-vindo(a) ${roleText}.`)
       
-      // Redirecionamento imediato
+      // Redirecionamento imediato (o AuthContext já definiu o caminho correto)
       if (redirectTo) {
         navigate(redirectTo, { replace: true })
       }

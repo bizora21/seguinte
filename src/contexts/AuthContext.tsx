@@ -3,10 +3,12 @@ import { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
 
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+
 interface AuthContextType {
   user: AuthUser | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any; redirectTo?: string }>
+  signIn: (email: string, password: string, expectedRole: 'cliente' | 'vendedor') => Promise<{ error: any; redirectTo?: string }>
   signUp: (
     email: string,
     password: string,
@@ -163,8 +165,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [])
 
-  // Função de login otimizada com REDIRECIONAMENTO CORRIGIDO
-  const signIn = async (email: string, password: string) => {
+  // Função de login otimizada com ROTEAMENTO CONDICIONAL
+  const signIn = async (email: string, password: string, expectedRole: 'cliente' | 'vendedor') => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -176,18 +178,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Buscar perfil em background para determinar redirecionamento
+        // Buscar perfil imediatamente para determinar o roteamento
         const profile = await fetchUserProfile(data.user.id)
-        
-        let redirectTo = '/'  // Página principal com produtos
-        
-        if (profile?.role === 'vendedor') {
-          redirectTo = '/dashboard'  // Vendedores vão para o dashboard
-        } else if (profile?.role === 'cliente') {
-          redirectTo = '/lojas'  // CLIENTES VÃO PARA A PÁGINA DE LOJAS
-        }
+        const actualRole = profile?.role || 'cliente' // Default para cliente se não houver perfil
 
-        return { error: null, redirectTo }
+        // --- Lógica de Roteamento Híbrida ---
+        
+        if (expectedRole === 'vendedor') {
+          // 1. Tentativa de login pelo portal VENDEDOR
+          
+          // 1a. Verificação CRÍTICA: É o Administrador?
+          if (data.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+            return { error: null, redirectTo: '/dashboard/admin' }
+          }
+          
+          // 1b. Não é admin: É um vendedor comum?
+          if (actualRole === 'vendedor') {
+            return { error: null, redirectTo: '/dashboard/seller' }
+          }
+          
+          // 1c. É um cliente tentando logar como vendedor
+          await supabase.auth.signOut()
+          return { error: 'Este e-mail está cadastrado como Cliente. Por favor, use o portal "Entrar como Cliente".' }
+
+        } else if (expectedRole === 'cliente') {
+          // 2. Tentativa de login pelo portal CLIENTE
+          
+          // 2a. É um cliente?
+          if (actualRole === 'cliente') {
+            return { error: null, redirectTo: '/lojas' } // Redireciona para a página de lojas/produtos
+          }
+          
+          // 2b. É um vendedor/admin tentando logar como cliente
+          await supabase.auth.signOut()
+          return { error: 'Este e-mail está cadastrado como Vendedor. Por favor, use o portal "Entrar como Vendedor".' }
+        }
+        
+        // Fallback
+        return { error: null, redirectTo: '/' }
       }
 
       return { error: 'Falha no login' }
