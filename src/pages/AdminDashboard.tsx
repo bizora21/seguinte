@@ -97,11 +97,69 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (authLoading || !user) return
 
-    // Se for o administrador, carregue os dados.
     console.log('Admin Dashboard: Carregando dados...');
     fetchDashboardData()
     fetchTransactions()
+    
+    // Configurar Realtime para Comissões e Pedidos
+    const commissionChannel = setupCommissionRealtime()
+    const orderChannel = setupOrderRealtime()
+
+    return () => {
+      supabase.removeChannel(commissionChannel)
+      supabase.removeChannel(orderChannel)
+    }
   }, [user, authLoading])
+  
+  const setupCommissionRealtime = () => {
+    const channel = supabase
+      .channel('admin_commissions_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'commissions',
+        },
+        (payload) => {
+          console.log('Realtime: Commission update received:', payload)
+          // Forçar recarregamento completo dos dados do dashboard
+          fetchDashboardData()
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Realtime: Subscription active for commissions')
+        }
+      })
+      return channel
+  }
+  
+  const setupOrderRealtime = () => {
+    const channel = supabase
+      .channel('admin_orders_delivered_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `status=eq.delivered` // Apenas quando um pedido é marcado como 'delivered'
+        },
+        (payload) => {
+          console.log('Realtime: Delivered order update received:', payload)
+          // Forçar recarregamento completo dos dados do dashboard
+          fetchDashboardData()
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Realtime: Subscription active for delivered orders')
+        }
+      })
+      return channel
+  }
+
 
   const fetchTransactions = async () => {
     try {
@@ -217,7 +275,7 @@ const AdminDashboard = () => {
       dismissToast(toastId)
       showSuccess(`Pagamento confirmado! A comissão será registrada automaticamente.`)
       
-      // Recarregar dados
+      // Recarregar dados (o realtime deve pegar, mas forçamos para garantir)
       fetchDashboardData()
       fetchTransactions()
 
