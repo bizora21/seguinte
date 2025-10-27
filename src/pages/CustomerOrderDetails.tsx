@@ -18,6 +18,8 @@ const CustomerOrderDetails = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
+  
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   const { order, isLoading, error, refetch } = useOrderDetails(orderId, user?.id)
 
@@ -197,7 +199,7 @@ const CustomerOrderDetails = () => {
             <h3 className="text-lg font-semibold border-t pt-4">Itens Comprados</h3>
             <div className="space-y-3">
               {order.order_items.map((item) => {
-                const img = getFirstImageUrl(item.product.image_url) || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop'
+                const img = getFirstImageUrl(item.product.image_url) || defaultImage // CORRIGIDO: Usando placeholder local
                 return (
                   <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg bg-white">
                     <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
@@ -206,7 +208,7 @@ const CustomerOrderDetails = () => {
                         alt={item.product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop'
+                          e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
                         }}
                       />
                     </div>

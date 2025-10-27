@@ -71,6 +71,8 @@ const ProductDetail = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const defaultImage = '/placeholder.svg'; // CORRIGIDO: Usando placeholder local
 
   useEffect(() => {
     if (!productId) return;
@@ -97,7 +99,7 @@ const ProductDetail = () => {
 
         setProduct(data);
         const images = getProductImages(data.image_url);
-        setMainImage(images[0] || '');
+        setMainImage(images[0] || defaultImage); // CORRIGIDO: Usando placeholder local
 
       } catch (error) {
         setError('Erro ao carregar produto');
@@ -412,12 +414,12 @@ const ProductDetail = () => {
                 <CardContent className="p-6">
                   <div className="relative">
                     <img 
-                      src={mainImage || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'} 
+                      src={mainImage || defaultImage} // CORRIGIDO: Usando placeholder local
                       alt={`Imagem principal do produto ${product.name}`}
                       className="w-full h-96 object-contain rounded-lg bg-gray-100"
                       loading="eager"
                       onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop';
+                        e.currentTarget.src = defaultImage; // CORRIGIDO: Usando placeholder local
                       }}
                     />
                     
@@ -435,7 +437,7 @@ const ProductDetail = () => {
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
                         <img 
-                          src={mainImage || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=900&fit=contain'} 
+                          src={mainImage || defaultImage} // CORRIGIDO: Usando placeholder local
                           alt={`Zoom de ${product.name}`}
                           className="w-full h-full max-h-[90vh] object-contain"
                         />

@@ -40,7 +40,7 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
   }
   
   const imageUrl = getFirstImageUrl(product.image_url)
-  const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   return (
     <motion.div
@@ -57,7 +57,7 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
               onError={(e) => {
-                e.currentTarget.src = defaultImage
+                e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
               }}
             />
           </div>

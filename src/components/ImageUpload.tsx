@@ -20,6 +20,7 @@ const ImageUpload = ({
   maxSizeMB = 1 
 }: ImageUploadProps) => {
   const [uploading, setUploading] = useState(false)
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
@@ -130,7 +131,7 @@ const ImageUpload = ({
                   alt={`Imagem ${index + 1}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=200&fit=crop'
+                    e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
                   }}
                 />
                 <Button

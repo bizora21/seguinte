@@ -9,6 +9,8 @@ import { showSuccess } from '../utils/toast'
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, getCartTotal } = useCart()
   const navigate = useNavigate()
+  
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
@@ -85,12 +87,12 @@ const Cart = () => {
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop'
+                            e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
                           }}
                         />
                       ) : (
                         <img
-                          src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop"
+                          src={defaultImage} // CORRIGIDO: Usando placeholder local
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />

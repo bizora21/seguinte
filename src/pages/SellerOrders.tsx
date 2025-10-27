@@ -41,6 +41,8 @@ const SellerOrders = () => {
   const [debugInfo, setDebugInfo] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
@@ -524,12 +526,12 @@ const SellerOrders = () => {
                                 alt={item.product.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop'
+                                  e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
                                 }}
                               />
                             ) : (
                               <img
-                                src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=48&h=48&fit=crop"
+                                src={defaultImage} // CORRIGIDO: Usando placeholder local
                                 alt={item.product.name}
                                 className="w-full h-full object-cover"
                               />

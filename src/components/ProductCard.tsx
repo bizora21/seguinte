@@ -32,7 +32,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   
   // Usar o utilitário para obter a URL da primeira imagem
   const imageUrl = getFirstImageUrl(product.image_url)
-  const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop'
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   return (
     <Card className="group h-full flex flex-col hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:shadow-2xl">
@@ -50,7 +50,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
               onError={(e) => {
-                e.currentTarget.src = defaultImage
+                e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
               }}
             />
             

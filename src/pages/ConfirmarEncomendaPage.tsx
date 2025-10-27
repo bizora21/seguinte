@@ -35,6 +35,8 @@ const ConfirmarEncomendaPage = () => {
     deliveryAddress: '',
     phone: ''
   })
+  
+  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
 
   useEffect(() => {
     if (productId) {
@@ -401,12 +403,12 @@ const ConfirmarEncomendaPage = () => {
                         alt={product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=64&h=64&fit=crop'
+                          e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
                         }}
                       />
                     ) : (
                       <img
-                        src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=64&h=64&fit=crop"
+                        src={defaultImage} // CORRIGIDO: Usando placeholder local
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />
