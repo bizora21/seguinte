@@ -1,0 +1,1 @@
+DROP POLICY "Vendedores podem fazer upload de comprovantes" ON storage.objects;
