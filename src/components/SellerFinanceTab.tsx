@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { DollarSign, AlertCircle, ExternalLink, TrendingUp, Phone, CheckCheck } from 'lucide-react'
+import { DollarSign, Phone, CheckCheck, Upload, FileText, X, TrendingUp } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { useDropzone } from 'react-dropzone'
 
 interface Commission {
   id: string
@@ -29,8 +30,10 @@ const SellerFinanceTab = () => {
   const [commissions, setCommissions] = useState<Commission[]>([])
   const [totalOwed, setTotalOwed] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [paymentRef, setPaymentRef] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('')
+  
+  // New state for payment proof submission
+  const [file, setFile] = useState<File | null>(null)
+  const [amountPaid, setAmountPaid] = useState('')
   const [submittingPayment, setSubmittingPayment] = useState(false)
 
   // Número de telefone para pagamento M-Pesa/eMola
@@ -73,43 +76,50 @@ const SellerFinanceTab = () => {
     }
   }
 
-  const handleSendPaymentProof = async () => {
-    if (!paymentRef.trim() || !paymentMethod) {
-      showError('Por favor, preencha o ID da Transação e o Método de Pagamento.')
-      return
-    }
+  const uploadProofAndSubmit = async () => {
+    if (!file || !user) return null
 
-    if (totalOwed <= 0) {
-      showError('Você não tem comissões pendentes para pagar.')
-      return
-    }
-
-    setSubmittingPayment(true)
-    const toastId = showLoading('Enviando comprovante...')
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}_${Date.now()}.${fileExt}`
+    const filePath = `proofs/${fileName}`
+    
+    const toastId = showLoading('Fazendo upload do comprovante...')
 
     try {
-      // Atualizar todas as comissões pendentes com o comprovante
-      // Nota: Em um sistema real, isso seria mais complexo (pagamento por fatura),
-      // mas para este MVP, atualizamos todas as pendentes.
-      const pendingIds = commissions.filter(c => c.status === 'pending').map(c => c.id)
-
-      const { error } = await supabase
-        .from('commissions')
-        .update({ 
-          payment_method: paymentMethod,
-          admin_payment_reference: paymentRef.trim()
+      // 1. Upload file to Supabase Storage (Bucket: payment-proofs)
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
         })
-        .in('id', pendingIds)
-        .eq('seller_id', user!.id)
 
-      if (error) throw error
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(filePath)
+        
+      const proofUrl = publicUrlData.publicUrl
+
+      // 2. Insert record into seller_payment_proofs
+      const { error: insertError } = await supabase
+        .from('seller_payment_proofs')
+        .insert({
+          seller_id: user.id,
+          proof_file_url: proofUrl,
+          amount_paid: parseFloat(amountPaid),
+          status: 'pending'
+        })
+
+      if (insertError) throw insertError
 
       dismissToast(toastId)
-      showSuccess('Comprovante enviado! O administrador irá verificar e marcar como pago.')
+      showSuccess('Comprovante enviado! O administrador irá verificar e aprovar o pagamento.')
       
-      // Limpar formulário e recarregar
-      setPaymentRef('')
-      setPaymentMethod('')
+      // Clear form and refresh
+      setFile(null)
+      setAmountPaid('')
       fetchCommissions()
 
     } catch (error: any) {
@@ -120,6 +130,45 @@ const SellerFinanceTab = () => {
       setSubmittingPayment(false)
     }
   }
+
+  const handleSendPaymentProof = async () => {
+    if (!file) {
+      showError('Por favor, anexe o comprovante de pagamento.')
+      return
+    }
+    if (!amountPaid || parseFloat(amountPaid) <= 0) {
+      showError('Informe o valor pago.')
+      return
+    }
+    if (parseFloat(amountPaid) > totalOwed * 1.1 && totalOwed > 0) {
+        showError('O valor pago parece ser muito superior ao saldo devedor. Verifique o valor.')
+        return
+    }
+
+    setSubmittingPayment(true)
+    await uploadProofAndSubmit()
+  }
+  
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0]
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        showError('Apenas imagens (JPG, PNG) ou PDF são aceitos.')
+        return
+      }
+      setFile(file)
+    }
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png'],
+      'application/pdf': ['.pdf']
+    },
+    maxFiles: 1,
+    disabled: submittingPayment || totalOwed <= 0
+  })
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
@@ -154,7 +203,7 @@ const SellerFinanceTab = () => {
               <p className="text-xs text-orange-600 mt-2">Comissões pendentes de pagamento</p>
             </div>
             <div className="text-center p-6 bg-green-50 rounded-lg">
-              <p className="text-sm font-medium text-green-800 mb-2">Total Recebido</p>
+              <p className="text-sm font-medium text-green-800 mb-2">Total Pago</p>
               <p className="text-3xl font-bold text-green-600">
                 {formatPrice(commissions.filter(c => c.status === 'paid').reduce((sum, c) => sum + c.amount, 0))}
               </p>
@@ -184,39 +233,60 @@ const SellerFinanceTab = () => {
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleSendPaymentProof() }} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paymentMethod">Método de Pagamento *</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod} disabled={submittingPayment || totalOwed <= 0}>
-                    <SelectTrigger id="paymentMethod">
-                      <SelectValue placeholder="Selecione o método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M-Pesa">M-Pesa</SelectItem>
-                      <SelectItem value="eMola">eMola</SelectItem>
-                      <SelectItem value="Transferencia">Transferência Bancária</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentRef">ID da Transação / Comprovante *</Label>
-                  <Input
-                    id="paymentRef"
-                    value={paymentRef}
-                    onChange={(e) => setPaymentRef(e.target.value)}
-                    placeholder="Ex: ID da transação M-Pesa"
-                    disabled={submittingPayment || totalOwed <= 0}
-                  />
+              
+              <div className="space-y-2">
+                <Label htmlFor="amountPaid">Valor Pago (MZN) *</Label>
+                <Input
+                  id="amountPaid"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  placeholder="Ex: 1500.00"
+                  disabled={submittingPayment || totalOwed <= 0}
+                />
+              </div>
+
+              {/* Dropzone para Comprovante */}
+              <div className="space-y-2">
+                <Label>Anexar Comprovante (Imagem ou PDF) *</Label>
+                <div
+                  {...getRootProps()}
+                  className={`p-6 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+                    isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                  } ${submittingPayment || totalOwed <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input {...getInputProps()} />
+                  {file ? (
+                    <div className="flex items-center justify-center space-x-2 text-green-600">
+                      <FileText className="w-5 h-5" />
+                      <p className="font-medium">{file.name}</p>
+                      <Button type="button" variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setFile(null) }}>
+                        <X className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-gray-500 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">
+                        Arraste e solte o arquivo aqui, ou clique para selecionar.
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Max: 5MB. Formatos: JPG, PNG, PDF.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               
               <Button 
                 type="submit" 
                 className="w-full bg-orange-600 hover:bg-orange-700"
-                disabled={submittingPayment || totalOwed <= 0 || !paymentRef || !paymentMethod}
+                disabled={submittingPayment || totalOwed <= 0 || !file || !amountPaid}
               >
                 <CheckCheck className="w-4 h-4 mr-2" />
-                {submittingPayment ? 'Enviando...' : 'Enviar Comprovante'}
+                {submittingPayment ? 'Enviando...' : 'Enviar Comprovante para Revisão'}
               </Button>
             </form>
           </div>

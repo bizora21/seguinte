@@ -5,12 +5,14 @@ import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Calendar as CalendarIcon, Receipt } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Receipt } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { OrderWithItems } from '../types/order'
 import { Input } from '../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab' // Importar novo componente
 
 // Defina o email do administrador aqui
 const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
@@ -263,6 +265,7 @@ const AdminDashboard = () => {
 
     try {
       // 1. Atualizar status do pedido para 'completed'
+      // O trigger handle_order_completion agora insere a notificação para o admin.
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'completed' })
@@ -270,7 +273,7 @@ const AdminDashboard = () => {
 
       if (orderError) throw new Error('Erro ao atualizar status do pedido: ' + orderError.message)
 
-      // 2. O trigger do banco de dados agora cuida da criação da comissão e transação.
+      // 2. O trigger do banco de dados agora cuida da criação da comissão, transação E NOTIFICAÇÃO.
       
       dismissToast(toastId)
       showSuccess(`Pagamento confirmado! A comissão será registrada automaticamente.`)
@@ -283,30 +286,6 @@ const AdminDashboard = () => {
       dismissToast(toastId)
       showError(error.message || 'Erro inesperado ao processar confirmação.')
       console.error('Admin confirmation error:', error)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const markCommissionAsPaid = async (commissionId: string) => {
-    setSubmitting(true)
-    const toastId = showLoading('Marcando comissão como paga...')
-    
-    try {
-      const { error } = await supabase
-        .from('commissions')
-        .update({ status: 'paid' })
-        .eq('id', commissionId)
-
-      if (error) throw error
-
-      dismissToast(toastId)
-      showSuccess('Comissão marcada como paga! O saldo do vendedor foi zerado.')
-      fetchDashboardData()
-    } catch (error: any) {
-      dismissToast(toastId)
-      console.error('Error marking commission as paid:', error)
-      showError('Erro ao atualizar status da comissão')
     } finally {
       setSubmitting(false)
     }
@@ -345,13 +324,6 @@ const AdminDashboard = () => {
     })
   }, [transactions, statusFilter, sellerQuery, dateRange])
   
-  // Comissões pendentes que já têm comprovante de pagamento
-  const commissionsWithProof = useMemo(() => {
-    return commissions.filter(c => 
-      c.status === 'pending' && c.admin_payment_reference && c.payment_method
-    )
-  }, [commissions])
-
   // Se o AuthContext estiver carregando ou o AdminDashboard estiver carregando dados, mostre o spinner.
   if (authLoading || loading) {
     return (
@@ -416,170 +388,142 @@ const AdminDashboard = () => {
           </Card>
         </div>
         
-        {/* Comissões com Comprovante Pendente de Verificação */}
-        <Card className="mb-8 border-orange-200">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center text-xl text-orange-800">
-              <Receipt className="w-6 h-6 mr-2" />
-              Comprovantes de Pagamento Pendentes ({commissionsWithProof.length})
-            </CardTitle>
-            <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {commissionsWithProof.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Nenhum comprovante de pagamento aguardando verificação.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {commissionsWithProof.map((commission) => (
-                  <div key={commission.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-orange-50">
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <p className="font-medium text-orange-900 truncate">
-                        Vendedor: {commission.seller.store_name || commission.seller.email}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        Valor: <span className="font-semibold">{formatPrice(commission.amount)}</span>
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Método: {commission.payment_method} | Ref: {commission.admin_payment_reference}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => markCommissionAsPaid(commission.id)}
-                      disabled={submitting}
-                      className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
-                    >
-                      {submitting ? 'Confirmando...' : 'Confirmar Pagamento (Zerar Dívida)'}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Tabs */}
+        <Tabs defaultValue="payments" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+            <TabsTrigger value="payments" className="py-2 text-xs sm:text-sm">Gestão de Pagamentos</TabsTrigger>
+            <TabsTrigger value="delivered" className="py-2 text-xs sm:text-sm">Pedidos Entregues</TabsTrigger>
+            <TabsTrigger value="transactions" className="py-2 text-xs sm:text-sm">Transações Financeiras</TabsTrigger>
+          </TabsList>
+          
+          {/* Tab 1: Gestão de Pagamentos de Vendedores */}
+          <TabsContent value="payments">
+            <AdminPaymentManagementTab />
+          </TabsContent>
 
-        {/* Confirmações de Pagamento Pendentes (Cliente -> Admin) */}
-        <Card className="mb-8 border-blue-200">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center text-xl text-blue-800">
-              <CheckCircle className="w-6 h-6 mr-2" />
-              Pedidos Entregues (Aguardando Confirmação do Cliente) ({deliveredOrders.length})
-            </CardTitle>
-            <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {deliveredOrders.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Nenhum pedido aguardando confirmação do cliente.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {deliveredOrders.map((order) => (
-                  <div key={order.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-blue-50">
-                    <div className="flex-1 space-y-1">
-                      <p className="font-medium text-blue-900">Pedido #{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-700">
-                        Total: <span className="font-semibold">{formatPrice(order.total_amount)}</span>
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        Cliente ID: {order.user_id.slice(0, 8)} | Entregue em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => handleConfirmPaymentAndGenerateCommission(order)}
-                      disabled={submitting}
-                      className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
-                    >
-                      {submitting ? 'Processando...' : 'Confirmar Recebimento (Admin)'}
-                    </Button>
+          {/* Tab 2: Pedidos Entregues (Aguardando Confirmação do Cliente) */}
+          <TabsContent value="delivered">
+            <Card className="mb-8 border-blue-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center text-xl text-blue-800">
+                  <CheckCircle className="w-6 h-6 mr-2" />
+                  Pedidos Entregues (Aguardando Confirmação do Cliente) ({deliveredOrders.length})
+                </CardTitle>
+                <Button onClick={fetchDashboardData} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Atualizar
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {deliveredOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">Nenhum pedido aguardando confirmação do cliente.</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Transações Financeiras (automação) */}
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="flex items-center">
-              <Filter className="w-5 h-5 mr-2" />
-              Transações Financeiras (Comissões Deduzidas)
-            </CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Select value={statusFilter} onValueChange={(v: 'all' | 'commission_deducted') => setStatusFilter(v)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="commission_deducted">Comissão Deduzida</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={dateRange} onValueChange={(v: 'all' | '7d' | '30d') => setDateRange(v)}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todo período</SelectItem>
-                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative w-full sm:w-[240px]">
-                <Input
-                  placeholder="Filtrar por vendedor (nome/email)"
-                  value={sellerQuery}
-                  onChange={(e) => setSellerQuery(e.target.value)}
-                />
-              </div>
-              <Button variant="outline" onClick={fetchTransactions}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredTransactions.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Nenhuma transação encontrada com os filtros atuais.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredTransactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">
-                            {tx.seller?.store_name || tx.seller?.email || 'Vendedor'}
+                ) : (
+                  <div className="space-y-4">
+                    {deliveredOrders.map((order) => (
+                      <div key={order.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-blue-50">
+                        <div className="flex-1 space-y-1">
+                          <p className="font-medium text-blue-900">Pedido #{order.id.slice(0, 8)}</p>
+                          <p className="text-sm text-gray-700">
+                            Total: <span className="font-semibold">{formatPrice(order.total_amount)}</span>
                           </p>
-                          <p className="text-sm text-gray-600">
-                            Pedido #{(tx.order?.id || tx.order_id).slice(0, 8)} • Valor do pedido: {tx.order?.total_amount ? formatPrice(tx.order.total_amount) : '--'}
+                          <p className="text-xs text-gray-600">
+                            Cliente ID: {order.user_id.slice(0, 8)} | Entregue em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}
                           </p>
                         </div>
-                        <div className="text-right ml-4">
-                          <p className="font-semibold text-red-600">-{formatPrice(tx.commission_amount)}</p>
-                          <p className="text-xs text-gray-500">{new Date(tx.created_at).toLocaleDateString('pt-MZ')}</p>
-                        </div>
+                        <Button
+                          onClick={() => handleConfirmPaymentAndGenerateCommission(order)}
+                          disabled={submitting}
+                          className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
+                        >
+                          {submitting ? 'Processando...' : 'Confirmar Recebimento (Admin)'}
+                        </Button>
                       </div>
-                    </div>
-                    <Badge className="ml-4" variant="secondary">
-                      {tx.status === 'commission_deducted' ? 'Comissão Deduzida' : tx.status}
-                    </Badge>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 3: Transações Financeiras (automação) */}
+          <TabsContent value="transactions">
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CardTitle className="flex items-center">
+                  <Filter className="w-5 h-5 mr-2" />
+                  Transações Financeiras (Comissões Deduzidas)
+                </CardTitle>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Select value={statusFilter} onValueChange={(v: 'all' | 'commission_deducted') => setStatusFilter(v)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Status</SelectItem>
+                      <SelectItem value="commission_deducted">Comissão Deduzida</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={dateRange} onValueChange={(v: 'all' | '7d' | '30d') => setDateRange(v)}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todo período</SelectItem>
+                      <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                      <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative w-full sm:w-[240px]">
+                    <Input
+                      placeholder="Filtrar por vendedor (nome/email)"
+                      value={sellerQuery}
+                      onChange={(e) => setSellerQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={fetchTransactions}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Atualizar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredTransactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">Nenhuma transação encontrada com os filtros atuais.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredTransactions.map((tx) => (
+                      <div key={tx.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">
+                                {tx.seller?.store_name || tx.seller?.email || 'Vendedor'}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Pedido #{(tx.order?.id || tx.order_id).slice(0, 8)} • Valor do pedido: {tx.order?.total_amount ? formatPrice(tx.order.total_amount) : '--'}
+                              </p>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="font-semibold text-red-600">-{formatPrice(tx.commission_amount)}</p>
+                              <p className="text-xs text-gray-500">{new Date(tx.created_at).toLocaleDateString('pt-MZ')}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge className="ml-4" variant="secondary">
+                          {tx.status === 'commission_deducted' ? 'Comissão Deduzida' : tx.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

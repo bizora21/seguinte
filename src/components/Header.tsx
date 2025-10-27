@@ -9,11 +9,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Avatar, AvatarFallback } from './ui/avatar'
 import CategoryMenu from './CategoryMenu'
+import AdminNotificationBell from './AdminNotificationBell' // NEW IMPORT
+
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com' // Define admin email here for local check
 
 const Header = () => {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() // Check if admin
 
   const handleSignOut = async () => {
     await signOut()
@@ -51,7 +56,7 @@ const Header = () => {
   ]
 
   const userMenuItems = user?.profile?.role === 'vendedor' ? [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard/seller', icon: LayoutDashboard },
     { name: 'Adicionar Produto', href: '/adicionar-produto', icon: Package },
     { name: 'Meus Pedidos', href: '/meus-pedidos', icon: ShoppingCart },
     { name: 'Meus Chats', href: '/meus-chats', icon: MessageCircle },
@@ -60,6 +65,11 @@ const Header = () => {
     { name: 'Meus Pedidos', href: '/meus-pedidos', icon: ShoppingCart },
     { name: 'Minhas Conversas', href: '/meus-chats', icon: MessageCircle },
   ]
+  
+  // Adiciona link do Admin Dashboard se for admin
+  if (isAdmin) {
+    userMenuItems.unshift({ name: 'Admin Dashboard', href: '/dashboard/admin', icon: LayoutDashboard })
+  }
 
   const renderUserMenuContent = (isMobile: boolean) => (
     <>
@@ -109,6 +119,8 @@ const Header = () => {
 
           {/* Right side actions (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
+            {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
+            
             <CartButton />
             
             {user ? (
@@ -116,8 +128,6 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
                     <Avatar className="h-10 w-10 bg-secondary text-white">
-                      {/* Se houver avatar_url, use AvatarImage */}
-                      {/* <AvatarImage src={user.profile?.avatar_url} alt="Avatar" /> */}
                       <AvatarFallback className="bg-secondary text-white">
                         {getAvatarFallbackText()}
                       </AvatarFallback>
@@ -168,6 +178,7 @@ const Header = () => {
 
           {/* Mobile Menu Trigger */}
           <div className="md:hidden flex items-center space-x-2">
+            {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
             <CartButton />
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
