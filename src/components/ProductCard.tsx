@@ -48,7 +48,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               src={imageUrl || defaultImage}
               alt={`Imagem do produto ${product.name}`}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
+              loading="lazy" // <-- Adicionado lazy loading
               onError={(e) => {
                 e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
               }}
