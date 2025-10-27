@@ -1,0 +1,1 @@
+DROP POLICY "Vendedores podem fazer upload" ON storage.objects;
