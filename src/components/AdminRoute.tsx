@@ -22,7 +22,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
 
   if (!user) {
-    // Não logado: redireciona para login
+    console.log('AdminRoute: Usuário não logado. Redirecionando para login.');
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
@@ -31,13 +31,16 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   
   const isAdmin = userEmailNormalized === adminEmailNormalized
 
+  console.log(`AdminRoute Check: User Email: "${userEmailNormalized}" | Admin Email: "${adminEmailNormalized}" | Is Admin: ${isAdmin}`);
+
   if (!isAdmin) {
     // Logado, mas não é o admin: redireciona para a home
-    console.error(`Acesso negado a /admin para o usuário: ${userEmailNormalized}`);
+    console.error(`AdminRoute: Acesso negado a /admin para o usuário: ${userEmailNormalized}`);
     return <Navigate to="/" replace />
   }
 
   // É o administrador
+  console.log('AdminRoute: Acesso concedido.');
   return <>{children}</>
 }
 

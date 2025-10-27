@@ -91,22 +91,17 @@ const AdminDashboard = () => {
   const [sellerQuery, setSellerQuery] = useState('')
   const [dateRange, setDateRange] = useState<'all' | '7d' | '30d'>('all')
 
-  const userEmailNormalized = (user?.profile?.email || user?.email)?.toLowerCase().trim()
-  const adminEmailNormalized = ADMIN_EMAIL.toLowerCase().trim()
-  const isAdmin = userEmailNormalized === adminEmailNormalized
+  // O AdminRoute garante que o usuário é o admin.
+  const isAdmin = true 
 
   useEffect(() => {
-    // 1. Se o AuthContext ainda estiver carregando, espere.
-    if (authLoading) return
+    if (authLoading || !user) return
 
-    // 2. O AdminRoute garante que apenas o admin chegue aqui.
-    if (isAdmin) {
-      console.log('Admin Check: Acesso concedido. Carregando dados.');
-      fetchDashboardData()
-      fetchTransactions()
-    }
-    // Se não for admin, o AdminRoute já redirecionou.
-  }, [user, authLoading, navigate, isAdmin])
+    // Se for o administrador, carregue os dados.
+    console.log('Admin Dashboard: Carregando dados...');
+    fetchDashboardData()
+    fetchTransactions()
+  }, [user, authLoading])
 
   const fetchTransactions = async () => {
     try {
@@ -308,10 +303,7 @@ const AdminDashboard = () => {
     )
   }
   
-  // O AdminRoute garante que apenas o admin chegue aqui.
-  // Se o usuário não for o administrador, ele já foi redirecionado pelo AdminRoute.
-  // Se, por algum motivo, o isAdmin for falso aqui (o que não deveria acontecer), 
-  // podemos retornar um erro genérico, mas o AdminRoute é a primeira linha de defesa.
+  // Se o AdminRoute permitiu a passagem, o usuário é o administrador.
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
