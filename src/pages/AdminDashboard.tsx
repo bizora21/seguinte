@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Receipt } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, ChevronDown, Calendar as CalendarIcon, Receipt, Zap } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { OrderWithItems } from '../types/order'
@@ -265,7 +265,6 @@ const AdminDashboard = () => {
 
     try {
       // 1. Atualizar status do pedido para 'completed'
-      // O trigger handle_order_completion agora insere a notificação para o admin.
       const { error: orderError } = await supabase
         .from('orders')
         .update({ status: 'completed' })
@@ -273,7 +272,7 @@ const AdminDashboard = () => {
 
       if (orderError) throw new Error('Erro ao atualizar status do pedido: ' + orderError.message)
 
-      // 2. O trigger do banco de dados agora cuida da criação da comissão, transação E NOTIFICAÇÃO.
+      // 2. O trigger do banco de dados agora cuida da criação da comissão e transação.
       
       dismissToast(toastId)
       showSuccess(`Pagamento confirmado! A comissão será registrada automaticamente.`)
@@ -286,6 +285,30 @@ const AdminDashboard = () => {
       dismissToast(toastId)
       showError(error.message || 'Erro inesperado ao processar confirmação.')
       console.error('Admin confirmation error:', error)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const markCommissionAsPaid = async (commissionId: string) => {
+    setSubmitting(true)
+    const toastId = showLoading('Marcando comissão como paga...')
+    
+    try {
+      const { error } = await supabase
+        .from('commissions')
+        .update({ status: 'paid' })
+        .eq('id', commissionId)
+
+      if (error) throw error
+
+      dismissToast(toastId)
+      showSuccess('Comissão marcada como paga! O saldo do vendedor foi zerado.')
+      fetchDashboardData()
+    } catch (error: any) {
+      dismissToast(toastId)
+      console.error('Error marking commission as paid:', error)
+      showError('Erro ao atualizar status da comissão')
     } finally {
       setSubmitting(false)
     }
@@ -324,6 +347,13 @@ const AdminDashboard = () => {
     })
   }, [transactions, statusFilter, sellerQuery, dateRange])
   
+  // Comissões pendentes que já têm comprovante de pagamento
+  const commissionsWithProof = useMemo(() => {
+    return commissions.filter(c => 
+      c.status === 'pending' && c.admin_payment_reference && c.payment_method
+    )
+  }, [commissions])
+
   // Se o AuthContext estiver carregando ou o AdminDashboard estiver carregando dados, mostre o spinner.
   if (authLoading || loading) {
     return (
@@ -350,6 +380,25 @@ const AdminDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Painel do Administrador</h1>
           <p className="text-gray-600 mt-2">Gerencie as finanças e visualize as vendas da plataforma.</p>
         </div>
+
+        {/* Ação Rápida: Centro de Marketing */}
+        <Card className="mb-8 bg-yellow-50 border-yellow-200">
+            <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <Zap className="w-6 h-6 text-yellow-600" />
+                    <p className="font-semibold text-yellow-800">
+                        Centro de Marketing Automatizado
+                    </p>
+                </div>
+                <Button 
+                    onClick={() => navigate('/dashboard/admin/marketing')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    size="sm"
+                >
+                    Acessar Ferramentas <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                </Button>
+            </CardContent>
+        </Card>
 
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -388,20 +437,60 @@ const AdminDashboard = () => {
           </Card>
         </div>
         
+        {/* Comissões com Comprovante Pendente de Verificação */}
+        <Card className="mb-8 border-orange-200">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center text-xl text-orange-800">
+              <Receipt className="w-6 h-6 mr-2" />
+              Comprovantes de Pagamento Pendentes ({commissionsWithProof.length})
+            </CardTitle>
+            <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {commissionsWithProof.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Nenhum comprovante de pagamento aguardando verificação.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {commissionsWithProof.map((commission) => (
+                  <div key={commission.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-orange-50">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <p className="font-medium text-orange-900 truncate">
+                        Vendedor: {commission.seller.store_name || commission.seller.email}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        Valor: <span className="font-semibold">{formatPrice(commission.amount)}</span>
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Método: {commission.payment_method} | Ref: {commission.admin_payment_reference}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => markCommissionAsPaid(commission.id)}
+                      disabled={submitting}
+                      className="mt-3 md:mt-0 bg-green-600 hover:bg-green-700"
+                    >
+                      {submitting ? 'Confirmando...' : 'Confirmar Pagamento (Zerar Dívida)'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
-        <Tabs defaultValue="payments" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
-            <TabsTrigger value="payments" className="py-2 text-xs sm:text-sm">Gestão de Pagamentos</TabsTrigger>
+        <Tabs defaultValue="delivered" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1">
             <TabsTrigger value="delivered" className="py-2 text-xs sm:text-sm">Pedidos Entregues</TabsTrigger>
             <TabsTrigger value="transactions" className="py-2 text-xs sm:text-sm">Transações Financeiras</TabsTrigger>
           </TabsList>
           
-          {/* Tab 1: Gestão de Pagamentos de Vendedores */}
-          <TabsContent value="payments">
-            <AdminPaymentManagementTab />
-          </TabsContent>
-
-          {/* Tab 2: Pedidos Entregues (Aguardando Confirmação do Cliente) */}
+          {/* Tab 1: Pedidos Entregues (Aguardando Confirmação do Cliente) */}
           <TabsContent value="delivered">
             <Card className="mb-8 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -409,7 +498,7 @@ const AdminDashboard = () => {
                   <CheckCircle className="w-6 h-6 mr-2" />
                   Pedidos Entregues (Aguardando Confirmação do Cliente) ({deliveredOrders.length})
                 </CardTitle>
-                <Button onClick={fetchDashboardData} variant="outline" size="sm">
+                <Button onClick={() => { fetchDashboardData(); fetchTransactions(); }} variant="outline" size="sm">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Atualizar
                 </Button>
@@ -447,7 +536,7 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Tab 3: Transações Financeiras (automação) */}
+          {/* Tab 2: Transações Financeiras (automação) */}
           <TabsContent value="transactions">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -16,6 +16,7 @@ import AdminRoute from "./components/AdminRoute"; // Importar AdminRoute
 import LoadingSpinner from "./components/LoadingSpinner"; // Importar LoadingSpinner
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
+import LeadCapturePopup from "./components/LeadCapturePopup"; // NEW IMPORT
 
 // Rotas Críticas (Carregamento Eager)
 import HomePage from "./pages/HomePage";
@@ -28,6 +29,7 @@ const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
 const LojasPage = React.lazy(() => import("./pages/LojasPage"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
+const AdminMarketingCenter = React.lazy(() => import("./pages/AdminMarketingCenter")); // NEW IMPORT
 const ManageProduct = React.lazy(() => import("./pages/ManageProduct"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
 const Cart = React.lazy(() => import("./pages/Cart"));
@@ -95,6 +97,14 @@ const App = () => (
                         element={
                           <AdminRoute>
                             <AdminDashboard />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/dashboard/admin/marketing" 
+                        element={
+                          <AdminRoute>
+                            <AdminMarketingCenter />
                           </AdminRoute>
                         } 
                       />
@@ -214,6 +224,8 @@ const App = () => (
                 <Footer />
                 <BackToHomeButton />
                 <Chatbot />
+                {/* Adicionar o Pop-up de Captura de Leads no nível mais alto */}
+                <LeadCapturePopup /> 
               </div>
               <Toaster />
               <Sonner />
