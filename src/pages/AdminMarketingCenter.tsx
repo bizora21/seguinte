@@ -8,7 +8,8 @@ import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
-import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
+import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab' // NOVO
+import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab' // NOVO
 
 interface MarketingStats {
   totalLeads: number
@@ -124,7 +125,7 @@ const AdminMarketingCenter = () => {
           </Button>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Zap className="w-7 h-7 mr-3 text-yellow-600" />
-            Centro de Marketing Automatizado
+            Hub de Crescimento Inteligente
           </h1>
           <p className="text-gray-600 mt-2">Ferramentas de Growth Hacking para escalar a LojaRápida.</p>
         </div>
@@ -161,26 +162,26 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Use esta seção para agendar o envio de campanhas de e-mail manuais para toda a base de clientes.
                     </p>
-                    <Button variant="outline" className="w-full">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Abrir Calendário de Agendamento (Simulação)
+                    <Button onClick={() => navigate('/dashboard/admin/marketing?tab=social')} variant="outline" className="w-full">
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Ir para Agendamento Social
                     </Button>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center">
-                        <Share2 className="w-5 h-5 mr-2" />
-                        Ação Rápida
+                        <TrendingUp className="w-5 h-5 mr-2" />
+                        Análise Estratégica
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-gray-600 mb-4">
-                        Gere conteúdo viral para o produto do dia.
+                        Visualize funis de aquisição e palavras-chave de crescimento.
                     </p>
-                    <Button onClick={() => navigate('/dashboard/admin/marketing?tab=social')} className="w-full bg-purple-600 hover:bg-purple-700">
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Gerar Conteúdo Social
+                    <Button onClick={() => navigate('/dashboard/admin/marketing?tab=metrics')} className="w-full bg-purple-600 hover:bg-purple-700">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Ver Métricas Avançadas
                     </Button>
                 </CardContent>
             </Card>
@@ -188,7 +189,7 @@ const AdminMarketingCenter = () => {
 
         {/* Tabs de Módulos */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-4 h-auto p-1">
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
                 <Zap className="w-4 h-4 mr-1" /> Captura de Leads
             </TabsTrigger>
@@ -196,7 +197,10 @@ const AdminMarketingCenter = () => {
                 <Send className="w-4 h-4 mr-1" /> Automação de E-mail
             </TabsTrigger>
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
-                <Share2 className="w-4 h-4 mr-1" /> Gerador Social
+                <Share2 className="w-4 h-4 mr-1" /> Social Media
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
+                <TrendingUp className="w-4 h-4 mr-1" /> Métricas Avançadas
             </TabsTrigger>
           </TabsList>
           
@@ -210,9 +214,14 @@ const AdminMarketingCenter = () => {
             <EmailAutomationTab />
           </TabsContent>
           
-          {/* Tab 3: Gerador Social */}
+          {/* Tab 3: Social Media Manager */}
           <TabsContent value="social">
-            <SocialContentGenerator />
+            <SocialMediaIntegrationTab />
+          </TabsContent>
+          
+          {/* Tab 4: Advanced Metrics */}
+          <TabsContent value="metrics">
+            <AdvancedMetricsTab />
           </TabsContent>
         </Tabs>
       </div>
