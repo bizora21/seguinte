@@ -14,8 +14,12 @@ interface Integration {
   updated_at: string
 }
 
-// URL base da Edge Function para iniciar o OAuth
+// URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
+
+// IDs de Cliente Mockados (Substitua por seus Secrets reais no ambiente de produção)
+const MOCK_FACEBOOK_APP_ID = 'MOCK_FB_ID' 
+const MOCK_GOOGLE_CLIENT_ID = 'MOCK_GOOGLE_ID' 
 
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -77,26 +81,26 @@ const IntegrationSettingsTab = () => {
   const handleConnectOAuth = (platform: string) => {
     setSubmitting(true)
     
-    // 1. Definir a URL de redirecionamento (de volta para a Edge Function)
+    // A URL de redirecionamento deve ser a URL da Edge Function
     const redirectUri = OAUTH_HANDLER_URL
     
     let authUrl = ''
     
     if (platform === 'facebook') {
-      // Simulação de URL de autorização do Facebook
-      const facebookAppId = 'MOCK_FB_ID' // Deve ser substituído pelo Secret
+      // URL de autorização do Facebook
+      const facebookAppId = MOCK_FACEBOOK_APP_ID 
       const scope = 'pages_show_list,instagram_basic,instagram_manage_insights'
       authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}?platform=facebook&scope=${scope}&state=${Date.now()}`
       
     } else if (platform === 'google_analytics') {
-      // Simulação de URL de autorização do Google Analytics
-      const googleClientId = 'MOCK_GOOGLE_ID' // Deve ser substituído pelo Secret
-      const scope = 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly'
+      // URL de autorização do Google Analytics
+      const googleClientId = MOCK_GOOGLE_CLIENT_ID 
+      const scope = 'https://www.googleapis.com/auth/analytics.readonly'
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_analytics&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
       
     } else if (platform === 'google_search_console') {
-      // Simulação de URL de autorização do Google Search Console
-      const googleClientId = 'MOCK_GOOGLE_ID' // Deve ser substituído pelo Secret
+      // URL de autorização do Google Search Console
+      const googleClientId = MOCK_GOOGLE_CLIENT_ID 
       const scope = 'https://www.googleapis.com/auth/webmasters.readonly'
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_search_console&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
     }

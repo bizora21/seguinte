@@ -14,7 +14,7 @@ const supabase = createClient(
   // @ts-ignore
   Deno.env.get('SUPABASE_URL') ?? '',
   // @ts-ignore
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Usar SERVICE ROLE KEY para escrita segura na tabela integrations
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // USANDO SERVICE ROLE KEY
   {
     auth: {
       persistSession: false,
@@ -26,11 +26,15 @@ const supabase = createClient(
 const REDIRECT_URL_SUCCESS = 'https://lojarapidamz.com/dashboard/admin/marketing?tab=settings&status=success'
 const REDIRECT_URL_FAILURE = 'https://lojarapidamz.com/dashboard/admin/marketing?tab=settings&status=failure'
 
-// Simulação de credenciais (Em um ambiente real, seriam Secrets do Supabase)
-const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID') || 'MOCK_FB_ID'
-const FACEBOOK_APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET') || 'MOCK_FB_SECRET'
-const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') || 'MOCK_GOOGLE_ID'
-const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') || 'MOCK_GOOGLE_SECRET'
+// Credenciais reais (obtidas dos Secrets do Supabase)
+// @ts-ignore
+const FACEBOOK_APP_ID = Deno.env.get('FACEBOOK_APP_ID')
+// @ts-ignore
+const FACEBOOK_APP_SECRET = Deno.env.get('FACEBOOK_APP_SECRET')
+// @ts-ignore
+const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID')
+// @ts-ignore
+const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET')
 
 // @ts-ignore
 serve(async (req) => {
@@ -63,6 +67,9 @@ serve(async (req) => {
     if (platform === 'facebook') {
       clientId = FACEBOOK_APP_ID
       clientSecret = FACEBOOK_APP_SECRET
+      
+      if (!clientId || !clientSecret) throw new Error('Facebook Secrets not configured in Supabase.')
+      
       tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUri}&client_secret=${clientSecret}&code=${code}`
       
       // 1. Trocar código por token
@@ -77,6 +84,9 @@ serve(async (req) => {
     } else if (platform.startsWith('google')) {
       clientId = GOOGLE_CLIENT_ID
       clientSecret = GOOGLE_CLIENT_SECRET
+      
+      if (!clientId || !clientSecret) throw new Error('Google Secrets not configured in Supabase.')
+      
       tokenEndpoint = 'https://oauth2.googleapis.com/token'
       
       // 1. Trocar código por token
@@ -97,6 +107,8 @@ serve(async (req) => {
       
       // 2. Obter informações da conta (simulação)
       metadata = { property_id: 'GA-12345', view_id: '98765' }
+    } else {
+        throw new Error('Plataforma não suportada.')
     }
 
     // 3. Salvar token na tabela 'integrations' (usando Service Role Key)
