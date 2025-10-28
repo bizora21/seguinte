@@ -11,8 +11,11 @@ interface Integration {
   platform: string
   access_token: string
   metadata: any
-  updated_at: string // Adicionado para corrigir o erro TS2339
+  updated_at: string
 }
+
+// URL base da Edge Function para iniciar o OAuth
+const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -21,7 +24,32 @@ const IntegrationSettingsTab = () => {
 
   useEffect(() => {
     fetchIntegrations()
+    checkOAuthStatus()
   }, [])
+
+  const checkOAuthStatus = () => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const status = urlParams.get('status')
+    const platform = urlParams.get('platform')
+    const message = urlParams.get('message')
+
+    if (status === 'success' && platform) {
+      showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
+      // Limpar parâmetros da URL
+      navigateWithoutParams()
+    } else if (status === 'failure') {
+      showError(`Falha na conexão: ${message || 'Erro desconhecido'}`)
+      navigateWithoutParams()
+    }
+  }
+  
+  const navigateWithoutParams = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('status')
+    url.searchParams.delete('platform')
+    url.searchParams.delete('message')
+    window.history.replaceState({}, document.title, url.pathname + url.search)
+  }
 
   const fetchIntegrations = async () => {
     setLoading(true)
@@ -46,47 +74,38 @@ const IntegrationSettingsTab = () => {
     return integrations.find(i => i.platform === platform)
   }
 
-  const handleConnectOAuth = async (platform: string) => {
+  const handleConnectOAuth = (platform: string) => {
     setSubmitting(true)
-    const toastId = showLoading(`Iniciando conexão com ${platform}...`)
     
-    // Simulação de fluxo OAuth: Gerar token fictício e metadados
-    const mockToken = `mock_token_${Date.now()}`
-    let metadata = {}
-    let name = ''
+    // 1. Definir a URL de redirecionamento (de volta para a Edge Function)
+    const redirectUri = OAUTH_HANDLER_URL
+    
+    let authUrl = ''
     
     if (platform === 'facebook') {
-      name = 'Facebook/Instagram'
-      metadata = { page_id: '12345', instagram_id: '67890', page_name: 'LojaRápida MZ' }
+      // Simulação de URL de autorização do Facebook
+      const facebookAppId = 'MOCK_FB_ID' // Deve ser substituído pelo Secret
+      const scope = 'pages_show_list,instagram_basic,instagram_manage_insights'
+      authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}?platform=facebook&scope=${scope}&state=${Date.now()}`
+      
     } else if (platform === 'google_analytics') {
-      name = 'Google Analytics'
-      metadata = { property_id: 'GA-12345', view_id: '98765' }
+      // Simulação de URL de autorização do Google Analytics
+      const googleClientId = 'MOCK_GOOGLE_ID' // Deve ser substituído pelo Secret
+      const scope = 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly'
+      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_analytics&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
+      
     } else if (platform === 'google_search_console') {
-      name = 'Google Search Console'
-      metadata = { site_url: 'https://lojarapidamz.com' }
+      // Simulação de URL de autorização do Google Search Console
+      const googleClientId = 'MOCK_GOOGLE_ID' // Deve ser substituído pelo Secret
+      const scope = 'https://www.googleapis.com/auth/webmasters.readonly'
+      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_search_console&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
     }
-
-    try {
-      // Inserir ou atualizar o token na tabela 'integrations'
-      const { error } = await supabase
-        .from('integrations')
-        .upsert({
-          platform: platform,
-          access_token: mockToken,
-          metadata: metadata,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'platform' })
-        
-      if (error) throw error
-      
-      dismissToast(toastId)
-      showSuccess(`${name} conectado com sucesso! Token salvo.`)
-      fetchIntegrations()
-      
-    } catch (error: any) {
-      dismissToast(toastId)
-      showError(`Falha ao conectar ${name}: ${error.message}`)
-    } finally {
+    
+    if (authUrl) {
+      // Redirecionar o usuário para a página de autorização
+      window.location.href = authUrl
+    } else {
+      showError('Plataforma de integração não reconhecida.')
       setSubmitting(false)
     }
   }
