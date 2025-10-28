@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
-import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab' // NOVO
-import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab' // NOVO
+import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
+import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
+import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab' // NOVO IMPORT
 
 interface MarketingStats {
   totalLeads: number
@@ -189,18 +190,21 @@ const AdminMarketingCenter = () => {
 
         {/* Tabs de Módulos */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
-                <Zap className="w-4 h-4 mr-1" /> Captura de Leads
+                <Zap className="w-4 h-4 mr-1" /> Leads
             </TabsTrigger>
             <TabsTrigger value="email" className="py-2 text-xs sm:text-sm flex items-center">
-                <Send className="w-4 h-4 mr-1" /> Automação de E-mail
+                <Send className="w-4 h-4 mr-1" /> E-mail
             </TabsTrigger>
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
-                <Share2 className="w-4 h-4 mr-1" /> Social Media
+                <Share2 className="w-4 h-4 mr-1" /> Social
             </TabsTrigger>
             <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
-                <TrendingUp className="w-4 h-4 mr-1" /> Métricas Avançadas
+                <TrendingUp className="w-4 h-4 mr-1" /> Métricas
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm flex items-center">
+                <Settings className="w-4 h-4 mr-1" /> Configurações
             </TabsTrigger>
           </TabsList>
           
@@ -222,6 +226,11 @@ const AdminMarketingCenter = () => {
           {/* Tab 4: Advanced Metrics */}
           <TabsContent value="metrics">
             <AdvancedMetricsTab />
+          </TabsContent>
+          
+          {/* Tab 5: Integration Settings (NOVO) */}
+          <TabsContent value="settings">
+            <IntegrationSettingsTab />
           </TabsContent>
         </Tabs>
       </div>
