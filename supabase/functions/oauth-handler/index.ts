@@ -83,9 +83,20 @@ serve(async (req) => {
       
       // 1. Trocar código por token
       const tokenResponse = await fetch(tokenEndpoint, { method: 'GET' })
+      
+      // Adicionar log da resposta bruta
+      if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text()
+          console.error('Facebook Token Exchange Failed (HTTP Error):', tokenResponse.status, errorText)
+          throw new Error(`Facebook token exchange failed with status ${tokenResponse.status}. Response: ${errorText.slice(0, 100)}`)
+      }
+      
       tokenData = await tokenResponse.json()
       
-      if (tokenData.error) throw new Error(tokenData.error.message)
+      if (tokenData.error) {
+          console.error('Facebook Token Exchange Failed (API Error):', tokenData.error)
+          throw new Error(tokenData.error.message)
+      }
       
       // 2. Obter informações da página/usuário (simulação)
       // Em um cenário real, você faria chamadas adicionais aqui para obter o ID da página e o token de acesso de longa duração.
