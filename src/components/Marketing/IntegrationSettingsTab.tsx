@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search } from 'lucide-react'
-import { showSuccess, showError } from '../../utils/toast'
+import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 
 interface Integration {
@@ -12,14 +12,14 @@ interface Integration {
   access_token: string
   metadata: any
   updated_at: string
+  expires_at?: string | null // Garantir que expires_at é opcional, mas aceita string
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
 // Lendo variáveis de ambiente do Vite (para desenvolvimento local)
-// Usando um ID de teste para permitir que o fluxo avance, caso o usuário não tenha configurado o .env.local
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' // ID de teste do Meta
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
 const IntegrationSettingsTab = () => {
@@ -29,32 +29,7 @@ const IntegrationSettingsTab = () => {
 
   useEffect(() => {
     fetchIntegrations()
-    checkOAuthStatus()
   }, [])
-
-  const checkOAuthStatus = () => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const status = urlParams.get('status')
-    const platform = urlParams.get('platform')
-    const message = urlParams.get('message')
-
-    if (status === 'success' && platform) {
-      showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
-      // Limpar parâmetros da URL
-      navigateWithoutParams()
-    } else if (status === 'failure') {
-      showError(`Falha na conexão: ${message || 'Erro desconhecido'}`)
-      navigateWithoutParams()
-    }
-  }
-  
-  const navigateWithoutParams = () => {
-    const url = new URL(window.location.href)
-    url.searchParams.delete('status')
-    url.searchParams.delete('platform')
-    url.searchParams.delete('message')
-    window.history.replaceState({}, document.title, url.pathname + url.search)
-  }
 
   const fetchIntegrations = async () => {
     setLoading(true)
@@ -79,55 +54,55 @@ const IntegrationSettingsTab = () => {
     return integrations.find(i => i.platform === platform)
   }
 
-  const handleConnectOAuth = (platform: string) => {
+  // --- FUNÇÃO DE CONEXÃO MOCKADA ---
+  const handleConnectOAuth = async (platform: string, name: string) => { // Adicionado 'name'
     setSubmitting(true)
+    const toastId = showLoading(`Conectando ${name}... (Simulação)`)
     
-    // A URL de redirecionamento deve ser a URL da Edge Function
-    const redirectUri = OAUTH_HANDLER_URL
-    
-    let authUrl = ''
-    
-    if (platform === 'facebook') {
-      const facebookAppId = FACEBOOK_APP_ID 
-      if (facebookAppId === 'MOCK_FB_ID') {
-        // Este bloco não deve ser mais alcançado com o ID de teste
-        showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local.')
-        setSubmitting(false)
-        return
+    try {
+      // Usamos 'Integration' diretamente para garantir que todas as propriedades sejam reconhecidas
+      let mockData: Partial<Integration> = { platform }
+      
+      if (platform === 'facebook') {
+        mockData = {
+          platform: 'facebook',
+          access_token: 'MOCK_FB_TOKEN_1234567890',
+          metadata: { page_name: 'LojaRápida MZ', instagram_account: '@lojarapida_mz' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
+      } else if (platform === 'google_analytics') {
+        mockData = {
+          platform: 'google_analytics',
+          access_token: 'MOCK_GA_TOKEN_1234567890',
+          metadata: { property_id: 'GA-12345', view_id: '98765' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
+      } else if (platform === 'google_search_console') {
+        mockData = {
+          platform: 'google_search_console',
+          access_token: 'MOCK_SC_TOKEN_1234567890',
+          metadata: { property_id: 'SC-12345', site_url: 'https://lojarapidamz.com' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
+      } else {
+        throw new Error('Plataforma não suportada.')
       }
       
-      // Escopos necessários para Instagram/Facebook
-      const scope = 'pages_show_list,instagram_basic,instagram_manage_insights'
-      authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}?platform=facebook&scope=${scope}&state=${Date.now()}`
+      // Inserir/Atualizar dados mockados na tabela 'integrations'
+      const { error: dbError } = await supabase
+        .from('integrations')
+        .upsert(mockData as Integration, { onConflict: 'platform' }) // Cast para Integration
+        
+      if (dbError) throw dbError
       
-    } else if (platform === 'google_analytics') {
-      const googleClientId = GOOGLE_CLIENT_ID 
-      if (googleClientId === 'MOCK_GOOGLE_ID') {
-        showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local.')
-        setSubmitting(false)
-        return
-      }
+      dismissToast(toastId)
+      showSuccess(`Conexão com ${name} SIMULADA com sucesso!`) // Corrigido: usando 'name'
+      fetchIntegrations() // Recarregar a lista para mostrar o status 'Conectado'
       
-      const scope = 'https://www.googleapis.com/auth/analytics.readonly'
-      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_analytics&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
-      
-    } else if (platform === 'google_search_console') {
-      const googleClientId = GOOGLE_CLIENT_ID 
-      if (googleClientId === 'MOCK_GOOGLE_ID') {
-        showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local.')
-        setSubmitting(false)
-        return
-      }
-      
-      const scope = 'https://www.googleapis.com/auth/webmasters.readonly'
-      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_search_console&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
-    }
-    
-    if (authUrl) {
-      // Redirecionar o usuário para a página de autorização
-      window.location.href = authUrl
-    } else {
-      showError('Plataforma de integração não reconhecida.')
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro na simulação de conexão: ' + error.message)
+    } finally {
       setSubmitting(false)
     }
   }
@@ -176,12 +151,12 @@ const IntegrationSettingsTab = () => {
                   </div>
                 </div>
                 <Button 
-                  onClick={() => handleConnectOAuth(item.platform)} 
+                  onClick={() => handleConnectOAuth(item.platform, item.name)} // Corrigido: passando item.name
                   disabled={submitting}
                   variant={isConnected ? 'outline' : 'default'}
                   className={isConnected ? 'text-gray-700' : 'bg-blue-600 hover:bg-blue-700'}
                 >
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar' : 'Conectar'}
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar (Simulado)' : 'Conectar (Simulado)'}
                 </Button>
               </div>
             )
@@ -196,7 +171,7 @@ const IntegrationSettingsTab = () => {
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
             <p className="font-semibold text-yellow-800 mb-2">Aviso de Configuração Local</p>
             <p className="text-yellow-700">
-                Para que a conexão funcione, você deve adicionar as seguintes variáveis ao seu arquivo <code className="font-mono">.env.local</code> (ou Supabase Secrets):
+                A conexão OAuth foi SIMULADA devido a erros de configuração do Facebook. Os tokens mockados foram inseridos no banco de dados para permitir o teste das funcionalidades de Agendamento Social e Métricas.
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1 font-mono text-xs">
                 <li>VITE_FACEBOOK_APP_ID (Usando ID de teste: 2220391788200892)</li>
@@ -204,9 +179,6 @@ const IntegrationSettingsTab = () => {
                 <li>FACEBOOK_APP_SECRET (Apenas Supabase Secret)</li>
                 <li>GOOGLE_CLIENT_SECRET (Apenas Supabase Secret)</li>
             </ul>
-            <p className="text-xs text-red-700 mt-2">
-                O erro "ID do app inválido" indica que o valor de VITE_FACEBOOK_APP_ID no seu ambiente local está incorreto ou ausente.
-            </p>
         </div>
       </CardContent>
     </Card>
