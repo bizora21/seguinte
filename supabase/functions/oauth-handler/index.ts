@@ -9,6 +9,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// Inicializa o cliente Supabase (para interagir com o banco de dados)
 // @ts-ignore
 const supabase = createClient(
   // @ts-ignore
@@ -67,8 +68,9 @@ serve(async (req) => {
     let clientId = ''
     let clientSecret = ''
     
-    // A URL de redirecionamento deve ser a URL desta Edge Function
-    const redirectUri = url.origin + url.pathname 
+    // A URL de redirecionamento DEVE ser a URL desta Edge Function, incluindo o parâmetro 'platform'
+    // Ex: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler?platform=facebook
+    const redirectUriForTokenExchange = `${url.origin}${url.pathname}?platform=${platform}` 
 
     if (platform === 'facebook') {
       clientId = FACEBOOK_APP_ID
@@ -77,7 +79,7 @@ serve(async (req) => {
       if (!clientId || !clientSecret) throw new Error('Facebook Secrets not configured in Supabase.')
       
       // Endpoint para trocar o código por token
-      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUri}?platform=facebook&client_secret=${clientSecret}&code=${code}`
+      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUriForTokenExchange}&client_secret=${clientSecret}&code=${code}`
       
       // 1. Trocar código por token
       const tokenResponse = await fetch(tokenEndpoint, { method: 'GET' })
@@ -105,7 +107,7 @@ serve(async (req) => {
           code: code,
           client_id: clientId,
           client_secret: clientSecret,
-          redirect_uri: redirectUri + `?platform=${platform}`, // Incluir a plataforma no redirect_uri para o Google
+          redirect_uri: redirectUriForTokenExchange, 
           grant_type: 'authorization_code',
         }),
       })
