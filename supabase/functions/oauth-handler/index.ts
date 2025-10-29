@@ -46,20 +46,13 @@ serve(async (req) => {
   const platform = url.searchParams.get('platform')
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
-  const errorDescription = url.searchParams.get('error_description') // Capturar descrição do erro
-
-  // --- DIAGNÓSTICO: LOGAR TUDO O QUE CHEGA ---
-  console.log("=== CALLBACK DO FACEBOOK/GOOGLE RECEBIDO ===");
-  console.log("URL completa:", url.href);
-  console.log("Parâmetros:", Object.fromEntries(url.searchParams.entries()));
-  // -------------------------------------------
+  const errorDescription = url.searchParams.get('error_description')
 
   if (error) {
     console.error("--- ERRO RETORNADO PELA PLATAFORMA EXTERNA ---");
     console.error("Error:", error);
     console.error("Description:", errorDescription);
     
-    // Redireciona de volta para o painel admin com o erro
     return Response.redirect(`${REDIRECT_URL_FAILURE}&message=${encodeURIComponent(errorDescription || error)}`, 302)
   }
 
@@ -73,7 +66,9 @@ serve(async (req) => {
     let tokenEndpoint = ''
     let clientId = ''
     let clientSecret = ''
-    let redirectUri = url.origin + url.pathname // A URL desta Edge Function
+    
+    // A URL de redirecionamento deve ser a URL desta Edge Function
+    const redirectUri = url.origin + url.pathname 
 
     if (platform === 'facebook') {
       clientId = FACEBOOK_APP_ID
@@ -81,7 +76,8 @@ serve(async (req) => {
       
       if (!clientId || !clientSecret) throw new Error('Facebook Secrets not configured in Supabase.')
       
-      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUri}&client_secret=${clientSecret}&code=${code}`
+      // Endpoint para trocar o código por token
+      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUri}?platform=facebook&client_secret=${clientSecret}&code=${code}`
       
       // 1. Trocar código por token
       const tokenResponse = await fetch(tokenEndpoint, { method: 'GET' })
@@ -90,7 +86,8 @@ serve(async (req) => {
       if (tokenData.error) throw new Error(tokenData.error.message)
       
       // 2. Obter informações da página/usuário (simulação)
-      metadata = { page_name: 'LojaRápida MZ', instagram_id: '67890' }
+      // Em um cenário real, você faria chamadas adicionais aqui para obter o ID da página e o token de acesso de longa duração.
+      metadata = { page_name: 'LojaRápida MZ', instagram_account: '@lojarapida_mz' }
 
     } else if (platform.startsWith('google')) {
       clientId = GOOGLE_CLIENT_ID
@@ -108,7 +105,7 @@ serve(async (req) => {
           code: code,
           client_id: clientId,
           client_secret: clientSecret,
-          redirect_uri: redirectUri,
+          redirect_uri: redirectUri + `?platform=${platform}`, // Incluir a plataforma no redirect_uri para o Google
           grant_type: 'authorization_code',
         }),
       })
