@@ -18,6 +18,7 @@ interface Integration {
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
 // Lendo variáveis de ambiente do Vite (para desenvolvimento local)
+// O usuário deve configurar VITE_FACEBOOK_APP_ID no .env.local
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FB_ID' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
@@ -89,7 +90,7 @@ const IntegrationSettingsTab = () => {
     if (platform === 'facebook') {
       const facebookAppId = FACEBOOK_APP_ID 
       if (facebookAppId === 'MOCK_FB_ID') {
-        showError('Erro: FACEBOOK_APP_ID não configurado no .env.local ou Supabase Secrets.')
+        showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local.')
         setSubmitting(false)
         return
       }
@@ -101,7 +102,7 @@ const IntegrationSettingsTab = () => {
     } else if (platform === 'google_analytics') {
       const googleClientId = GOOGLE_CLIENT_ID 
       if (googleClientId === 'MOCK_GOOGLE_ID') {
-        showError('Erro: GOOGLE_CLIENT_ID não configurado no .env.local ou Supabase Secrets.')
+        showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local.')
         setSubmitting(false)
         return
       }
@@ -112,7 +113,7 @@ const IntegrationSettingsTab = () => {
     } else if (platform === 'google_search_console') {
       const googleClientId = GOOGLE_CLIENT_ID 
       if (googleClientId === 'MOCK_GOOGLE_ID') {
-        showError('Erro: GOOGLE_CLIENT_ID não configurado no .env.local ou Supabase Secrets.')
+        showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local.')
         setSubmitting(false)
         return
       }
@@ -202,6 +203,9 @@ const IntegrationSettingsTab = () => {
                 <li>FACEBOOK_APP_SECRET (Apenas Supabase Secret)</li>
                 <li>GOOGLE_CLIENT_SECRET (Apenas Supabase Secret)</li>
             </ul>
+            <p className="text-xs text-red-700 mt-2">
+                O erro "ID do app inválido" indica que o valor de VITE_FACEBOOK_APP_ID no seu ambiente local está incorreto ou ausente.
+            </p>
         </div>
       </CardContent>
     </Card>
