@@ -46,10 +46,21 @@ serve(async (req) => {
   const platform = url.searchParams.get('platform')
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
+  const errorDescription = url.searchParams.get('error_description') // Capturar descrição do erro
+
+  // --- DIAGNÓSTICO: LOGAR TUDO O QUE CHEGA ---
+  console.log("=== CALLBACK DO FACEBOOK/GOOGLE RECEBIDO ===");
+  console.log("URL completa:", url.href);
+  console.log("Parâmetros:", Object.fromEntries(url.searchParams.entries()));
+  // -------------------------------------------
 
   if (error) {
-    console.error(`OAuth Error for ${platform}:`, error)
-    return Response.redirect(`${REDIRECT_URL_FAILURE}&message=${encodeURIComponent(error)}`, 302)
+    console.error("--- ERRO RETORNADO PELA PLATAFORMA EXTERNA ---");
+    console.error("Error:", error);
+    console.error("Description:", errorDescription);
+    
+    // Redireciona de volta para o painel admin com o erro
+    return Response.redirect(`${REDIRECT_URL_FAILURE}&message=${encodeURIComponent(errorDescription || error)}`, 302)
   }
 
   if (!platform || !code) {
