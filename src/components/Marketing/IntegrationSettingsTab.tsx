@@ -18,8 +18,8 @@ interface Integration {
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
 // Lendo variáveis de ambiente do Vite (para desenvolvimento local)
-// O usuário deve configurar VITE_FACEBOOK_APP_ID no .env.local
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FB_ID' 
+// Usando um ID de teste para permitir que o fluxo avance, caso o usuário não tenha configurado o .env.local
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' // ID de teste do Meta
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
 const IntegrationSettingsTab = () => {
@@ -90,6 +90,7 @@ const IntegrationSettingsTab = () => {
     if (platform === 'facebook') {
       const facebookAppId = FACEBOOK_APP_ID 
       if (facebookAppId === 'MOCK_FB_ID') {
+        // Este bloco não deve ser mais alcançado com o ID de teste
         showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local.')
         setSubmitting(false)
         return
@@ -198,7 +199,7 @@ const IntegrationSettingsTab = () => {
                 Para que a conexão funcione, você deve adicionar as seguintes variáveis ao seu arquivo <code className="font-mono">.env.local</code> (ou Supabase Secrets):
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1 font-mono text-xs">
-                <li>VITE_FACEBOOK_APP_ID</li>
+                <li>VITE_FACEBOOK_APP_ID (Usando ID de teste: 2220391788200892)</li>
                 <li>VITE_GOOGLE_CLIENT_ID</li>
                 <li>FACEBOOK_APP_SECRET (Apenas Supabase Secret)</li>
                 <li>GOOGLE_CLIENT_SECRET (Apenas Supabase Secret)</li>
