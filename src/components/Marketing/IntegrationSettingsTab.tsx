@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search } from 'lucide-react'
-import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
+import { showSuccess, showError } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 
 interface Integration {
@@ -17,9 +17,9 @@ interface Integration {
 // URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
-// IDs de Cliente Mockados (Substitua por seus Secrets reais no ambiente de produção)
-const MOCK_FACEBOOK_APP_ID = 'MOCK_FB_ID' 
-const MOCK_GOOGLE_CLIENT_ID = 'MOCK_GOOGLE_ID' 
+// Lendo variáveis de ambiente do Vite (para desenvolvimento local)
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FB_ID' 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -87,20 +87,36 @@ const IntegrationSettingsTab = () => {
     let authUrl = ''
     
     if (platform === 'facebook') {
-      // URL de autorização do Facebook
-      const facebookAppId = MOCK_FACEBOOK_APP_ID 
+      const facebookAppId = FACEBOOK_APP_ID 
+      if (facebookAppId === 'MOCK_FB_ID') {
+        showError('Erro: FACEBOOK_APP_ID não configurado no .env.local ou Supabase Secrets.')
+        setSubmitting(false)
+        return
+      }
+      
+      // Escopos necessários para Instagram/Facebook
       const scope = 'pages_show_list,instagram_basic,instagram_manage_insights'
       authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${facebookAppId}&redirect_uri=${redirectUri}?platform=facebook&scope=${scope}&state=${Date.now()}`
       
     } else if (platform === 'google_analytics') {
-      // URL de autorização do Google Analytics
-      const googleClientId = MOCK_GOOGLE_CLIENT_ID 
+      const googleClientId = GOOGLE_CLIENT_ID 
+      if (googleClientId === 'MOCK_GOOGLE_ID') {
+        showError('Erro: GOOGLE_CLIENT_ID não configurado no .env.local ou Supabase Secrets.')
+        setSubmitting(false)
+        return
+      }
+      
       const scope = 'https://www.googleapis.com/auth/analytics.readonly'
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_analytics&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
       
     } else if (platform === 'google_search_console') {
-      // URL de autorização do Google Search Console
-      const googleClientId = MOCK_GOOGLE_CLIENT_ID 
+      const googleClientId = GOOGLE_CLIENT_ID 
+      if (googleClientId === 'MOCK_GOOGLE_ID') {
+        showError('Erro: GOOGLE_CLIENT_ID não configurado no .env.local ou Supabase Secrets.')
+        setSubmitting(false)
+        return
+      }
+      
       const scope = 'https://www.googleapis.com/auth/webmasters.readonly'
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}?platform=google_search_console&response_type=code&scope=${scope}&access_type=offline&prompt=consent`
     }
@@ -174,6 +190,19 @@ const IntegrationSettingsTab = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Atualizar Status
         </Button>
+        
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+            <p className="font-semibold text-yellow-800 mb-2">Aviso de Configuração Local</p>
+            <p className="text-yellow-700">
+                Para que a conexão funcione, você deve adicionar as seguintes variáveis ao seu arquivo <code className="font-mono">.env.local</code> (ou Supabase Secrets):
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1 font-mono text-xs">
+                <li>VITE_FACEBOOK_APP_ID</li>
+                <li>VITE_GOOGLE_CLIENT_ID</li>
+                <li>FACEBOOK_APP_SECRET (Apenas Supabase Secret)</li>
+                <li>GOOGLE_CLIENT_SECRET (Apenas Supabase Secret)</li>
+            </ul>
+        </div>
       </CardContent>
     </Card>
   )
