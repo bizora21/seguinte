@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -6,7 +6,8 @@ import { Label } from '../ui/label'
 import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search, AlertTriangle } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
-import { generateOAuthUrl } from '../../utils/admin' // Importar a função real
+import { generateOAuthUrl } from '../../utils/admin' 
+import { useSearchParams, useNavigate } from 'react-router-dom'
 
 interface Integration {
   platform: string
@@ -16,17 +17,12 @@ interface Integration {
   expires_at?: string | null
 }
 
-// URL base da Edge Function para lidar com o retorno do OAuth
-const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
-
 const IntegrationSettingsTab = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-
-  useEffect(() => {
-    fetchIntegrations()
-  }, [])
 
   const fetchIntegrations = async () => {
     setLoading(true)
@@ -45,12 +41,38 @@ const IntegrationSettingsTab = () => {
       setLoading(false)
     }
   }
+  
+  // Lidar com o retorno do OAuth
+  useEffect(() => {
+    const status = searchParams.get('status')
+    const message = searchParams.get('message')
+    const platform = searchParams.get('platform')
+    
+    if (status) {
+      if (status === 'social-auth-success') {
+        showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
+      } else if (status === 'social-auth-error') {
+        showError(`Falha na conexão com ${platform}: ${decodeURIComponent(message || 'Erro desconhecido')}`)
+      }
+      
+      // Limpar parâmetros da URL após processar
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('status')
+      newParams.delete('message')
+      newParams.delete('platform')
+      navigate({ search: newParams.toString() }, { replace: true })
+      
+      // Recarregar integrações para mostrar o status atualizado
+      fetchIntegrations()
+    } else {
+      fetchIntegrations()
+    }
+  }, [searchParams, navigate])
 
   const getIntegrationStatus = (platform: string) => {
     return integrations.find(i => i.platform === platform)
   }
 
-  // --- FUNÇÃO DE CONEXÃO REAL (REDIRECIONAMENTO) ---
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console', name: string) => {
     setSubmitting(true)
     
@@ -58,19 +80,16 @@ const IntegrationSettingsTab = () => {
       const authUrl = generateOAuthUrl(platform)
       
       if (!authUrl) {
-        // A função generateOAuthUrl já mostrou um toast de erro se o VITE_ID estiver faltando
         setSubmitting(false)
         return
       }
       
-      // Redireciona o usuário para a página de autorização externa
       window.location.href = authUrl
       
     } catch (error: any) {
       showError('Erro ao iniciar o fluxo de conexão: ' + error.message)
       setSubmitting(false)
     }
-    // Nota: O estado 'submitting' será limpo após o redirecionamento ou falha.
   }
   
   const integrationList = [
@@ -160,7 +179,13 @@ const IntegrationSettingsTab = () => {
                 Para que a conexão funcione, você DEVE configurar o seguinte URI de redirecionamento OAuth no painel do Meta/Google:
             </p>
             <code className="block mt-1 font-mono text-xs bg-yellow-100 p-1 rounded break-all">
-                {OAUTH_HANDLER_URL}
+                https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth?platform=facebook
+            </code>
+            <p className="text-yellow-700 mt-2">
+                E para as integrações do Google, o URI é:
+            </p>
+            <code className="block mt-1 font-mono text-xs bg-yellow-100 p-1 rounded break-all">
+                https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth?platform=google_analytics
             </code>
             <p className="text-yellow-700 mt-2">
                 Além disso, o domínio <code className="font-mono text-xs bg-yellow-100 p-0.5 rounded">bpzqdwpkwlwflrcwcrqp.supabase.co</code> deve ser adicionado aos domínios válidos do seu aplicativo Meta.
