@@ -53,51 +53,56 @@ const IntegrationSettingsTab = () => {
     return integrations.find(i => i.platform === platform)
   }
 
-  // --- FUNÇÃO DE CONEXÃO REAL ---
+  // --- FUNÇÃO DE CONEXÃO MOCKADA (REINTRODUZIDA) ---
   const handleConnectOAuth = async (platform: string, name: string) => {
     setSubmitting(true)
+    const toastId = showLoading(`Conectando ${name}... (Simulação)`)
     
-    // 1. Definir o URI de redirecionamento para a Edge Function
-    const redirectUri = `${OAUTH_HANDLER_URL}?platform=${platform}`
-    
-    let authUrl = ''
-    
-    if (platform === 'facebook') {
-      if (!FACEBOOK_APP_ID) {
-        showError('VITE_FACEBOOK_APP_ID não configurado no .env.local')
-        setSubmitting(false)
-        return
-      }
-      // Permissões necessárias para gerenciar páginas e posts
-      const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_comments,instagram_manage_insights'
+    try {
+      let mockData: Partial<Integration> = { platform }
       
-      authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code`
-      
-    } else if (platform.startsWith('google')) {
-      if (!GOOGLE_CLIENT_ID) {
-        showError('VITE_GOOGLE_CLIENT_ID não configurado no .env.local')
-        setSubmitting(false)
-        return
-      }
-      
-      let scope = ''
-      if (platform === 'google_analytics') {
-        scope = 'https://www.googleapis.com/auth/analytics.readonly'
+      if (platform === 'facebook') {
+        mockData = {
+          platform: 'facebook',
+          access_token: 'MOCK_FB_TOKEN_1234567890',
+          metadata: { page_name: 'LojaRápida MZ', instagram_account: '@lojarapida_mz' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
+      } else if (platform === 'google_analytics') {
+        mockData = {
+          platform: 'google_analytics',
+          access_token: 'MOCK_GA_TOKEN_1234567890',
+          metadata: { property_id: 'GA-12345', view_id: '98765' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
       } else if (platform === 'google_search_console') {
-        scope = 'https://www.googleapis.com/auth/webmasters.readonly'
+        mockData = {
+          platform: 'google_search_console',
+          access_token: 'MOCK_SC_TOKEN_1234567890',
+          metadata: { property_id: 'SC-12345', site_url: 'https://lojarapidamz.com' },
+          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+        }
+      } else {
+        throw new Error('Plataforma não suportada.')
       }
       
-      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&access_type=offline&prompt=consent`
-    } else {
-      showError('Plataforma não suportada.')
+      // Inserir/Atualizar dados mockados na tabela 'integrations'
+      const { error: dbError } = await supabase
+        .from('integrations')
+        .upsert(mockData as Integration, { onConflict: 'platform' })
+        
+      if (dbError) throw dbError
+      
+      dismissToast(toastId)
+      showSuccess(`Conexão com ${name} SIMULADA com sucesso!`)
+      fetchIntegrations() // Recarregar a lista para mostrar o status 'Conectado'
+      
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro na simulação de conexão: ' + error.message)
+    } finally {
       setSubmitting(false)
-      return
     }
-    
-    // 2. Redirecionar o usuário
-    window.location.href = authUrl
-    
-    // O estado 'submitting' será limpo após o redirecionamento ou falha.
   }
   
   const integrationList = [
@@ -149,7 +154,7 @@ const IntegrationSettingsTab = () => {
                   variant={isConnected ? 'outline' : 'default'}
                   className={isConnected ? 'text-gray-700' : 'bg-blue-600 hover:bg-blue-700'}
                 >
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar' : 'Conectar'}
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar (Simulado)' : 'Conectar (Simulado)'}
                 </Button>
               </div>
             )
@@ -164,10 +169,10 @@ const IntegrationSettingsTab = () => {
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
             <p className="font-semibold text-yellow-800 mb-2">Aviso de Configuração</p>
             <p className="text-yellow-700">
-                Para que a conexão funcione, você deve garantir que as variáveis de ambiente (Secrets) `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` estejam configuradas no painel do Supabase.
+                A conexão OAuth foi SIMULADA devido a restrições de domínio do Facebook. Para usar tokens reais, você deve configurar o domínio de produção e as Secrets no Supabase.
             </p>
             <p className="text-yellow-700 mt-2">
-                Além disso, o URI de redirecionamento configurado no Meta/Google deve ser: 
+                O URI de redirecionamento configurado no Meta/Google deve ser: 
                 <code className="block mt-1 font-mono text-xs bg-yellow-100 p-1 rounded break-all">
                     {OAUTH_HANDLER_URL}?platform=[plataforma]
                 </code>
