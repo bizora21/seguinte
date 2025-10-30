@@ -30,8 +30,8 @@ export interface PaymentProof {
 const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
 
 // Credenciais (Lidas do .env.local do Vite)
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FACEBOOK_ID' 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '' 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '' 
 
 /**
  * Gera a URL de autorização para iniciar o fluxo OAuth.
@@ -42,7 +42,7 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
   const encodedRedirectUri = encodeURIComponent(redirectUri)
   
   if (platform === 'facebook') {
-    if (FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
+    if (!FACEBOOK_APP_ID || FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
       showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local')
       return ''
     }
@@ -53,7 +53,7 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
   }
   
   if (platform === 'google_analytics' || platform === 'google_search_console') {
-    if (GOOGLE_CLIENT_ID === 'MOCK_GOOGLE_ID') {
+    if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'MOCK_GOOGLE_ID') {
       showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local')
       return ''
     }
