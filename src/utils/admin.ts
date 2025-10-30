@@ -27,7 +27,7 @@ export interface PaymentProof {
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
-const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
+const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
 
 // Credenciais (Lidas do .env.local do Vite)
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FACEBOOK_ID' 

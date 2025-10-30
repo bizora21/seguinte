@@ -17,7 +17,7 @@ interface Integration {
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
-const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
+const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
 
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
