@@ -26,6 +26,43 @@ export interface PaymentProof {
   }
 }
 
+// URL base da Edge Function para lidar com o retorno do OAuth
+const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
+
+// Credenciais (Mockadas no frontend, mas usadas para construir a URL)
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
+
+/**
+ * Gera a URL de autorização para iniciar o fluxo OAuth.
+ * O redirect_uri deve ser a URL da Edge Function.
+ */
+export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
+  const redirectUri = `${OAUTH_HANDLER_BASE_URL}?platform=${platform}`
+  const encodedRedirectUri = encodeURIComponent(redirectUri)
+  
+  if (platform === 'facebook') {
+    // Escopos necessários para gerenciar páginas e publicar conteúdo
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_comments,instagram_manage_insights'
+    
+    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code`
+  }
+  
+  if (platform === 'google_analytics' || platform === 'google_search_console') {
+    const scope = platform === 'google_analytics' 
+      ? 'https://www.googleapis.com/auth/analytics.readonly'
+      : 'https://www.googleapis.com/auth/webmasters.readonly'
+      
+    // O state é usado para identificar a plataforma no retorno
+    const state = JSON.stringify({ platform })
+    
+    return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code&access_type=offline&state=${encodeURIComponent(state)}`
+  }
+  
+  return ''
+}
+
+
 // --- Notification Functions ---
 
 export const getUnreadNotificationsCount = async (): Promise<number> => {

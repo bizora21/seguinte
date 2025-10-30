@@ -6,6 +6,7 @@ import { Label } from '../ui/label'
 import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
+import { generateOAuthUrl } from '../../utils/admin' // Importar a função real
 
 interface Integration {
   platform: string
@@ -17,10 +18,6 @@ interface Integration {
 
 // URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
-
-// Lendo variáveis de ambiente do Vite (para desenvolvimento local)
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
@@ -53,56 +50,27 @@ const IntegrationSettingsTab = () => {
     return integrations.find(i => i.platform === platform)
   }
 
-  // --- FUNÇÃO DE CONEXÃO MOCKADA (REINTRODUZIDA) ---
-  const handleConnectOAuth = async (platform: string, name: string) => {
+  // --- FUNÇÃO DE CONEXÃO REAL (REDIRECIONAMENTO) ---
+  const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console', name: string) => {
     setSubmitting(true)
-    const toastId = showLoading(`Conectando ${name}... (Simulação)`)
     
     try {
-      let mockData: Partial<Integration> = { platform }
+      const authUrl = generateOAuthUrl(platform)
       
-      if (platform === 'facebook') {
-        mockData = {
-          platform: 'facebook',
-          access_token: 'MOCK_FB_TOKEN_1234567890',
-          metadata: { page_name: 'LojaRápida MZ', instagram_account: '@lojarapida_mz' },
-          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-        }
-      } else if (platform === 'google_analytics') {
-        mockData = {
-          platform: 'google_analytics',
-          access_token: 'MOCK_GA_TOKEN_1234567890',
-          metadata: { property_id: 'GA-12345', view_id: '98765' },
-          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-        }
-      } else if (platform === 'google_search_console') {
-        mockData = {
-          platform: 'google_search_console',
-          access_token: 'MOCK_SC_TOKEN_1234567890',
-          metadata: { property_id: 'SC-12345', site_url: 'https://lojarapidamz.com' },
-          expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-        }
-      } else {
-        throw new Error('Plataforma não suportada.')
+      if (!authUrl) {
+        showError(`Não foi possível gerar a URL de autorização para ${name}.`)
+        setSubmitting(false)
+        return
       }
       
-      // Inserir/Atualizar dados mockados na tabela 'integrations'
-      const { error: dbError } = await supabase
-        .from('integrations')
-        .upsert(mockData as Integration, { onConflict: 'platform' })
-        
-      if (dbError) throw dbError
-      
-      dismissToast(toastId)
-      showSuccess(`Conexão com ${name} SIMULADA com sucesso!`)
-      fetchIntegrations() // Recarregar a lista para mostrar o status 'Conectado'
+      // Redireciona o usuário para a página de autorização externa
+      window.location.href = authUrl
       
     } catch (error: any) {
-      dismissToast(toastId)
-      showError('Erro na simulação de conexão: ' + error.message)
-    } finally {
+      showError('Erro ao iniciar o fluxo de conexão: ' + error.message)
       setSubmitting(false)
     }
+    // Nota: O estado 'submitting' será limpo após o redirecionamento ou falha.
   }
   
   const integrationList = [
@@ -149,12 +117,12 @@ const IntegrationSettingsTab = () => {
                   </div>
                 </div>
                 <Button 
-                  onClick={() => handleConnectOAuth(item.platform, item.name)}
+                  onClick={() => handleConnectOAuth(item.platform as any, item.name)}
                   disabled={submitting}
                   variant={isConnected ? 'outline' : 'default'}
                   className={isConnected ? 'text-gray-700' : 'bg-blue-600 hover:bg-blue-700'}
                 >
-                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar (Simulado)' : 'Conectar (Simulado)'}
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar' : 'Conectar'}
                 </Button>
               </div>
             )
@@ -169,13 +137,13 @@ const IntegrationSettingsTab = () => {
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
             <p className="font-semibold text-yellow-800 mb-2">Aviso de Configuração</p>
             <p className="text-yellow-700">
-                A conexão OAuth foi SIMULADA devido a restrições de domínio do Facebook. Para usar tokens reais, você deve configurar o domínio de produção e as Secrets no Supabase.
+                Para que a conexão funcione, você DEVE configurar o seguinte URI de redirecionamento OAuth no painel do Meta/Google:
             </p>
+            <code className="block mt-1 font-mono text-xs bg-yellow-100 p-1 rounded break-all">
+                {OAUTH_HANDLER_URL}
+            </code>
             <p className="text-yellow-700 mt-2">
-                O URI de redirecionamento configurado no Meta/Google deve ser: 
-                <code className="block mt-1 font-mono text-xs bg-yellow-100 p-1 rounded break-all">
-                    {OAUTH_HANDLER_URL}?platform=[plataforma]
-                </code>
+                Além disso, o domínio <code className="font-mono text-xs bg-yellow-100 p-0.5 rounded">bpzqdwpkwlwflrcwcrqp.supabase.co</code> deve ser adicionado aos domínios válidos do seu aplicativo Meta.
             </p>
         </div>
       </CardContent>
