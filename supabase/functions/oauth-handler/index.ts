@@ -69,8 +69,8 @@ serve(async (req) => {
     let clientSecret = ''
     
     // A URL de redirecionamento DEVE ser a URL desta Edge Function, incluindo o parâmetro 'platform'
-    // Ex: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler?platform=facebook
     const redirectUriForTokenExchange = `${url.origin}${url.pathname}?platform=${platform}` 
+    const encodedRedirectUri = encodeURIComponent(redirectUriForTokenExchange)
 
     if (platform === 'facebook') {
       clientId = FACEBOOK_APP_ID
@@ -79,7 +79,9 @@ serve(async (req) => {
       if (!clientId || !clientSecret) throw new Error('Facebook Secrets not configured in Supabase.')
       
       // Endpoint para trocar o código por token
-      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${redirectUriForTokenExchange}&client_secret=${clientSecret}&code=${code}`
+      tokenEndpoint = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&redirect_uri=${encodedRedirectUri}&client_secret=${clientSecret}&code=${code}`
+      
+      console.log('DEBUG: Facebook Token Endpoint:', tokenEndpoint)
       
       // 1. Trocar código por token
       const tokenResponse = await fetch(tokenEndpoint, { method: 'GET' })
