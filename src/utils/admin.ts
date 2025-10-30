@@ -29,8 +29,8 @@ export interface PaymentProof {
 // URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/oauth-handler'
 
-// Credenciais (Mockadas no frontend, mas usadas para construir a URL)
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '2220391788200892' 
+// Credenciais (Lidas do .env.local do Vite)
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FACEBOOK_ID' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'MOCK_GOOGLE_ID' 
 
 /**
@@ -42,6 +42,10 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
   const encodedRedirectUri = encodeURIComponent(redirectUri)
   
   if (platform === 'facebook') {
+    if (FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
+      showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local')
+      return ''
+    }
     // Escopos necessários para gerenciar páginas e publicar conteúdo
     const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_comments,instagram_manage_insights'
     
@@ -49,6 +53,11 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
   }
   
   if (platform === 'google_analytics' || platform === 'google_search_console') {
+    if (GOOGLE_CLIENT_ID === 'MOCK_GOOGLE_ID') {
+      showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local')
+      return ''
+    }
+    
     const scope = platform === 'google_analytics' 
       ? 'https://www.googleapis.com/auth/analytics.readonly'
       : 'https://www.googleapis.com/auth/webmasters.readonly'

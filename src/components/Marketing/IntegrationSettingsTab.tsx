@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
-import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search } from 'lucide-react'
+import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search, AlertTriangle } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' // Importar a função real
@@ -58,7 +58,7 @@ const IntegrationSettingsTab = () => {
       const authUrl = generateOAuthUrl(platform)
       
       if (!authUrl) {
-        showError(`Não foi possível gerar a URL de autorização para ${name}.`)
+        // A função generateOAuthUrl já mostrou um toast de erro se o VITE_ID estiver faltando
         setSubmitting(false)
         return
       }
@@ -95,6 +95,23 @@ const IntegrationSettingsTab = () => {
         <p className="text-gray-600">
           Conecte as contas de marketing da LojaRápida para ativar a automação e as métricas avançadas.
         </p>
+        
+        {/* AVISO CRÍTICO SOBRE SECRETS */}
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm">
+            <p className="font-semibold text-red-800 mb-2 flex items-center">
+                <AlertTriangle className="w-5 h-5 mr-2" />
+                Atenção: Chaves Secretas Ausentes
+            </p>
+            <p className="text-red-700">
+                Para que a troca de token funcione, você DEVE configurar as seguintes variáveis como **Secrets** no seu projeto Supabase (Configurações > Edge Functions > Secrets):
+            </p>
+            <ul className="list-disc list-inside mt-2 font-mono text-xs text-red-900">
+                <li>FACEBOOK_APP_ID (Também no .env.local)</li>
+                <li>FACEBOOK_APP_SECRET</li>
+                <li>GOOGLE_CLIENT_ID (Também no .env.local)</li>
+                <li>GOOGLE_CLIENT_SECRET</li>
+            </ul>
+        </div>
         
         <div className="space-y-4">
           {integrationList.map((item) => {
