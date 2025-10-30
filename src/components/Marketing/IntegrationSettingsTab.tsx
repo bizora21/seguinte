@@ -100,7 +100,7 @@ const IntegrationSettingsTab = () => {
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm">
             <p className="font-semibold text-red-800 mb-2 flex items-center">
                 <AlertTriangle className="w-5 h-5 mr-2" />
-                Atenção: Chaves Secretas Ausentes
+                Atenção: Chaves Secretas e Domínios
             </p>
             <p className="text-red-700">
                 Para que a troca de token funcione, você DEVE configurar as seguintes variáveis como **Secrets** no seu projeto Supabase (Configurações > Edge Functions > Secrets):
@@ -111,6 +111,9 @@ const IntegrationSettingsTab = () => {
                 <li>GOOGLE_CLIENT_ID (Também no .env.local)</li>
                 <li>GOOGLE_CLIENT_SECRET</li>
             </ul>
+            <p className="text-red-700 mt-4">
+                Além disso, o domínio <code className="font-mono text-xs bg-yellow-100 p-0.5 rounded">bpzqdwpkwlwflrcwcrqp.supabase.co</code> e o domínio do seu ambiente de desenvolvimento (ex: <code className="font-mono text-xs bg-yellow-100 p-0.5 rounded">localhost:8080</code> ou o domínio de visualização) devem ser adicionados aos **Domínios do App** no painel do Meta.
+            </p>
         </div>
         
         <div className="space-y-4">
