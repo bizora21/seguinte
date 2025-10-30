@@ -1,3 +1,4 @@
+por &gt; em strings literais.">
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
@@ -103,7 +104,7 @@ const IntegrationSettingsTab = () => {
                 Atenção: Chaves Secretas e Domínios
             </p>
             <p className="text-red-700">
-                Para que a troca de token funcione, você DEVE configurar as seguintes variáveis como **Secrets** no seu projeto Supabase (Configurações > Edge Functions > Secrets):
+                Para que a troca de token funcione, você DEVE configurar as seguintes variáveis como **Secrets** no seu projeto Supabase (Configurações &gt; Edge Functions &gt; Secrets):
             </p>
             <ul className="list-disc list-inside mt-2 font-mono text-xs text-red-900">
                 <li>FACEBOOK_APP_ID (Também no .env.local)</li>
