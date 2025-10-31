@@ -448,16 +448,20 @@ const ProductDetail = () => {
                   {productImages.length > 1 && (
                     <div className="flex space-x-2 mt-4 overflow-x-auto pb-2">
                       {productImages.map((url, index) => (
-                        <img
-                          key={index}
-                          src={url}
-                          alt={`Miniatura ${index + 1} do produto ${product.name}`}
-                          className={`w-20 h-20 object-cover rounded cursor-pointer border-2 flex-shrink-0 ${
+                        <div 
+                          key={index} 
+                          className={`w-20 h-20 aspect-square flex-shrink-0 rounded cursor-pointer border-2 ${
                             mainImage === url ? 'border-blue-500' : 'border-gray-200'
                           }`}
                           onClick={() => setMainImage(url)}
-                          loading="lazy"
-                        />
+                        >
+                          <img
+                            src={url}
+                            alt={`Miniatura ${index + 1} do produto ${product.name}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
                       ))}
                     </div>
                   )}

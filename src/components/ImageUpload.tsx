@@ -125,13 +125,14 @@ const ImageUpload = ({
         {value.map((url, index) => (
           <Card key={index} className="relative overflow-hidden">
             <CardContent className="p-0">
+              {/* AQUI: Garantindo que o preview é quadrado */}
               <div className="aspect-square relative">
                 <img
                   src={url}
                   alt={`Imagem ${index + 1}`}
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
+                    e.currentTarget.src = defaultImage
                   }}
                 />
                 <Button
