@@ -108,18 +108,13 @@ const AdminMarketingCenter = () => {
       bgColor: 'bg-orange-50',
     }
   ], [stats])
-  
+
   // Função auxiliar para mudar a aba e preservar outros parâmetros
   const handleTabChange = (tab: string) => {
     setSearchParams(prev => {
       prev.set('tab', tab)
       return prev
     })
-  }
-  
-  // Função para o botão de ação rápida
-  const handleQuickAction = (tab: string) => {
-    handleTabChange(tab)
   }
 
   if (loading) {
@@ -159,7 +154,8 @@ const AdminMarketingCenter = () => {
                     </p>
                 </div>
                 <Button 
-                    onClick={() => handleQuickAction('content-machine')}
+                    // Chamada direta para setSearchParams
+                    onClick={() => handleTabChange('content-machine')}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
                     size="sm"
                 >
@@ -200,7 +196,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Use esta seção para agendar o envio de campanhas de e-mail manuais para toda a base de clientes.
                     </p>
-                    <Button onClick={() => handleQuickAction('social')} variant="outline" className="w-full">
+                    <Button onClick={() => handleTabChange('social')} variant="outline" className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
                         Ir para Agendamento Social
                     </Button>
@@ -217,7 +213,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Visualize funis de aquisição e palavras-chave de crescimento.
                     </p>
-                    <Button onClick={() => handleQuickAction('metrics')} className="w-full bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => handleTabChange('metrics')} className="w-full bg-purple-600 hover:bg-purple-700">
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Ver Métricas Avançadas
                     </Button>
