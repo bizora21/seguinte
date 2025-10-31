@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
@@ -12,7 +12,7 @@ import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegr
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
 import BlogPublishingTab from '../components/Marketing/BlogPublishingTab'
-import ContentMachineTab from '../components/Marketing/ContentMachineTab' // NOVO IMPORT
+import ContentMachineTab from '../components/Marketing/ContentMachineTab'
 
 interface MarketingStats {
   totalLeads: number
@@ -24,6 +24,9 @@ interface MarketingStats {
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') || 'leads' // Define a aba ativa, padrão para 'leads'
+  
   const [stats, setStats] = useState<MarketingStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -143,7 +146,7 @@ const AdminMarketingCenter = () => {
                     </p>
                 </div>
                 <Button 
-                    onClick={() => navigate('/dashboard/admin/marketing?tab=content-machine')}
+                    onClick={() => setSearchParams({ tab: 'content-machine' })}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
                     size="sm"
                 >
@@ -184,7 +187,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Use esta seção para agendar o envio de campanhas de e-mail manuais para toda a base de clientes.
                     </p>
-                    <Button onClick={() => navigate('/dashboard/admin/marketing?tab=social')} variant="outline" className="w-full">
+                    <Button onClick={() => setSearchParams({ tab: 'social' })} variant="outline" className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
                         Ir para Agendamento Social
                     </Button>
@@ -201,7 +204,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Visualize funis de aquisição e palavras-chave de crescimento.
                     </p>
-                    <Button onClick={() => navigate('/dashboard/admin/marketing?tab=metrics')} className="w-full bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => setSearchParams({ tab: 'metrics' })} className="w-full bg-purple-600 hover:bg-purple-700">
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Ver Métricas Avançadas
                     </Button>
@@ -210,7 +213,7 @@ const AdminMarketingCenter = () => {
         </div>
 
         {/* Tabs de Módulos */}
-        <Tabs defaultValue="leads" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(tab) => setSearchParams({ tab })} className="space-y-6">
           <TabsList className="grid w-full grid-cols-7 h-auto p-1">
             <TabsTrigger value="content-machine" className="py-2 text-xs sm:text-sm flex items-center">
                 <Zap className="w-4 h-4 mr-1" /> Máquina
