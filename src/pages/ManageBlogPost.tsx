@@ -133,8 +133,8 @@ const ManageBlogPost = () => {
     if (!validateForm()) return
 
     setSubmitting(true)
-    const action = isEditing ? 'Atualizando' : 'Criando'
-    const toastId = showLoading(`${action} artigo...`)
+    const actionText = isEditing ? 'Atualizando' : 'Criando'
+    const toastId = showLoading(`${actionText} artigo...`)
 
     try {
       const postData = {
@@ -181,6 +181,9 @@ const ManageBlogPost = () => {
       setSubmitting(false)
     }
   }
+  
+  // Variável corrigida para uso no JSX
+  const action = isEditing ? 'Atualizando' : 'Criando';
 
   if (loading) {
     return (
