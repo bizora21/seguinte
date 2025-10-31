@@ -60,7 +60,7 @@ const BlogPage = () => {
       const { data: postData, error: postError } = await query
 
       if (postError) throw postError
-      setPosts(data as BlogPostWithCategory[] || [])
+      setPosts(postData as BlogPostWithCategory[] || [])
 
     } catch (error) {
       console.error('Error fetching blog data:', error)
