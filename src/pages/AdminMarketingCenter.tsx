@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
-import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab' // NOVO IMPORT
+import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
+import BlogPublishingTab from '../components/Marketing/BlogPublishingTab' // NOVO IMPORT
 
 interface MarketingStats {
   totalLeads: number
@@ -203,6 +204,9 @@ const AdminMarketingCenter = () => {
             <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
                 <TrendingUp className="w-4 h-4 mr-1" /> Métricas
             </TabsTrigger>
+            <TabsTrigger value="blog" className="py-2 text-xs sm:text-sm flex items-center">
+                <Globe className="w-4 h-4 mr-1" /> Blog
+            </TabsTrigger>
             <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm flex items-center">
                 <Settings className="w-4 h-4 mr-1" /> Configurações
             </TabsTrigger>
@@ -228,7 +232,12 @@ const AdminMarketingCenter = () => {
             <AdvancedMetricsTab />
           </TabsContent>
           
-          {/* Tab 5: Integration Settings (NOVO) */}
+          {/* Tab 5: Blog Publishing (NOVO) */}
+          <TabsContent value="blog">
+            <BlogPublishingTab />
+          </TabsContent>
+          
+          {/* Tab 6: Integration Settings */}
           <TabsContent value="settings">
             <IntegrationSettingsTab />
           </TabsContent>
