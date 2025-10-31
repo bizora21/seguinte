@@ -12,11 +12,11 @@ import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute"; // Importar AdminRoute
-import LoadingSpinner from "./components/LoadingSpinner"; // Importar LoadingSpinner
+import AdminRoute from "./components/AdminRoute";
+import LoadingSpinner from "./components/LoadingSpinner";
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
-import LeadCapturePopup from "./components/LeadCapturePopup"; // NEW IMPORT
+import LeadCapturePopup from "./components/LeadCapturePopup";
 
 // Rotas Críticas (Carregamento Eager)
 import HomePage from "./pages/HomePage";
@@ -50,8 +50,8 @@ const TermosDeUsoPage = React.lazy(() => import("./pages/TermosDeUsoPage"));
 const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePrivacidadePage"));
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
-const VenderOnlineMocambique = React.lazy(() => import("./pages/blog/VenderOnlineMocambique"));
-const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost")); // NOVO IMPORT
+const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost"));
+const BlogDetail = React.lazy(() => import("./pages/BlogDetail")); // NOVO IMPORT
 
 const queryClient = new QueryClient();
 
@@ -150,7 +150,9 @@ const App = () => (
                       {/* ROTAS INFORMATIVAS */}
                       <Route path="/sobre-nos" element={<SobreNosPage />} />
                       <Route path="/blog" element={<BlogPage />} />
-                      <Route path="/blog/:slug" element={<VenderOnlineMocambique />} /> {/* Usando :slug para rotas dinâmicas */}
+                      {/* Rota de Artigo Dinâmico (NOVA) */}
+                      <Route path="/blog/:slug" element={<BlogDetail />} />
+                      
                       <Route path="/faq" element={<FaqPage />} />
                       <Route path="/contato" element={<ContatoPage />} />
                       {/* ROTAS DE ENCOMENDA */}

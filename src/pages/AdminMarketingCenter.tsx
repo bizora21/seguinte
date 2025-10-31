@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
@@ -11,7 +11,8 @@ import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
-import BlogPublishingTab from '../components/Marketing/BlogPublishingTab' // NOVO IMPORT
+import BlogPublishingTab from '../components/Marketing/BlogPublishingTab'
+import ContentMachineTab from '../components/Marketing/ContentMachineTab' // NOVO IMPORT
 
 interface MarketingStats {
   totalLeads: number
@@ -132,7 +133,26 @@ const AdminMarketingCenter = () => {
           <p className="text-gray-600 mt-2">Ferramentas de Growth Hacking para escalar a LojaRápida.</p>
         </div>
 
-        {/* 4. Central de Campanhas e Análise (Stats Dashboard) */}
+        {/* Ação Rápida: Centro de Marketing */}
+        <Card className="mb-8 bg-yellow-50 border-yellow-200">
+            <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                    <Zap className="w-6 h-6 text-yellow-600" />
+                    <p className="font-semibold text-yellow-800">
+                        Máquina de Conteúdo: Gere um artigo completo em segundos.
+                    </p>
+                </div>
+                <Button 
+                    onClick={() => navigate('/dashboard/admin/marketing?tab=content-machine')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    size="sm"
+                >
+                    Acessar Máquina <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                </Button>
+            </CardContent>
+        </Card>
+
+        {/* Estatísticas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           {statCards.map((stat, index) => (
             <Card key={index}>
@@ -191,9 +211,12 @@ const AdminMarketingCenter = () => {
 
         {/* Tabs de Módulos */}
         <Tabs defaultValue="leads" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-7 h-auto p-1">
+            <TabsTrigger value="content-machine" className="py-2 text-xs sm:text-sm flex items-center">
+                <Zap className="w-4 h-4 mr-1" /> Máquina
+            </TabsTrigger>
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
-                <Zap className="w-4 h-4 mr-1" /> Leads
+                <Users className="w-4 h-4 mr-1" /> Leads
             </TabsTrigger>
             <TabsTrigger value="email" className="py-2 text-xs sm:text-sm flex items-center">
                 <Send className="w-4 h-4 mr-1" /> E-mail
@@ -201,16 +224,21 @@ const AdminMarketingCenter = () => {
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
                 <Share2 className="w-4 h-4 mr-1" /> Social
             </TabsTrigger>
-            <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
-                <TrendingUp className="w-4 h-4 mr-1" /> Métricas
-            </TabsTrigger>
             <TabsTrigger value="blog" className="py-2 text-xs sm:text-sm flex items-center">
                 <Globe className="w-4 h-4 mr-1" /> Blog
+            </TabsTrigger>
+            <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
+                <TrendingUp className="w-4 h-4 mr-1" /> Métricas
             </TabsTrigger>
             <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm flex items-center">
                 <Settings className="w-4 h-4 mr-1" /> Configurações
             </TabsTrigger>
           </TabsList>
+          
+          {/* Tab 0: Content Machine */}
+          <TabsContent value="content-machine">
+            <ContentMachineTab />
+          </TabsContent>
           
           {/* Tab 1: Captura de Leads */}
           <TabsContent value="leads">
@@ -227,14 +255,14 @@ const AdminMarketingCenter = () => {
             <SocialMediaIntegrationTab />
           </TabsContent>
           
-          {/* Tab 4: Advanced Metrics */}
-          <TabsContent value="metrics">
-            <AdvancedMetricsTab />
-          </TabsContent>
-          
-          {/* Tab 5: Blog Publishing (NOVO) */}
+          {/* Tab 4: Blog Publishing */}
           <TabsContent value="blog">
             <BlogPublishingTab />
+          </TabsContent>
+          
+          {/* Tab 5: Advanced Metrics */}
+          <TabsContent value="metrics">
+            <AdvancedMetricsTab />
           </TabsContent>
           
           {/* Tab 6: Integration Settings */}
