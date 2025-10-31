@@ -156,7 +156,7 @@ const BlogPublishingTab = () => {
       if (updateError) throw updateError
 
       // 2. Gerar Schema.org (Simulação: Em um sistema real, isso seria feito no servidor ou no componente de visualização)
-      const schema = generateBlogPostingSchema(updatedPost)
+      const schema = generateBlogPostingSchema(updatedPost as BlogPost)
       console.log('Schema.org Gerado:', schema)
 
       // 3. Atualizar sitemap (simulação)
@@ -461,7 +461,7 @@ const BlogPublishingTab = () => {
                         <div className="flex flex-col">
                           <span className="text-gray-900">{post.title}</span>
                           <span className="text-xs text-gray-500 mt-1">
-                            Slug: <a className="text-blue-600 hover:underline" href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">{post.slug}</a>
+                            Slug: <Link className="text-blue-600 hover:underline" to={`/blog/${post.slug}`} target="_blank">{post.slug}</Link>
                           </span>
                         </div>
                       </TableCell>
