@@ -108,6 +108,19 @@ const AdminMarketingCenter = () => {
       bgColor: 'bg-orange-50',
     }
   ], [stats])
+  
+  // Função auxiliar para mudar a aba e preservar outros parâmetros
+  const handleTabChange = (tab: string) => {
+    setSearchParams(prev => {
+      prev.set('tab', tab)
+      return prev
+    })
+  }
+  
+  // Função para o botão de ação rápida
+  const handleQuickAction = (tab: string) => {
+    handleTabChange(tab)
+  }
 
   if (loading) {
     return (
@@ -146,7 +159,7 @@ const AdminMarketingCenter = () => {
                     </p>
                 </div>
                 <Button 
-                    onClick={() => setSearchParams({ tab: 'content-machine' })}
+                    onClick={() => handleQuickAction('content-machine')}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
                     size="sm"
                 >
@@ -187,7 +200,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Use esta seção para agendar o envio de campanhas de e-mail manuais para toda a base de clientes.
                     </p>
-                    <Button onClick={() => setSearchParams({ tab: 'social' })} variant="outline" className="w-full">
+                    <Button onClick={() => handleQuickAction('social')} variant="outline" className="w-full">
                         <Share2 className="w-4 h-4 mr-2" />
                         Ir para Agendamento Social
                     </Button>
@@ -204,7 +217,7 @@ const AdminMarketingCenter = () => {
                     <p className="text-sm text-gray-600 mb-4">
                         Visualize funis de aquisição e palavras-chave de crescimento.
                     </p>
-                    <Button onClick={() => setSearchParams({ tab: 'metrics' })} className="w-full bg-purple-600 hover:bg-purple-700">
+                    <Button onClick={() => handleQuickAction('metrics')} className="w-full bg-purple-600 hover:bg-purple-700">
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Ver Métricas Avançadas
                     </Button>
@@ -213,7 +226,7 @@ const AdminMarketingCenter = () => {
         </div>
 
         {/* Tabs de Módulos */}
-        <Tabs value={activeTab} onValueChange={(tab) => setSearchParams({ tab })} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-7 h-auto p-1">
             <TabsTrigger value="content-machine" className="py-2 text-xs sm:text-sm flex items-center">
                 <Zap className="w-4 h-4 mr-1" /> Máquina
