@@ -42,6 +42,7 @@ import LoadingSpinner from '../LoadingSpinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog'
+import { useNavigate } from 'react-router-dom' // Importar useNavigate
 
 // Interface para o artigo completo
 interface BlogPost {
@@ -91,6 +92,7 @@ interface BlogPostingSchema {
 }
 
 const BlogPublishingTab = () => {
+  const navigate = useNavigate() // Inicializar useNavigate
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
@@ -376,7 +378,7 @@ const BlogPublishingTab = () => {
           {/* Ações e Filtros */}
           <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0 md:space-x-4">
             <div className="flex space-x-2 w-full md:w-auto">
-              <Button onClick={() => showError('Funcionalidade de criação de artigo em desenvolvimento.')} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => navigate('/dashboard/admin/blog/new')} className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Artigo
               </Button>
@@ -459,7 +461,7 @@ const BlogPublishingTab = () => {
                         <div className="flex flex-col">
                           <span className="text-gray-900">{post.title}</span>
                           <span className="text-xs text-gray-500 mt-1">
-                            Slug: <Link className="text-blue-600 hover:underline" to={`/blog/${post.slug}`} target="_blank">{post.slug}</Link>
+                            Slug: <a className="text-blue-600 hover:underline" href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">{post.slug}</a>
                           </span>
                         </div>
                       </TableCell>
@@ -473,7 +475,7 @@ const BlogPublishingTab = () => {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => showError('Funcionalidade de edição em desenvolvimento.')}
+                          onClick={() => navigate(`/dashboard/admin/blog/edit/${post.slug}`)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>

@@ -29,7 +29,7 @@ const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
 const LojasPage = React.lazy(() => import("./pages/LojasPage"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
-const AdminMarketingCenter = React.lazy(() => import("./pages/AdminMarketingCenter")); // NEW IMPORT
+const AdminMarketingCenter = React.lazy(() => import("./pages/AdminMarketingCenter"));
 const ManageProduct = React.lazy(() => import("./pages/ManageProduct"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
 const Cart = React.lazy(() => import("./pages/Cart"));
@@ -51,6 +51,7 @@ const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePri
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
 const VenderOnlineMocambique = React.lazy(() => import("./pages/blog/VenderOnlineMocambique"));
+const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost")); // NOVO IMPORT
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,23 @@ const App = () => (
                           </AdminRoute>
                         } 
                       />
+                      {/* ROTAS DE BLOG ADMIN */}
+                      <Route 
+                        path="/dashboard/admin/blog/new" 
+                        element={
+                          <AdminRoute>
+                            <ManageBlogPost />
+                          </AdminRoute>
+                        } 
+                      />
+                      <Route 
+                        path="/dashboard/admin/blog/edit/:slug" 
+                        element={
+                          <AdminRoute>
+                            <ManageBlogPost />
+                          </AdminRoute>
+                        } 
+                      />
                       
                       {/* Rota de Cliente (Usando /lojas como área principal do cliente) */}
                       <Route 
@@ -132,7 +150,7 @@ const App = () => (
                       {/* ROTAS INFORMATIVAS */}
                       <Route path="/sobre-nos" element={<SobreNosPage />} />
                       <Route path="/blog" element={<BlogPage />} />
-                      <Route path="/blog/vender-online-mocambique" element={<VenderOnlineMocambique />} />
+                      <Route path="/blog/:slug" element={<VenderOnlineMocambique />} /> {/* Usando :slug para rotas dinâmicas */}
                       <Route path="/faq" element={<FaqPage />} />
                       <Route path="/contato" element={<ContatoPage />} />
                       {/* ROTAS DE ENCOMENDA */}
