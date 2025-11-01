@@ -35,7 +35,7 @@ const ContentMachineTab = () => {
     try {
       const { data, error } = await supabase
         .from('blog_categories')
-        .select('id, name, slug')
+        .select('id, name, slug, created_at')
       
       if (error) throw error
       setCategories(data || [])
