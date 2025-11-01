@@ -23,13 +23,18 @@ import {
   ArrowUp,
   ArrowDown,
   Tag,
-  Settings
+  Settings,
+  Target, // Adicionado
+  TrendingUp,
+  MapPin,
+  Zap,
+  ArrowRight // Adicionado
 } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../LoadingSpinner'
 import { useNavigate } from 'react-router-dom'
-import { BlogCategory } from '../../types/blog'
+import { BlogCategory, AIGeneratedContent } from '../../types/blog'
 import OptimizedImageUpload from './OptimizedImageUpload'
 
 const ContentMachineTab = () => {
@@ -42,7 +47,7 @@ const ContentMachineTab = () => {
   const [categories, setCategories] = useState<BlogCategory[]>([])
   
   // Estados para preview do conteúdo gerado
-  const [previewContent, setPreviewContent] = useState<any>(null)
+  const [previewContent, setPreviewContent] = useState<AIGeneratedContent | null>(null)
   const [imageUrl, setImageUrl] = useState('')
   const [imageAltText, setImageAltText] = useState('')
   const [imagePrompt, setImagePrompt] = useState('')
@@ -138,7 +143,7 @@ Localização: ${contextMap[localContext]}
 
       if (error) throw error
       
-      const content = data.data
+      const content = data.data as AIGeneratedContent
       
       // Encontrar categoria sugerida
       const suggestedCategory = categories.find(c => 
@@ -204,6 +209,9 @@ Localização: ${contextMap[localContext]}
             <Target className="w-6 h-6 mr-2" />
             Hub de Conteúdo Avançado e Localizado
           </CardTitle>
+          <p className="text-sm text-green-700">
+            Gere conteúdo otimizado para SEO local, Google Discover e o mercado moçambicano
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,10 +262,22 @@ Localização: ${contextMap[localContext]}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="maputo">Maputo e Região</SelectItem>
-                  <SelectItem value="beira">Beira e Sofala</SelectItem>
-                  <SelectItem value="nampula">Nampula e Norte</SelectItem>
-                  <SelectItem value="nacional">Nacional (Todo MZ)</SelectItem>
+                  <SelectItem value="maputo">
+                    <MapPin className="w-4 h-4 mr-2 inline" />
+                    Maputo e Região
+                  </SelectItem>
+                  <SelectItem value="beira">
+                    <MapPin className="w-4 h-4 mr-2 inline" />
+                    Beira e Sofala
+                  </SelectItem>
+                  <SelectItem value="nampula">
+                    <MapPin className="w-4 h-4 mr-2 inline" />
+                    Nampula e Norte
+                  </SelectItem>
+                  <SelectItem value="nacional">
+                    <Globe className="w-4 h-4 mr-2 inline" />
+                    Nacional (Todo MZ)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -276,7 +296,7 @@ Localização: ${contextMap[localContext]}
               </>
             ) : (
               <>
-                <Globe className="w-5 h-5 mr-2" />
+                <Zap className="w-5 h-5 mr-2" />
                 Gerar Artigo Hiper-Localizado
               </>
             )}
