@@ -23,7 +23,7 @@ const supabase = createClient(
 )
 
 // URL CORRIGIDA para o endpoint de chat completion da GLM (Zhipu AI)
-const GLM_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
+const GLM_API_URL = 'https://api.z.ai/api/coding/paas/v4'
 // @ts-ignore
 const GLM_API_KEY = Deno.env.get('GLM_API_KEY')
 // @ts-ignore
@@ -69,7 +69,7 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
         return JSON.parse(rawText);
     } catch (e) {
         console.error("Erro ao parsear JSON da GLM:", e);
-        throw new Error("A GLM não retornou o JSON estruturado corretamente. Resposta bruta: " + rawText.substring(0, 200));
+        throw new Error("A GLM não retornou o JSON estruturado corretamente.");
     }
 }
 
