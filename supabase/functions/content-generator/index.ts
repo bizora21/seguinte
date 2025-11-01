@@ -33,10 +33,9 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 // @ts-ignore
 async function callGlmApi(prompt: string, model: string = 'glm-4') {
     if (!GLM_API_KEY) {
-        throw new Error("GLM_API_KEY não configurada.");
+        throw new Error("GLM_API_KEY não configurada nos secrets.");
     }
     
-    // Simulação de chamada real (com a URL correta da GLM)
     const response = await fetch(GLM_API_URL, {
         method: 'POST',
         headers: {
@@ -71,6 +70,41 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
         throw new Error("A GLM não retornou o JSON estruturado corretamente.");
     }
 }
+
+// Função auxiliar para chamar a API DALL-E
+// @ts-ignore
+async function callDalleApi(prompt: string) {
+    if (!OPENAI_API_KEY) {
+        // Se a chave estiver faltando, retornamos null para que o processo continue sem imagem
+        console.warn("OPENAI_API_KEY não configurada. Pulando geração de imagem.");
+        return null;
+    }
+    
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: prompt,
+            n: 1,
+            size: '1024x1024',
+            response_format: 'url',
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json();
+        console.error(`Falha na API DALL-E: ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
+        return null; // Retorna null em caso de falha na API de imagem
+    }
+
+    const data = await response.json();
+    return data.data?.[0]?.url || null;
+}
+
 
 // @ts-ignore
 serve(async (req) => {
@@ -134,71 +168,16 @@ Retorne suas respostas em um único objeto JSON estruturado exatamente como abai
 `;
     // --- FIM DO PROMPT AVANÇADO HUMANIZADO ---
 
-    // --- SIMULAÇÃO DE CHAMADA À GLM (Substituir por callGlmApi(promptAvancado)) ---
-    // Definindo o tipo do mock para incluir secondary_keywords como array
-    const articleData = {
-        title: `Guia Definitivo: Como Vender ${keyword} Online em Moçambique e Multiplicar Seus Lucros`,
-        meta_description: `Descubra as melhores estratégias para vender ${keyword} online em Moçambique. Guia completo com dicas de logística, pagamento na entrega e SEO local.`,
-        content: `
-# Guia Definitivo: Como Vender **${keyword}** Online em Moçambique e Multiplicar Seus Lucros
+    // --- PASSO 1: Geração do Artigo Principal ---
+    const articleData = await callGlmApi(promptAvancado);
 
-O mercado de **${keyword}** em Moçambique está em plena expansão. Se você é um empreendedor moçambicano, este é o momento de levar seu negócio para o digital. A LojaRápida oferece a plataforma ideal para você **vender online em Moçambique** com segurança e eficiência.
-
-## 1. Entendendo o Consumidor Moçambicano
-
-O consumidor em Maputo, Matola e Beira valoriza a confiança. É por isso que o modelo de Pagamento na Entrega (COD) é crucial.
-
-### 1.1. A Importância do Pagamento na Entrega
-A maioria dos clientes prefere pagar apenas ao receber o produto. Isso elimina a barreira de confiança e acelera a decisão de compra.
-
-## 2. Estratégias de Logística e Entrega
-
-Para **crescer negócio** em Moçambique, a logística deve ser impecável.
-
-*   **Embalagem:** Use embalagens resistentes para proteger seus **${keyword}** durante o transporte.
-*   **Rastreamento:** Mantenha o cliente informado sobre o status do pedido.
-
-## 3. Otimização de Produtos na LojaRápida
-
-Para garantir que seus produtos sejam encontrados, siga estas dicas de SEO:
-
-1.  **Título:** Use a palavra-chave principal (ex: **${keyword}**) no título.
-2.  **Descrição:** Seja detalhado. Mencione a garantia e as especificações técnicas.
-3.  **Imagens:** Use fotos de alta qualidade.
-
-## Conclusão
-
-Vender **${keyword}** online em Moçambique nunca foi tão fácil. Com a plataforma certa e as estratégias de **empreendedorismo moçambicano** corretas, você pode alcançar clientes em todas as províncias.
-
-[CTA: Comece a Vender Agora na LojaRápida](https://lojarapidamz.com/register)
-`,
-        external_links: [
-            { title: 'Estatísticas de E-commerce em África', url: 'https://example.com/africa-ecommerce' },
-            { title: 'Guia de Pagamentos M-Pesa', url: 'https://example.com/mpesa-guide' }
-        ],
-        internal_links: [
-            { title: 'Ver Produtos de Tecnologia', url: '/produtos?categoria=eletronicos' },
-            { title: 'Política do Vendedor', url: '/politica-vendedor' }
-        ],
-        suggested_category: 'E-commerce e Vendas Online',
-        seo_score: 92,
-        readability_score: 'Excelente',
-        image_prompt: `A high-quality, professional photograph of a successful Mozambican entrepreneur in Maputo, standing proudly next to a display of modern ${keyword} products. The scene is brightly lit with natural light, clean background, shallow depth of field. The entrepreneur is smiling and wearing business casual attire. Negative prompt: text, logos, blurry, low resolution, cartoon, watermark.`,
-        secondary_keywords: ['vender online em Moçambique', 'empreendedorismo moçambicano', 'crescer negócio']
-    };
-    // --- FIM DA SIMULAÇÃO ---
-
-    // --- PASSO 2: Geração do Prompt de Imagem (Já incluído no JSON simulado) ---
+    // --- PASSO 2: Geração do Prompt de Imagem (Já incluído no JSON) ---
     const imagePrompt = articleData.image_prompt;
     let generatedImageUrl = null;
 
-    // --- PASSO 3: Geração da Imagem (Simulação) ---
-    if (OPENAI_API_KEY && imagePrompt) {
-        // Lógica para chamar a API DALL-E 3 (ou outra)
-        // generatedImageUrl = imageData.data[0].url;
-        
-        // MOCK: Retorna uma URL de imagem baseada no prompt
-        generatedImageUrl = `https://picsum.photos/seed/${encodeURIComponent(imagePrompt.substring(0, 50))}/1200/675`;
+    // --- PASSO 3: Geração da Imagem (DALL-E) ---
+    if (imagePrompt) {
+        generatedImageUrl = await callDalleApi(imagePrompt);
     }
 
     // --- PASSO 4: Estruturação da Resposta Final ---
