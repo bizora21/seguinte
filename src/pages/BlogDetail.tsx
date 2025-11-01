@@ -148,8 +148,9 @@ const BlogDetail = () => {
     )
   }
   
-  const externalLinks: LinkItem[] = (post.external_links as unknown as LinkItem[]) || []
-  const internalLinks: LinkItem[] = (post.internal_links as unknown as LinkItem[]) || []
+  // CORREÇÃO: Usar optional chaining e nullish coalescing para garantir que os links são arrays
+  const externalLinks: LinkItem[] = (post.external_links as unknown as LinkItem[] || [])
+  const internalLinks: LinkItem[] = (post.internal_links as unknown as LinkItem[] || [])
 
   return (
     <>

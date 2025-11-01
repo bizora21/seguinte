@@ -104,7 +104,8 @@ const ContentMachineTab = () => {
       
       if (error) throw error
       
-      setSeoSuggestions(data.data.suggestions || [])
+      // CORREÇÃO: Usar optional chaining para acessar suggestions
+      setSeoSuggestions(data?.data?.suggestions || [])
     } catch (error) {
       console.error('Error fetching SEO suggestions:', error)
       setSeoSuggestions([{ id: 99, suggestion: 'Erro ao carregar sugestões de SEO.' }])
@@ -148,7 +149,15 @@ const ContentMachineTab = () => {
       
       const content = data.data as AIGeneratedContent & { image_prompt: string }
       
-      setPreviewContent(content)
+      // CORREÇÃO: Garantir que os arrays de links existem
+      const safeContent: AIGeneratedContent = {
+        ...content,
+        external_links: content.external_links || [],
+        internal_links: content.internal_links || [],
+        secondary_keywords: content.secondary_keywords || [],
+      }
+      
+      setPreviewContent(safeContent)
       setImagePrompt(content.image_prompt)
       
       dismissToast(toastId)
@@ -475,11 +484,13 @@ const ContentMachineTab = () => {
                   <div className="text-xs text-gray-600">Legibilidade</div>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{previewContent.external_links.length}</div>
+                  {/* CORREÇÃO: Usar optional chaining e nullish coalescing */}
+                  <div className="text-2xl font-bold text-purple-600">{previewContent.external_links?.length ?? 0}</div>
                   <div className="text-xs text-gray-600">Links Externos</div>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">{previewContent.internal_links.length}</div>
+                  {/* CORREÇÃO: Usar optional chaining e nullish coalescing */}
+                  <div className="text-2xl font-bold text-orange-600">{previewContent.internal_links?.length ?? 0}</div>
                   <div className="text-xs text-gray-600">Links Internos</div>
                 </div>
               </CardContent>

@@ -109,6 +109,10 @@ const ManageBlogPost = () => {
                 ? aiContent.secondary_keywords.join(', ') 
                 : '';
 
+            // CORREÇÃO DE ERRO: Garantir que links são arrays antes de stringify
+            const externalLinksJson = JSON.stringify(aiContent.external_links || [], null, 2);
+            const internalLinksJson = JSON.stringify(aiContent.internal_links || [], null, 2);
+
             setFormData({
               title: aiContent.title,
               slug: aiContent.slug,
@@ -122,8 +126,8 @@ const ManageBlogPost = () => {
               image_prompt: aiContent.image_prompt,
               seo_score: aiContent.seo_score,
               readability_score: aiContent.readability_score,
-              external_links: JSON.stringify(aiContent.external_links || [], null, 2),
-              internal_links: JSON.stringify(aiContent.internal_links || [], null, 2)
+              external_links: externalLinksJson,
+              internal_links: internalLinksJson
             })
             showSuccess('Conteúdo hiper-localizado carregado! Revise e publique.')
             localStorage.removeItem('ai_generated_post')
@@ -165,6 +169,7 @@ const ManageBlogPost = () => {
         image_prompt: data.image_prompt || '',
         seo_score: data.seo_score || 0,
         readability_score: data.readability_score || 'N/A',
+        // CORREÇÃO: Garantir que os dados do banco são tratados como arrays antes de stringify
         external_links: JSON.stringify(data.external_links || [], null, 2),
         internal_links: JSON.stringify(data.internal_links || [], null, 2)
       })
@@ -319,7 +324,7 @@ const ManageBlogPost = () => {
     else if (formData.featured_image_url) score += 8
     
     // Palavras-chave (10 pontos)
-    const keywordCount = formData.secondary_keywords.split(',').filter(k => k.trim()).length
+    const keywordCount = formData.secondary_keywords.split(',').map(k => k.trim()).filter(k => k.length > 0).length
     if (keywordCount >= 5) score += 10
     else if (keywordCount >= 3) score += 7
     
@@ -328,10 +333,16 @@ const ManageBlogPost = () => {
     
     // Links (10 pontos)
     try {
-      const extLinks = JSON.parse(formData.external_links)
-      const intLinks = JSON.parse(formData.internal_links)
-      if (extLinks.length >= 2 && intLinks.length >= 2) score += 10
-      else if (extLinks.length >= 1 || intLinks.length >= 1) score += 5
+      // CORREÇÃO: Usar optional chaining e nullish coalescing para garantir que o JSON.parse não falhe
+      const extLinks = JSON.parse(formData.external_links || '[]') as LinkItem[]
+      const intLinks = JSON.parse(formData.internal_links || '[]') as LinkItem[]
+      
+      // CORREÇÃO: Garantir que são arrays antes de acessar length
+      const extCount = Array.isArray(extLinks) ? extLinks.length : 0;
+      const intCount = Array.isArray(intLinks) ? intLinks.length : 0;
+      
+      if (extCount >= 2 && intCount >= 2) score += 10
+      else if (extCount >= 1 || intCount >= 1) score += 5
     } catch {}
     
     return Math.min(100, score)
