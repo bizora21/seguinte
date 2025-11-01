@@ -114,6 +114,9 @@ serve(async (req) => {
   
   const url = new URL(req.url);
   const keyword = url.searchParams.get('keyword');
+  const context = url.searchParams.get('context') || 'Moçambique';
+  const audience = url.searchParams.get('audience') || 'Empreendedores';
+  const type = url.searchParams.get('type') || 'Guia prático';
   
   // 1. Autenticação (Admin apenas)
   const authHeader = req.headers.get('Authorization')
@@ -128,36 +131,25 @@ serve(async (req) => {
   try {
     console.log(`Gerando conteúdo para: ${keyword}`)
     
-    // --- PROMPT AVANÇADO HUMANIZADO ---
+    // --- PROMPT OTIMIZADO PARA VELOCIDADE ---
     const promptAvancado = `
-Você é um jornalista moçambicano, especialista em SEO e contador de histórias. Sua missão é escrever um artigo para o blog da LojaRápida que seja tão humano e envolvente que o leitor sentirá que foi escrito por um amigo.
+Crie um artigo de blog para a LojaRápida (marketplace de Moçambique). Adote um tom humano, conversacional e de especialista moçambicano.
 
-Palavra-chave principal: "${keyword}"
+Foco: "${keyword}". Contexto: ${context}. Público: ${audience}. Tipo: ${type}.
 
-**REGRAS CRÍTICAS:**
+Instruções:
+1. Gere APENAS o conteúdo final, sem rótulos ou explicações.
+2. Use referências locais de Moçambique (cidades, cultura).
+3. Formate com markdown (**negrito**, *itálico*). Links: [texto](URL).
+4. Estrutura: Título H1, Intro, Corpo (min 1200 palavras, H2/H3, listas), Conclusão com CTA.
+5. SEO: Otimize para "${keyword}" e secundárias: "vender online em Moçambique", "empreendedorismo moçambicano". Crie uma meta descrição (max 160 chars).
 
-1.  **NÃO INCLUA RÓTULOS:** Gere APENAS o conteúdo final. NÃO inclua no seu retorno textos como "Título:", "Introdução:", "Corpo do Texto:", "Meta Descrição:", etc. O sistema se encarrega de separar os campos.
-
-2.  **Humanização Absoluta:** Escreva como se estivesse contando uma história para um amigo. Use uma linguagem que soa como uma conversa, com frases mais curtas em alguns momentos e mais longas em outros. Use referências a cidades, culturas e a realidade de Moçambique para criar conexão. Evite uma estrutura formal de ensaio.
-
-3.  **Formatação:** Use markdown para negrito (**palavra**) e itálico (*palavra*). Integre os links diretamente no texto, no formato [texto âncora](URL).
-
-4.  **Estrutura de Conteúdo:**
-    - Crie um título (H1) que seja pergunta e promessa.
-    - Escreva uma introdução com um gancho forte.
-    - Desenvolva o corpo com subtítulos (H2, H3), listas e parágrafos profundos (mínimo 1200 palavras).
-    - Termine com uma conclusão poderosa e um CTA para a LojaRápida.
-
-5.  **SEO:** Use a palavra-chave "${keyword}" de forma natural. Inclua as palavras-chave secundárias: "vender online em Moçambique", "empreendedorismo moçambicano", "crescer negócio".
-
-**FORMATO DE SAÍDA OBRIGATÓRIO:**
-Retorne suas respostas em um único objeto JSON estruturado exatamente como abaixo. Se um campo não for aplicável, retorne uma string vazia "".
-
+Retorne um único objeto JSON, estritamente no formato:
 {
   "title": "O título H1 do artigo aqui",
   "meta_description": "A meta descrição (até 160 caracteres) aqui",
-  "content": "O artigo completo em markdown aqui, com títulos, links, etc.",
-  "image_prompt": "Um prompt detalhado em inglês para uma imagem de destaque sobre o tema do artigo.",
+  "content": "O artigo completo em markdown aqui.",
+  "image_prompt": "Um prompt detalhado em inglês para uma imagem de destaque.",
   "secondary_keywords": ["palavra1", "palavra2", "palavra3", "palavra4", "palavra5"],
   "external_links": [{"title": "Exemplo", "url": "https://example.com"}],
   "internal_links": [{"title": "Exemplo", "url": "/exemplo"}],
@@ -166,7 +158,7 @@ Retorne suas respostas em um único objeto JSON estruturado exatamente como abai
   "readability_score": "Excelente"
 }
 `;
-    // --- FIM DO PROMPT AVANÇADO HUMANIZADO ---
+    // --- FIM DO PROMPT OTIMIZADO ---
 
     // --- PASSO 1: Geração do Artigo Principal ---
     const articleData = await callGlmApi(promptAvancado);
