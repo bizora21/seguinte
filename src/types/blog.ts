@@ -18,6 +18,7 @@ export interface BlogPost {
   content: string
   status: 'draft' | 'published'
   featured_image_url: string | null
+  image_alt_text: string | null
   external_links: LinkItem[]
   internal_links: LinkItem[]
   secondary_keywords: string[]
@@ -43,7 +44,7 @@ export interface AIGeneratedContent {
   secondary_keywords: string[]
   external_links: LinkItem[]
   internal_links: LinkItem[]
-  suggested_category: string // Name of the suggested category
+  suggested_category: string
   seo_score: number
   readability_score: string
 }

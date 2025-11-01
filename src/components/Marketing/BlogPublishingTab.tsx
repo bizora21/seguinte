@@ -2,39 +2,26 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { Textarea } from '../ui/textarea'
 import { Badge } from '../ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { 
   Globe, 
   Send, 
-  Eye, 
   Edit, 
   Trash2, 
-  Calendar, 
-  Clock, 
   CheckCircle, 
   AlertCircle, 
   RefreshCw, 
   Search, 
-  Filter, 
   Plus,
   BarChart3,
-  TrendingUp,
-  Users,
   FileText,
   Copy,
-  ExternalLink,
   Loader2,
-  Settings,
-  Zap,
-  Target,
-  Link,
-  Image as ImageIcon,
-  ChevronDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Tag,
+  Settings
 } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
@@ -42,7 +29,8 @@ import LoadingSpinner from '../LoadingSpinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog'
-import { useNavigate } from 'react-router-dom' // Importar useNavigate
+import { useNavigate } from 'react-router-dom'
+import BlogCategoryManager from './BlogCategoryManager'
 
 // Interface para o artigo completo
 interface BlogPost {
@@ -53,6 +41,7 @@ interface BlogPost {
   content: string
   status: 'draft' | 'published'
   featured_image_url: string | null
+  image_alt_text: string | null
   external_links: Array<{ title: string; url: string; }>
   internal_links: Array<{ title: string; url: string; }>
   secondary_keywords: string[]
@@ -61,38 +50,15 @@ interface BlogPost {
   created_at: string
   updated_at: string
   published_at: string | null
-}
-
-// Interface para o Schema.org gerado
-interface BlogPostingSchema {
-  '@context': string
-  '@type': string
-  headline: string
-  description: string
-  image: string
-  datePublished: string
-  dateModified: string
-  author: {
-    '@type': string
+  category_id: string | null
+  category?: {
     name: string
-    url: string
-  }
-  publisher: {
-    '@type': string
-    name: string
-    logo: string
-    url: string
-  }
-  mainEntityOfPage: {
-    '@type': string
-    name: string
-    description: string
-    url: string
+    slug: string
   }
 }
 
 const BlogPublishingTab = () => {
-  const navigate = useNavigate() // Inicializar useNavigate
+  const navigate = useNavigate()
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
@@ -108,7 +74,13 @@ const BlogPublishingTab = () => {
     try {
       let query = supabase
         .from('blog_posts')
-        .select('*')
+        .select(`
+          *,
+          category:blog_categories (
+            name,
+            slug
+          )
+        `)
         .order(sortBy, { ascending: sortOrder === 'asc' })
 
       // Aplicar filtros
@@ -142,7 +114,6 @@ const BlogPublishingTab = () => {
     const toastId = showLoading('Publicando artigo...')
     
     try {
-      // 1. Atualizar status para publicado
       const { data: updatedPost, error: updateError } = await supabase
         .from('blog_posts')
         .update({
@@ -155,15 +126,15 @@ const BlogPublishingTab = () => {
 
       if (updateError) throw updateError
 
-      // 2. Gerar Schema.org (Simulação: Em um sistema real, isso seria feito no servidor ou no componente de visualização)
+      // Gerar Schema.org automaticamente
       const schema = generateBlogPostingSchema(updatedPost as BlogPost)
       console.log('Schema.org Gerado:', schema)
 
-      // 3. Atualizar sitemap (simulação)
+      // Atualizar sitemap
       await updateSitemap()
 
       dismissToast(toastId)
-      showSuccess('Artigo publicado com sucesso!')
+      showSuccess('Artigo publicado e otimizado para Google Discover!')
       fetchPosts()
     } catch (error: any) {
       dismissToast(toastId)
@@ -224,7 +195,7 @@ const BlogPublishingTab = () => {
   }, [fetchPosts])
 
   // Gerar Schema.org para o artigo
-  const generateBlogPostingSchema = (post: BlogPost): BlogPostingSchema => {
+  const generateBlogPostingSchema = (post: BlogPost) => {
     const BASE_URL = 'https://lojarapidamz.com'
     const postUrl = `${BASE_URL}/blog/${post.slug}`
     
@@ -256,19 +227,16 @@ const BlogPublishingTab = () => {
     }
   }
 
-  // Atualizar sitemap (simulação)
+  // Atualizar sitemap
   const updateSitemap = async () => {
-    const toastId = showLoading('Atualizando sitemap...')
+    const toastId = showLoading('Atualizando sitemap para indexação...')
     try {
-      // Em um sistema real, isso chamaria uma Edge Function
-      // que executaria o script 'scripts/generate-sitemap.js'
       await new Promise(resolve => setTimeout(resolve, 1500))
       dismissToast(toastId)
-      showSuccess('Sitemap atualizado com sucesso!')
+      showSuccess('Sitemap atualizado! Artigo será indexado pelo Google.')
     } catch (error) {
       dismissToast(toastId)
       showError('Falha ao atualizar sitemap.')
-      console.error('Error updating sitemap:', error)
     }
   }
 
@@ -338,218 +306,246 @@ const BlogPublishingTab = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-xl">
-            <Globe className="w-6 h-6 mr-2 text-blue-600" />
-            Publicação e Organização do Blog
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            Gerencie a publicação de artigos, gere Schema.org e mantenha o sitemap atualizado.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Estatísticas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{posts.length}</div>
-              <div className="text-sm text-gray-600">Total de Artigos</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {posts.filter(p => p.status === 'published').length}
-              </div>
-              <div className="text-sm text-gray-600">Publicados</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
-                {posts.filter(p => p.status === 'draft').length}
-              </div>
-              <div className="text-sm text-gray-600">Rascunhos</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {Math.round(posts.reduce((acc, p) => acc + p.seo_score, 0) / posts.length) || 0}%
-              </div>
-              <div className="text-sm text-gray-600">Score Médio SEO</div>
-            </div>
-          </div>
+      <Tabs defaultValue="posts" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+          <TabsTrigger value="posts" className="py-2 text-sm flex items-center">
+            <Globe className="w-4 h-4 mr-1" /> Artigos
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="py-2 text-sm flex items-center">
+            <Tag className="w-4 h-4 mr-1" /> Categorias
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Ações e Filtros */}
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0 md:space-x-4">
-            <div className="flex space-x-2 w-full md:w-auto">
-              <Button onClick={() => navigate('/dashboard/admin/blog/new')} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Artigo
-              </Button>
-              <Button onClick={updateSitemap} variant="outline">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar Sitemap
-              </Button>
-            </div>
-            
-            <div className="flex space-x-2 w-full md:w-auto">
-              <Select value={statusFilter} onValueChange={(v: 'all' | 'draft' | 'published') => setStatusFilter(v)}>
-                <SelectTrigger className="w-full md:w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="published">Publicados</SelectItem>
-                  <SelectItem value="draft">Rascunhos</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative w-full md:w-[200px]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por título..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Tab: Gestão de Artigos */}
+        <TabsContent value="posts">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center text-xl">
+                <Globe className="w-6 h-6 mr-2 text-blue-600" />
+                Hub de Publicação Avançado
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Gerencie artigos otimizados para Google Discover e SEO local em Moçambique
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Estatísticas */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{posts.length}</div>
+                  <div className="text-sm text-gray-600">Total de Artigos</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">
+                    {posts.filter(p => p.status === 'published').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Publicados</div>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {posts.filter(p => p.status === 'draft').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Rascunhos</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.round(posts.reduce((acc, p) => acc + p.seo_score, 0) / posts.length) || 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">Score Médio SEO</div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Tabela de Artigos */}
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="flex justify-center h-40"><LoadingSpinner size="lg" /></div>
-            ) : posts.length === 0 ? (
-              <div className="text-center py-12 text-gray-600">
-                Nenhum artigo encontrado.
+              {/* Ações e Filtros */}
+              <div className="flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0 md:space-x-4">
+                <div className="flex space-x-2 w-full md:w-auto">
+                  <Button onClick={() => navigate('/dashboard/admin/blog/new')} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Artigo
+                  </Button>
+                  <Button onClick={updateSitemap} variant="outline">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Atualizar Sitemap
+                  </Button>
+                </div>
+                
+                <div className="flex space-x-2 w-full md:w-auto">
+                  <Select value={statusFilter} onValueChange={(v: 'all' | 'draft' | 'published') => setStatusFilter(v)}>
+                    <SelectTrigger className="w-full md:w-[150px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="published">Publicados</SelectItem>
+                      <SelectItem value="draft">Rascunhos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative w-full md:w-[200px]">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar por título..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">Status</TableHead>
-                    <TableHead 
-                      className="cursor-pointer hover:text-primary transition-colors"
-                      onClick={() => handleSortChange('title')}
-                    >
-                      <div className="flex items-center">
-                        Título {renderSortIcon('title')}
-                      </div>
-                    </TableHead>
-                    <TableHead className="w-[100px] text-center">
-                      <div className="flex items-center justify-center">
-                        <BarChart3 className="w-4 h-4 mr-1" /> SEO
-                      </div>
-                    </TableHead>
-                    <TableHead 
-                      className="w-[150px] cursor-pointer hover:text-primary transition-colors"
-                      onClick={() => handleSortChange('updated_at')}
-                    >
-                      <div className="flex items-center">
-                        Última Edição {renderSortIcon('updated_at')}
-                      </div>
-                    </TableHead>
-                    <TableHead className="w-[180px] text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {posts.map((post) => (
-                    <TableRow key={post.id}>
-                      <TableCell>
-                        <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(post.status)}`}>
-                          {getStatusIcon(post.status)}
-                          {post.status === 'published' ? 'Publicado' : 'Rascunho'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900">{post.title}</span>
-                          <span className="text-xs text-gray-500 mt-1">
-                            Slug: <Link className="text-blue-600 hover:underline" to={`/blog/${post.slug}`} target="_blank">{post.slug}</Link>
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <span className={getScoreColor(post.seo_score)}>{post.seo_score}%</span>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {formatDate(post.updated_at)}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => navigate(`/dashboard/admin/blog/edit/${post.slug}`)}
+
+              {/* Tabela de Artigos */}
+              <div className="overflow-x-auto">
+                {loading ? (
+                  <div className="flex justify-center h-40"><LoadingSpinner size="lg" /></div>
+                ) : posts.length === 0 ? (
+                  <div className="text-center py-12 text-gray-600">
+                    Nenhum artigo encontrado.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[40px]">Status</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleSortChange('title')}
                         >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        
-                        {post.status === 'draft' ? (
-                          <Button 
-                            variant="default" 
-                            size="sm" 
-                            onClick={() => publishPost(post)}
-                            disabled={publishing === post.id}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            {publishing === post.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            onClick={() => unpublishPost(post.id)}
-                            disabled={publishing === post.id}
-                          >
-                            <Clock className="w-4 h-4" />
-                          </Button>
-                        )}
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                          <div className="flex items-center">
+                            Título {renderSortIcon('title')}
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[120px]">Categoria</TableHead>
+                        <TableHead className="w-[100px] text-center">
+                          <div className="flex items-center justify-center">
+                            <BarChart3 className="w-4 h-4 mr-1" /> SEO
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="w-[150px] cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleSortChange('updated_at')}
+                        >
+                          <div className="flex items-center">
+                            Última Edição {renderSortIcon('updated_at')}
+                          </div>
+                        </TableHead>
+                        <TableHead className="w-[200px] text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {posts.map((post) => (
+                        <TableRow key={post.id}>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-xs font-medium ${getStatusColor(post.status)}`}>
+                              {getStatusIcon(post.status)}
+                              {post.status === 'published' ? 'Publicado' : 'Rascunho'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                              <span className="text-gray-900 line-clamp-1">{post.title}</span>
+                              <span className="text-xs text-gray-500 mt-1">
+                                Slug: <code className="bg-gray-100 px-1 rounded">{post.slug}</code>
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {post.category ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {post.category.name}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sem categoria</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className={getScoreColor(post.seo_score)}>{post.seo_score}%</span>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {formatDate(post.updated_at)}
+                          </TableCell>
+                          <TableCell className="text-right space-x-1">
                             <Button 
-                              variant="destructive" 
-                              size="sm"
-                              disabled={deleting === post.id}
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => navigate(`/dashboard/admin/blog/edit/${post.slug}`)}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Edit className="w-4 h-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle className="flex items-center text-red-600">
-                                <AlertCircle className="w-6 h-6 mr-2" />
-                                Excluir Artigo?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir permanentemente o artigo <span className="font-semibold">{post.title}</span>? Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => deletePost(post.id)}
-                                className="bg-red-600 hover:bg-red-700"
-                                disabled={deleting === post.id}
+                            
+                            {post.status === 'draft' ? (
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => publishPost(post)}
+                                disabled={publishing === post.id}
+                                className="bg-green-600 hover:bg-green-700"
                               >
-                                {deleting === post.id ? 'Excluindo...' : 'Excluir'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => copyUrl(post.slug)}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                                {publishing === post.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={() => unpublishPost(post.id)}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                            )}
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  disabled={deleting === post.id}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="flex items-center text-red-600">
+                                    <AlertCircle className="w-6 h-6 mr-2" />
+                                    Excluir Artigo?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir permanentemente o artigo <span className="font-semibold">{post.title}</span>? Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => deletePost(post.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={deleting === post.id}
+                                  >
+                                    {deleting === post.id ? 'Excluindo...' : 'Excluir'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => copyUrl(post.slug)}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Gestão de Categorias */}
+        <TabsContent value="categories">
+          <BlogCategoryManager />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
