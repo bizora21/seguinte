@@ -22,8 +22,8 @@ const supabase = createClient(
   },
 )
 
-// URL da API da GLM (Simulação)
-const GLM_API_URL = 'https://api.glm.ai/v1/generate'
+// URL CORRIGIDA para o endpoint de chat completion da GLM (Zhipu AI)
+const GLM_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions'
 // @ts-ignore
 const GLM_API_KEY = Deno.env.get('GLM_API_KEY')
 // @ts-ignore
@@ -44,9 +44,10 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
         },
         body: JSON.stringify({
             model: model,
-            prompt: prompt,
+            messages: [{ role: 'user', content: prompt }], // Usando o formato de chat completion
             max_tokens: 4096,
             temperature: 0.7,
+            response_format: { type: "json_object" } // Pedindo JSON estruturado
         })
     });
 
@@ -64,10 +65,11 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
         if (jsonMatch) {
             return JSON.parse(jsonMatch[0]);
         }
-        throw new Error("Resposta da GLM não está no formato JSON esperado.");
+        // Se não encontrar o JSON, tenta parsear o texto inteiro (caso a GLM retorne apenas o JSON)
+        return JSON.parse(rawText);
     } catch (e) {
         console.error("Erro ao parsear JSON da GLM:", e);
-        throw new Error("A GLM não retornou o JSON estruturado corretamente.");
+        throw new Error("A GLM não retornou o JSON estruturado corretamente. Resposta bruta: " + rawText.substring(0, 200));
     }
 }
 
@@ -75,7 +77,6 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
 // @ts-ignore
 async function callDalleApi(prompt: string) {
     if (!OPENAI_API_KEY) {
-        // Se a chave estiver faltando, retornamos null para que o processo continue sem imagem
         console.warn("OPENAI_API_KEY não configurada. Pulando geração de imagem.");
         return null;
     }
@@ -190,6 +191,7 @@ Retorne um único objeto JSON, estritamente no formato:
 
   } catch (error) {
     console.error('Edge Function Error:', error)
+    // Retorna 500 com a mensagem de erro para o frontend
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
       headers: corsHeaders,
       status: 500,
