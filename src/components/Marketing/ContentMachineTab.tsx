@@ -79,7 +79,7 @@ CONTEXTO MOÇAMBICANO OBRIGATÓRIO:
 OTIMIZAÇÃO PARA GOOGLE DISCOVER:
 - Título atrativo que desperte curiosidade sem ser clickbait
 - Conteúdo atual e relevante para 2024-2025
-- Informações práticas e acionáveis
+- Informação prática e acionável
 - Estrutura clara com subtítulos
 - Linguagem acessível mas profissional
 

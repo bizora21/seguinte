@@ -231,12 +231,18 @@ const BlogPublishingTab = () => {
   const updateSitemap = async () => {
     const toastId = showLoading('Atualizando sitemap para indexação...')
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Chamada simulada para a Edge Function do sitemap
+      const { error } = await supabase.functions.invoke('sitemap-generator', {
+        method: 'GET',
+      })
+      
+      if (error) throw error
+      
       dismissToast(toastId)
       showSuccess('Sitemap atualizado! Artigo será indexado pelo Google.')
     } catch (error) {
       dismissToast(toastId)
-      showError('Falha ao atualizar sitemap.')
+      showError('Falha ao atualizar sitemap. Verifique a Edge Function.')
     }
   }
 
