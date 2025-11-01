@@ -104,6 +104,11 @@ const ManageBlogPost = () => {
               image_alt_text?: string
             } = JSON.parse(aiContentString)
             
+            // CORREÇÃO DE ERRO: Garantir que secondary_keywords é um array antes de usar join
+            const keywordsString = (aiContent.secondary_keywords && Array.isArray(aiContent.secondary_keywords)) 
+                ? aiContent.secondary_keywords.join(', ') 
+                : '';
+
             setFormData({
               title: aiContent.title,
               slug: aiContent.slug,
@@ -112,13 +117,13 @@ const ManageBlogPost = () => {
               status: 'draft',
               featured_image_url: aiContent.featured_image_url || '',
               image_alt_text: aiContent.image_alt_text || aiContent.image_prompt || '',
-              secondary_keywords: aiContent.secondary_keywords.join(', '),
+              secondary_keywords: keywordsString, // Usando a string segura
               category_id: aiContent.category_id || '',
               image_prompt: aiContent.image_prompt,
               seo_score: aiContent.seo_score,
               readability_score: aiContent.readability_score,
-              external_links: JSON.stringify(aiContent.external_links, null, 2),
-              internal_links: JSON.stringify(aiContent.internal_links, null, 2)
+              external_links: JSON.stringify(aiContent.external_links || [], null, 2),
+              internal_links: JSON.stringify(aiContent.internal_links || [], null, 2)
             })
             showSuccess('Conteúdo hiper-localizado carregado! Revise e publique.')
             localStorage.removeItem('ai_generated_post')

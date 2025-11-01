@@ -26,6 +26,8 @@ const supabase = createClient(
 const GLM_API_URL = 'https://api.glm.ai/v1/generate'
 // @ts-ignore
 const GLM_API_KEY = Deno.env.get('GLM_API_KEY')
+// @ts-ignore
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
 // Função auxiliar para chamar a API da GLM
 // @ts-ignore
@@ -34,6 +36,7 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
         throw new Error("GLM_API_KEY não configurada.");
     }
     
+    // Simulação de chamada real (com a URL correta da GLM)
     const response = await fetch(GLM_API_URL, {
         method: 'POST',
         headers: {
@@ -54,11 +57,9 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
     }
 
     const data = await response.json();
-    // Simulação: A resposta real da GLM deve ser parseada para extrair o texto
-    // Assumimos que o texto está em data.choices[0].text
-    const rawText = data.choices?.[0]?.text || data.text || '';
-    
     // Tenta parsear o JSON que a GLM deve retornar
+    const rawText = data.choices?.[0]?.message?.content || data.text || '';
+    
     try {
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -79,9 +80,6 @@ serve(async (req) => {
   
   const url = new URL(req.url);
   const keyword = url.searchParams.get('keyword');
-  const context = url.searchParams.get('context') || 'nacional';
-  const audience = url.searchParams.get('audience') || 'geral';
-  const type = url.searchParams.get('type') || 'guia-completo';
   
   // 1. Autenticação (Admin apenas)
   const authHeader = req.headers.get('Authorization')
@@ -94,50 +92,50 @@ serve(async (req) => {
   }
 
   try {
-    console.log(`Gerando conteúdo: ${keyword} | ${context} | ${audience} | ${type}`)
+    console.log(`Gerando conteúdo para: ${keyword}`)
     
-    // --- PASSO 1: Geração do Artigo Principal ---
+    // --- PROMPT AVANÇADO HUMANIZADO ---
     const promptAvancado = `
-Você é um jornalista e especialista em SEO de renome internacional, contratado para escrever um artigo de altíssima qualidade para o blog da LojaRápida, um marketplace em Moçambique.
+Você é um jornalista moçambicano, especialista em SEO e contador de histórias. Sua missão é escrever um artigo para o blog da LojaRápida que seja tão humano e envolvente que o leitor sentirá que foi escrito por um amigo.
 
-Sua tarefa é criar um artigo completo, convincente e otimizado com base na palavra-chave: "${keyword}".
+Palavra-chave principal: "${keyword}"
 
-Siga estas regras estritamente:
+**REGRAS CRÍTICAS:**
 
-1.  **Tom e Estilo (Humanização Total):**
-    - Escreva de forma extremamente natural e humana. Use uma variedade de estruturas de frases.
-    - **NUNCA use asteriscos (*) para palavras em negrito ou itálico; use formatação markdown como **palavra** ou *palavra*.**
-    - Evite clichês e frases feitas. O texto deve fluir de forma orgânica.
-    - Use exemplos, cidades e referências que ressoem com o público de Moçambique (ex: Maputo, Matola, Beira, o Metical, etc.).
+1.  **NÃO INCLUA RÓTULOS:** Gere APENAS o conteúdo final. NÃO inclua no seu retorno textos como "Título:", "Introdução:", "Corpo do Texto:", "Meta Descrição:", etc. O sistema se encarrega de separar os campos.
 
-2.  **Estrutura do Artigo:**
-    - **Título (H1):** Crie um título que seja pergunta e promessa, instigante e que inclua a palavra-chave.
-    - **Introdução:** Comece com um gancho forte, conectando-se com um problema ou desejo real do público moçambicano.
-    - **Corpo do Texto (mínimo 1200 palavras):**
-        - Divida o texto em seções claras com subtítulos (H2 e H3).
-        - Use listas com bullet points para facilitar a leitura.
-        - Inclua pelo menos 3 "dicas práticas" ou "passos" que o leitor possa seguir.
-    - **Conclusão:** Termine com uma mensagem poderosa e um chamado para a ação (CTA) claro.
+2.  **Humanização Absoluta:** Escreva como se estivesse contando uma história para um amigo. Use uma linguagem que soa como uma conversa, com frases mais curtas em alguns momentos e mais longas em outros. Use referências a cidades, culturas e a realidade de Moçambique para criar conexão. Evite uma estrutura formal de ensaio.
 
-3.  **Integração de Links (Dentro do Texto):**
-    - **Integre os links diretamente no corpo do artigo usando o formato de markdown [texto âncora](URL).**
-    - Exemplo: "...como explicado neste guia do [Institute of Mozambique](https://example.com), os empreendedores devem..."
-    - Exemplo: "...confira nossos [produtos de tecnologia](https://lojarapidamz.com/produtos?categoria=eletronicos) para mais opções."
+3.  **Formatação:** Use markdown para negrito (**palavra**) e itálico (*palavra*). Integre os links diretamente no texto, no formato [texto âncora](URL).
 
-4.  **Otimização para SEO:**
-    - Insira a palavra-chave "${keyword}" de forma natural no título, na introdução, em pelo menos um subtítulo e na conclusão.
-    - Inclua estas palavras-chave secundárias: "vender online em Moçambique", "empreendedorismo moçambicano", "crescer negócio".
-    - Crie uma meta descrição com no máximo 160 caracteres.
+4.  **Estrutura de Conteúdo:**
+    - Crie um título (H1) que seja pergunta e promessa.
+    - Escreva uma introdução com um gancho forte.
+    - Desenvolva o corpo com subtítulos (H2, H3), listas e parágrafos profundos (mínimo 1200 palavras).
+    - Termine com uma conclusão poderosa e um CTA para a LojaRápida.
 
-5.  **Formato de Saída:** Retorne todo o conteúdo em um único objeto JSON com as seguintes chaves: "title", "meta_description", "content", "external_links", "internal_links", "suggested_category", "seo_score", "readability_score".
+5.  **SEO:** Use a palavra-chave "${keyword}" de forma natural. Inclua as palavras-chave secundárias: "vender online em Moçambique", "empreendedorismo moçambicano", "crescer negócio".
 
-Agora, gere o artigo.
+**FORMATO DE SAÍDA OBRIGATÓRIO:**
+Retorne suas respostas em um único objeto JSON estruturado exatamente como abaixo. Se um campo não for aplicável, retorne uma string vazia "".
+
+{
+  "title": "O título H1 do artigo aqui",
+  "meta_description": "A meta descrição (até 160 caracteres) aqui",
+  "content": "O artigo completo em markdown aqui, com títulos, links, etc.",
+  "image_prompt": "Um prompt detalhado em inglês para uma imagem de destaque sobre o tema do artigo.",
+  "secondary_keywords": ["palavra1", "palavra2", "palavra3", "palavra4", "palavra5"],
+  "external_links": [{"title": "Exemplo", "url": "https://example.com"}],
+  "internal_links": [{"title": "Exemplo", "url": "/exemplo"}],
+  "suggested_category": "Nome da Categoria Sugerida",
+  "seo_score": 90,
+  "readability_score": "Excelente"
+}
 `;
-    
-    // Simulação de chamada à GLM (Substituir por callGlmApi(promptAvancado))
-    // const articleData = await callGlmApi(promptAvancado);
-    
-    // MOCK DE DADOS PARA TESTE SEM CHAVE GLM
+    // --- FIM DO PROMPT AVANÇADO HUMANIZADO ---
+
+    // --- SIMULAÇÃO DE CHAMADA À GLM (Substituir por callGlmApi(promptAvancado)) ---
+    // Definindo o tipo do mock para incluir secondary_keywords como array
     const articleData = {
         title: `Guia Definitivo: Como Vender ${keyword} Online em Moçambique e Multiplicar Seus Lucros`,
         meta_description: `Descubra as melhores estratégias para vender ${keyword} online em Moçambique. Guia completo com dicas de logística, pagamento na entrega e SEO local.`,
@@ -184,24 +182,34 @@ Vender **${keyword}** online em Moçambique nunca foi tão fácil. Com a platafo
         ],
         suggested_category: 'E-commerce e Vendas Online',
         seo_score: 92,
-        readability_score: 'Excelente'
+        readability_score: 'Excelente',
+        image_prompt: `A high-quality, professional photograph of a successful Mozambican entrepreneur in Maputo, standing proudly next to a display of modern ${keyword} products. The scene is brightly lit with natural light, clean background, shallow depth of field. The entrepreneur is smiling and wearing business casual attire. Negative prompt: text, logos, blurry, low resolution, cartoon, watermark.`,
+        secondary_keywords: ['vender online em Moçambique', 'empreendedorismo moçambicano', 'crescer negócio']
     };
-    // FIM DO MOCK
+    // --- FIM DA SIMULAÇÃO ---
 
-    // --- PASSO 2: Geração do Prompt de Imagem ---
-    const imagePromptRequest = `Com base no artigo que você escreveu sobre '${keyword}', crie um prompt extremamente detalhado em inglês para um gerador de imagens (como DALL-E 3). O prompt deve descrever a cena, o estilo (fotográfico, limpo), a iluminação e o ângulo. Adicione um 'negative prompt' para evitar texto, logotipos ou elementos borrados. Retorne apenas o prompt em inglês, sem formatação JSON ou explicações.`;
-    
-    // Simulação de chamada à GLM para gerar o prompt de imagem
-    // const imagePromptResponse = await callGlmApi(imagePromptRequest, 'glm-4-text');
-    
-    // MOCK DE PROMPT DE IMAGEM
-    const imagePromptResponse = `A high-quality, professional photograph of a successful Mozambican entrepreneur in Maputo, standing proudly next to a display of modern ${keyword} products. The scene is brightly lit with natural light, clean background, shallow depth of field. The entrepreneur is smiling and wearing business casual attire. Negative prompt: text, logos, blurry, low resolution, cartoon, watermark.`;
-    // FIM DO MOCK
+    // --- PASSO 2: Geração do Prompt de Imagem (Já incluído no JSON simulado) ---
+    const imagePrompt = articleData.image_prompt;
+    let generatedImageUrl = null;
 
-    // --- PASSO 3: Estruturação da Resposta Final ---
+    // --- PASSO 3: Geração da Imagem (Simulação) ---
+    if (OPENAI_API_KEY && imagePrompt) {
+        // Lógica para chamar a API DALL-E 3 (ou outra)
+        // generatedImageUrl = imageData.data[0].url;
+        
+        // MOCK: Retorna uma URL de imagem baseada no prompt
+        generatedImageUrl = `https://picsum.photos/seed/${encodeURIComponent(imagePrompt.substring(0, 50))}/1200/675`;
+    }
+
+    // --- PASSO 4: Estruturação da Resposta Final ---
+    // Acessando secondary_keywords de forma segura e garantindo que é um array antes de chamar join
+    const secondaryKeywordsArray = Array.isArray(articleData.secondary_keywords) ? articleData.secondary_keywords : [];
+    
     const finalResponse = {
         ...articleData,
-        image_prompt: imagePromptResponse,
+        image_prompt: imagePrompt,
+        featured_image_url: generatedImageUrl, // Adiciona a URL da imagem gerada
+        secondary_keywords: secondaryKeywordsArray.join(', ') // Converte para string para o frontend
     };
     
     return new Response(JSON.stringify({ data: finalResponse }), {
