@@ -22,29 +22,27 @@ const supabase = createClient(
   },
 )
 
-// URL CORRIGIDA para o endpoint de chat completion da GLM (Zhipu AI)
-const GLM_API_URL = 'https://api.z.ai/api/coding/paas/v4'
-// @ts-ignore
-const GLM_API_KEY = Deno.env.get('GLM_API_KEY')
+// Usando a chave da OpenAI para todas as chamadas
+const OPENAI_TEXT_API_URL = 'https://api.openai.com/v1/chat/completions'
 // @ts-ignore
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
 
-// Função auxiliar para chamar a API da GLM
+// Função auxiliar para chamar a API de texto da OpenAI
 // @ts-ignore
-async function callGlmApi(prompt: string, model: string = 'glm-4') {
-    if (!GLM_API_KEY) {
-        throw new Error("GLM_API_KEY não configurada nos secrets.");
+async function callOpenAITextApi(prompt: string, model: string = 'gpt-4o-mini') {
+    if (!OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY não configurada nos secrets.");
     }
     
-    const response = await fetch(GLM_API_URL, {
+    const response = await fetch(OPENAI_TEXT_API_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${GLM_API_KEY}`
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
             model: model,
-            messages: [{ role: 'user', content: prompt }], // Usando o formato de chat completion
+            messages: [{ role: 'user', content: prompt }],
             max_tokens: 4096,
             temperature: 0.7,
             response_format: { type: "json_object" } // Pedindo JSON estruturado
@@ -53,27 +51,22 @@ async function callGlmApi(prompt: string, model: string = 'glm-4') {
 
     if (!response.ok) {
         const errorBody = await response.json();
-        throw new Error(`Falha na API da GLM: ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
+        throw new Error(`Falha na API da OpenAI (Texto): ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
     }
 
     const data = await response.json();
-    // Tenta parsear o JSON que a GLM deve retornar
-    const rawText = data.choices?.[0]?.message?.content || data.text || '';
+    const rawText = data.choices?.[0]?.message?.content || '';
     
     try {
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-        // Se não encontrar o JSON, tenta parsear o texto inteiro (caso a GLM retorne apenas o JSON)
+        // Tenta parsear o JSON
         return JSON.parse(rawText);
     } catch (e) {
-        console.error("Erro ao parsear JSON da GLM:", e);
-        throw new Error("A GLM não retornou o JSON estruturado corretamente.");
+        console.error("Erro ao parsear JSON da OpenAI:", e);
+        throw new Error("A OpenAI não retornou o JSON estruturado corretamente.");
     }
 }
 
-// Função auxiliar para chamar a API DALL-E
+// Função auxiliar para chamar a API DALL-E (mantida)
 // @ts-ignore
 async function callDalleApi(prompt: string) {
     if (!OPENAI_API_KEY) {
@@ -161,8 +154,8 @@ Retorne um único objeto JSON, estritamente no formato:
 `;
     // --- FIM DO PROMPT OTIMIZADO ---
 
-    // --- PASSO 1: Geração do Artigo Principal ---
-    const articleData = await callGlmApi(promptAvancado);
+    // --- PASSO 1: Geração do Artigo Principal (Usando OpenAI) ---
+    const articleData = await callOpenAITextApi(promptAvancado);
 
     // --- PASSO 2: Geração do Prompt de Imagem (Já incluído no JSON) ---
     const imagePrompt = articleData.image_prompt;
