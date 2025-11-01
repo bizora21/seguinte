@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText, Target, ArrowRight } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
@@ -159,7 +159,7 @@ const AdminMarketingCenter = () => {
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
                     size="sm"
                 >
-                    Acessar Máquina <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                    Acessar Máquina <ArrowRight className="w-4 h-4 ml-2 rotate-180" />
                 </Button>
             </CardContent>
         </Card>

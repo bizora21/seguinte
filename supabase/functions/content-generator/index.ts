@@ -22,156 +22,52 @@ const supabase = createClient(
   },
 )
 
-// Função para gerar conteúdo hiper-localizado para Moçambique
+// URL da API da GLM (Simulação)
+const GLM_API_URL = 'https://api.glm.ai/v1/generate'
 // @ts-ignore
-function generateLocalizedContent(keyword: string, context: string, audience: string, type: string) {
-    const contextMap: Record<string, string> = {
-        'maputo': 'Maputo e região metropolitana',
-        'beira': 'Beira e província de Sofala',
-        'nampula': 'Nampula e região norte',
-        'nacional': 'todo território moçambicano'
-    }
+const GLM_API_KEY = Deno.env.get('GLM_API_KEY')
 
-    const audienceMap: Record<string, string> = {
-        'vendedores': 'vendedores e empreendedores',
-        'clientes': 'consumidores e compradores online',
-        'geral': 'público geral interessado em e-commerce'
+// Função auxiliar para chamar a API da GLM
+// @ts-ignore
+async function callGlmApi(prompt: string, model: string = 'glm-4') {
+    if (!GLM_API_KEY) {
+        throw new Error("GLM_API_KEY não configurada.");
     }
-
-    const typeMap: Record<string, string> = {
-        'guia-completo': 'Guia Definitivo',
-        'dicas-praticas': 'Dicas Práticas',
-        'caso-estudo': 'Estudo de Caso',
-        'tendencias': 'Tendências e Oportunidades'
-    }
-
-    const title = `${typeMap[type]}: Como Dominar ${keyword} em ${contextMap[context]} - LojaRápida 2024`
-    const slug = `${type}-${keyword.toLowerCase().replace(/\s/g, '-')}-${context}-mocambique-2024`
     
-    const metaDescription = `Descubra as melhores estratégias para ${keyword} em ${contextMap[context]}. Guia completo com exemplos locais, preços em Metical e dicas específicas para o mercado moçambicano.`
+    const response = await fetch(GLM_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GLM_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: model,
+            prompt: prompt,
+            max_tokens: 4096,
+            temperature: 0.7,
+        })
+    });
+
+    if (!response.ok) {
+        const errorBody = await response.json();
+        throw new Error(`Falha na API da GLM: ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
+    }
+
+    const data = await response.json();
+    // Simulação: A resposta real da GLM deve ser parseada para extrair o texto
+    // Assumimos que o texto está em data.choices[0].text
+    const rawText = data.choices?.[0]?.text || data.text || '';
     
-    // Conteúdo hiper-localizado com contexto moçambicano
-    const content = `
-# Introdução: A Revolução do E-commerce em ${contextMap[context]}
-
-O mercado de **${keyword}** em ${contextMap[context]} está passando por uma transformação digital sem precedentes. Com o crescimento do acesso à internet móvel e a popularização de métodos de pagamento como M-Pesa e eMola, nunca houve um momento melhor para ${audienceMap[audience]} explorarem as oportunidades do comércio eletrônico.
-
-## 1. O Cenário Atual em ${contextMap[context]}
-
-### 1.1. Oportunidades de Mercado
-Em ${contextMap[context]}, observamos um crescimento de 300% nas buscas por "${keyword}" nos últimos 12 meses. Isso representa uma oportunidade única para quem souber posicionar-se corretamente.
-
-**Dados do Mercado Local:**
-- Crescimento anual: 45% no setor de ${keyword}
-- Ticket médio: 2.500 - 15.000 MZN
-- Principais cidades: ${context === 'nacional' ? 'Maputo, Matola, Beira, Nampula' : contextMap[context]}
-
-### 1.2. Desafios e Soluções
-O principal desafio em Moçambique continua sendo a logística de entrega. A LojaRápida resolve isso com:
-- **Pagamento na Entrega (COD):** Elimina a barreira de confiança
-- **Rede de Entrega Nacional:** Cobertura em todas as 11 províncias
-- **Suporte Local:** Atendimento em português moçambicano
-
-## 2. Estratégias Específicas para ${keyword}
-
-### 2.1. Precificação Inteligente em Metical
-Para ${keyword}, recomendamos a seguinte estrutura de preços:
-- **Entrada:** 1.500 - 3.000 MZN
-- **Intermediário:** 3.000 - 8.000 MZN  
-- **Premium:** 8.000+ MZN
-
-### 2.2. Otimização para Métodos de Pagamento Locais
-- **M-Pesa:** 67% dos clientes preferem
-- **eMola:** 23% dos clientes
-- **Dinheiro na entrega:** 10% dos clientes
-
-## 3. Implementação Prática na LojaRápida
-
-### 3.1. Configuração da Loja
-1. **Cadastro como Vendedor:** Processo simplificado em 3 minutos
-2. **Definição de Categorias:** Foque em ${keyword} e produtos relacionados
-3. **Configuração de Entrega:** Defina seu alcance geográfico
-
-### 3.2. Otimização de Produtos
-- **Fotos de Qualidade:** Use luz natural, fundo neutro
-- **Descrições Detalhadas:** Inclua dimensões, cores, garantia
-- **Preços Competitivos:** Pesquise a concorrência local
-
-## 4. Marketing e Promoção em ${contextMap[context]}
-
-### 4.1. Redes Sociais Locais
-- **Facebook:** 2.1 milhões de usuários em Moçambique
-- **WhatsApp Business:** Ferramenta essencial para atendimento
-- **Instagram:** Crescimento de 150% entre jovens moçambicanos
-
-### 4.2. SEO Local
-Otimize para buscas como:
-- "${keyword} Maputo"
-- "${keyword} Moçambique"
-- "Comprar ${keyword} online MZ"
-
-## 5. Casos de Sucesso Reais
-
-### 5.1. Vendedor de Maputo
-João Silva, de Maputo, aumentou suas vendas de ${keyword} em 400% em 6 meses usando a LojaRápida. Seu segredo: fotos profissionais e descrições detalhadas.
-
-### 5.2. Empreendedora de Beira
-Maria Joaquina, de Beira, expandiu seu negócio de ${keyword} para todo o país, alcançando clientes em Nampula e Tete através da plataforma.
-
-## 6. Conclusão e Próximos Passos
-
-O mercado de ${keyword} em ${contextMap[context]} oferece oportunidades extraordinárias para ${audienceMap[audience]} que souberem aproveitar as ferramentas certas. A LojaRápida não é apenas uma plataforma, é seu parceiro estratégico para dominar este mercado em crescimento.
-
-**Comece Hoje Mesmo:**
-1. Cadastre-se como vendedor na LojaRápida
-2. Configure sua loja com foco em ${keyword}
-3. Implemente as estratégias deste guia
-4. Monitore seus resultados e otimize continuamente
-
-*Pronto para transformar sua presença digital em ${contextMap[context]}? A LojaRápida está aqui para apoiar seu crescimento.*
-`
-
-    const imagePrompt = `Vendedor moçambicano profissional apresentando ${keyword} em ${contextMap[context]}, ambiente moderno e vibrante, iluminação natural, estilo fotográfico comercial de alta qualidade, cores vivas, representando sucesso e inovação`
-
-    // Palavras-chave hiper-localizadas
-    const secondaryKeywords = [
-        `${keyword} moçambique`,
-        `${keyword} ${context}`,
-        'e-commerce moçambique',
-        'vender online mz',
-        'pagamento na entrega',
-        'logística moçambique',
-        'empreendedorismo mz',
-        'marketplace moçambique'
-    ]
-
-    // Links externos de autoridade
-    const externalLinks = [
-        { title: 'Banco de Moçambique - Estatísticas Econômicas', url: 'https://www.bancomoc.mz' },
-        { title: 'Instituto Nacional de Estatística', url: 'https://www.ine.gov.mz' },
-        { title: 'Associação Moçambicana de E-commerce', url: 'https://exemplo-autoridade.com' }
-    ]
-
-    // Links internos estratégicos
-    const internalLinks = [
-        { title: `Produtos de ${keyword} na LojaRápida`, url: `/produtos?q=${encodeURIComponent(keyword)}` },
-        { title: 'Como se Tornar Vendedor', url: '/register' },
-        { title: 'Política do Vendedor', url: '/politica-vendedor' },
-        { title: 'Central de Ajuda', url: '/faq' }
-    ]
-
-    return {
-        title,
-        slug,
-        meta_description: metaDescription,
-        content,
-        image_prompt: imagePrompt,
-        secondary_keywords: secondaryKeywords,
-        external_links: externalLinks,
-        internal_links: internalLinks,
-        suggested_category: 'E-commerce e Vendas Online',
-        seo_score: Math.floor(Math.random() * 15) + 85, // 85-100% para conteúdo localizado
-        readability_score: 'Excelente'
+    // Tenta parsear o JSON que a GLM deve retornar
+    try {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+        throw new Error("Resposta da GLM não está no formato JSON esperado.");
+    } catch (e) {
+        console.error("Erro ao parsear JSON da GLM:", e);
+        throw new Error("A GLM não retornou o JSON estruturado corretamente.");
     }
 }
 
@@ -198,19 +94,117 @@ serve(async (req) => {
   }
 
   try {
-    console.log(`Gerando conteúdo localizado: ${keyword} | ${context} | ${audience} | ${type}`)
+    console.log(`Gerando conteúdo: ${keyword} | ${context} | ${audience} | ${type}`)
     
-    // Gerar conteúdo hiper-localizado
-    const generatedContent = generateLocalizedContent(keyword, context, audience, type);
+    // --- PASSO 1: Geração do Artigo Principal ---
+    const promptAvancado = `
+Você é um jornalista e especialista em SEO de renome internacional, contratado para escrever um artigo de altíssima qualidade para o blog da LojaRápida, um marketplace em Moçambique.
+
+Sua tarefa é criar um artigo completo, convincente e otimizado com base na palavra-chave: "${keyword}".
+
+Siga estas regras estritamente:
+
+1.  **Tom e Estilo (Humanização Total):**
+    - Escreva de forma extremamente natural e humana. Use uma variedade de estruturas de frases.
+    - **NUNCA use asteriscos (*) para palavras em negrito ou itálico; use formatação markdown como **palavra** ou *palavra*.**
+    - Evite clichês e frases feitas. O texto deve fluir de forma orgânica.
+    - Use exemplos, cidades e referências que ressoem com o público de Moçambique (ex: Maputo, Matola, Beira, o Metical, etc.).
+
+2.  **Estrutura do Artigo:**
+    - **Título (H1):** Crie um título que seja pergunta e promessa, instigante e que inclua a palavra-chave.
+    - **Introdução:** Comece com um gancho forte, conectando-se com um problema ou desejo real do público moçambicano.
+    - **Corpo do Texto (mínimo 1200 palavras):**
+        - Divida o texto em seções claras com subtítulos (H2 e H3).
+        - Use listas com bullet points para facilitar a leitura.
+        - Inclua pelo menos 3 "dicas práticas" ou "passos" que o leitor possa seguir.
+    - **Conclusão:** Termine com uma mensagem poderosa e um chamado para a ação (CTA) claro.
+
+3.  **Integração de Links (Dentro do Texto):**
+    - **Integre os links diretamente no corpo do artigo usando o formato de markdown [texto âncora](URL).**
+    - Exemplo: "...como explicado neste guia do [Institute of Mozambique](https://example.com), os empreendedores devem..."
+    - Exemplo: "...confira nossos [produtos de tecnologia](https://lojarapidamz.com/produtos?categoria=eletronicos) para mais opções."
+
+4.  **Otimização para SEO:**
+    - Insira a palavra-chave "${keyword}" de forma natural no título, na introdução, em pelo menos um subtítulo e na conclusão.
+    - Inclua estas palavras-chave secundárias: "vender online em Moçambique", "empreendedorismo moçambicano", "crescer negócio".
+    - Crie uma meta descrição com no máximo 160 caracteres.
+
+5.  **Formato de Saída:** Retorne todo o conteúdo em um único objeto JSON com as seguintes chaves: "title", "meta_description", "content", "external_links", "internal_links", "suggested_category", "seo_score", "readability_score".
+
+Agora, gere o artigo.
+`;
     
-    // Log para debugging
-    console.log('Conteúdo gerado com sucesso:', {
-      title: generatedContent.title,
-      seo_score: generatedContent.seo_score,
-      keywords_count: generatedContent.secondary_keywords.length
-    })
+    // Simulação de chamada à GLM (Substituir por callGlmApi(promptAvancado))
+    // const articleData = await callGlmApi(promptAvancado);
     
-    return new Response(JSON.stringify({ data: generatedContent }), {
+    // MOCK DE DADOS PARA TESTE SEM CHAVE GLM
+    const articleData = {
+        title: `Guia Definitivo: Como Vender ${keyword} Online em Moçambique e Multiplicar Seus Lucros`,
+        meta_description: `Descubra as melhores estratégias para vender ${keyword} online em Moçambique. Guia completo com dicas de logística, pagamento na entrega e SEO local.`,
+        content: `
+# Guia Definitivo: Como Vender **${keyword}** Online em Moçambique e Multiplicar Seus Lucros
+
+O mercado de **${keyword}** em Moçambique está em plena expansão. Se você é um empreendedor moçambicano, este é o momento de levar seu negócio para o digital. A LojaRápida oferece a plataforma ideal para você **vender online em Moçambique** com segurança e eficiência.
+
+## 1. Entendendo o Consumidor Moçambicano
+
+O consumidor em Maputo, Matola e Beira valoriza a confiança. É por isso que o modelo de Pagamento na Entrega (COD) é crucial.
+
+### 1.1. A Importância do Pagamento na Entrega
+A maioria dos clientes prefere pagar apenas ao receber o produto. Isso elimina a barreira de confiança e acelera a decisão de compra.
+
+## 2. Estratégias de Logística e Entrega
+
+Para **crescer negócio** em Moçambique, a logística deve ser impecável.
+
+*   **Embalagem:** Use embalagens resistentes para proteger seus **${keyword}** durante o transporte.
+*   **Rastreamento:** Mantenha o cliente informado sobre o status do pedido.
+
+## 3. Otimização de Produtos na LojaRápida
+
+Para garantir que seus produtos sejam encontrados, siga estas dicas de SEO:
+
+1.  **Título:** Use a palavra-chave principal (ex: **${keyword}**) no título.
+2.  **Descrição:** Seja detalhado. Mencione a garantia e as especificações técnicas.
+3.  **Imagens:** Use fotos de alta qualidade.
+
+## Conclusão
+
+Vender **${keyword}** online em Moçambique nunca foi tão fácil. Com a plataforma certa e as estratégias de **empreendedorismo moçambicano** corretas, você pode alcançar clientes em todas as províncias.
+
+[CTA: Comece a Vender Agora na LojaRápida](https://lojarapidamz.com/register)
+`,
+        external_links: [
+            { title: 'Estatísticas de E-commerce em África', url: 'https://example.com/africa-ecommerce' },
+            { title: 'Guia de Pagamentos M-Pesa', url: 'https://example.com/mpesa-guide' }
+        ],
+        internal_links: [
+            { title: 'Ver Produtos de Tecnologia', url: '/produtos?categoria=eletronicos' },
+            { title: 'Política do Vendedor', url: '/politica-vendedor' }
+        ],
+        suggested_category: 'E-commerce e Vendas Online',
+        seo_score: 92,
+        readability_score: 'Excelente'
+    };
+    // FIM DO MOCK
+
+    // --- PASSO 2: Geração do Prompt de Imagem ---
+    const imagePromptRequest = `Com base no artigo que você escreveu sobre '${keyword}', crie um prompt extremamente detalhado em inglês para um gerador de imagens (como DALL-E 3). O prompt deve descrever a cena, o estilo (fotográfico, limpo), a iluminação e o ângulo. Adicione um 'negative prompt' para evitar texto, logotipos ou elementos borrados. Retorne apenas o prompt em inglês, sem formatação JSON ou explicações.`;
+    
+    // Simulação de chamada à GLM para gerar o prompt de imagem
+    // const imagePromptResponse = await callGlmApi(imagePromptRequest, 'glm-4-text');
+    
+    // MOCK DE PROMPT DE IMAGEM
+    const imagePromptResponse = `A high-quality, professional photograph of a successful Mozambican entrepreneur in Maputo, standing proudly next to a display of modern ${keyword} products. The scene is brightly lit with natural light, clean background, shallow depth of field. The entrepreneur is smiling and wearing business casual attire. Negative prompt: text, logos, blurry, low resolution, cartoon, watermark.`;
+    // FIM DO MOCK
+
+    // --- PASSO 3: Estruturação da Resposta Final ---
+    const finalResponse = {
+        ...articleData,
+        image_prompt: imagePromptResponse,
+    };
+    
+    return new Response(JSON.stringify({ data: finalResponse }), {
       headers: corsHeaders,
       status: 200,
     })
