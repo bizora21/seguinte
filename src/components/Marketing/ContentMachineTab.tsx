@@ -5,11 +5,31 @@ import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Zap, Search, Send, Loader2, ArrowRight, FileText, Target, Globe, TrendingUp, MapPin } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
+import { 
+  Globe, 
+  Send, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  AlertCircle, 
+  RefreshCw, 
+  Search, 
+  Plus,
+  BarChart3,
+  FileText,
+  Copy,
+  Loader2,
+  ArrowUp,
+  ArrowDown,
+  Tag,
+  Settings
+} from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
-import { AIGeneratedContent, BlogCategory } from '../../types/blog'
+import LoadingSpinner from '../LoadingSpinner'
 import { useNavigate } from 'react-router-dom'
+import { BlogCategory } from '../../types/blog'
 import OptimizedImageUpload from './OptimizedImageUpload'
 
 const ContentMachineTab = () => {
@@ -22,7 +42,7 @@ const ContentMachineTab = () => {
   const [categories, setCategories] = useState<BlogCategory[]>([])
   
   // Estados para preview do conteúdo gerado
-  const [previewContent, setPreviewContent] = useState<AIGeneratedContent | null>(null)
+  const [previewContent, setPreviewContent] = useState<any>(null)
   const [imageUrl, setImageUrl] = useState('')
   const [imageAltText, setImageAltText] = useState('')
   const [imagePrompt, setImagePrompt] = useState('')
@@ -118,7 +138,7 @@ Localização: ${contextMap[localContext]}
 
       if (error) throw error
       
-      const content = data.data as AIGeneratedContent
+      const content = data.data
       
       // Encontrar categoria sugerida
       const suggestedCategory = categories.find(c => 
@@ -184,9 +204,6 @@ Localização: ${contextMap[localContext]}
             <Target className="w-6 h-6 mr-2" />
             Hub de Conteúdo Avançado e Localizado
           </CardTitle>
-          <p className="text-sm text-green-700">
-            Gere conteúdo otimizado para SEO local, Google Discover e o mercado moçambicano
-          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,22 +254,10 @@ Localização: ${contextMap[localContext]}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="maputo">
-                    <MapPin className="w-4 h-4 mr-2 inline" />
-                    Maputo e Região
-                  </SelectItem>
-                  <SelectItem value="beira">
-                    <MapPin className="w-4 h-4 mr-2 inline" />
-                    Beira e Sofala
-                  </SelectItem>
-                  <SelectItem value="nampula">
-                    <MapPin className="w-4 h-4 mr-2 inline" />
-                    Nampula e Norte
-                  </SelectItem>
-                  <SelectItem value="nacional">
-                    <Globe className="w-4 h-4 mr-2 inline" />
-                    Nacional (Todo MZ)
-                  </SelectItem>
+                  <SelectItem value="maputo">Maputo e Região</SelectItem>
+                  <SelectItem value="beira">Beira e Sofala</SelectItem>
+                  <SelectItem value="nampula">Nampula e Norte</SelectItem>
+                  <SelectItem value="nacional">Nacional (Todo MZ)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -271,7 +276,7 @@ Localização: ${contextMap[localContext]}
               </>
             ) : (
               <>
-                <Zap className="w-5 h-5 mr-2" />
+                <Globe className="w-5 h-5 mr-2" />
                 Gerar Artigo Hiper-Localizado
               </>
             )}
@@ -289,7 +294,7 @@ Localização: ${contextMap[localContext]}
             </CardTitle>
             <div className="flex items-center space-x-4 text-sm">
               <div className="flex items-center">
-                <TrendingUp className="w-4 h-4 mr-1" />
+                <BarChart3 className="w-4 h-4 mr-1" />
                 SEO Score: <span className="font-bold text-green-600 ml-1">{previewContent.seo_score}%</span>
               </div>
               <div className="flex items-center">
