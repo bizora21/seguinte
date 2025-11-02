@@ -9,6 +9,21 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// Inicializa o cliente Supabase com a SERVICE_ROLE_KEY
+// Esta chave tem permissões para agir como o próprio serviço, ignorando a autenticação de usuário.
+// @ts-ignore
+const supabaseServiceRole = createClient(
+  // @ts-ignore
+  Deno.env.get('SUPABASE_URL') ?? '',
+  // @ts-ignore
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // CHAVE DE SERVIÇO
+  {
+    auth: {
+      persistSession: false,
+    },
+  },
+)
+
 // @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,50 +36,14 @@ serve(async (req) => {
   const audience = url.searchParams.get('audience') || 'Empreendedores';
   const type = url.searchParams.get('type') || 'Guia prático';
   
-  // 1. Autenticação e Extração do Token
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    console.error("DEBUG: Authorization header missing.");
-    return new Response(JSON.stringify({ error: 'Unauthorized: Authorization header missing.' }), { status: 401, headers: corsHeaders })
-  }
-  
-  const token = authHeader.replace('Bearer ', '');
-  
-  // 2. Inicializar o cliente Supabase com o token do usuário
-  // @ts-ignore
-  const supabase = createClient(
-    // @ts-ignore
-    Deno.env.get('SUPABASE_URL') ?? '',
-    // @ts-ignore
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    },
-  )
-  
-  // 3. Verificar se a palavra-chave está presente
+  // 1. Verificar se a palavra-chave está presente
   if (!keyword) {
       console.error("DEBUG: Keyword missing.");
       return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
   }
 
   try {
-    // 4. Verificar se o usuário é o administrador (o RLS fará a verificação final)
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !userData.user) {
-        console.error("DEBUG: Invalid token or user not found.", userError);
-        return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token.' }), { status: 401, headers: corsHeaders })
-    }
-    
-    console.log(`DEBUG: User ${userData.user.id} authenticated. Enfileirando job para: ${keyword}`);
+    console.log(`DEBUG: Enfileirando job para: ${keyword} (usando Service Role Key)`);
     
     // Payload completo para o job processor
     const jobPayload = {
@@ -74,9 +53,10 @@ serve(async (req) => {
         type,
     }
     
-    // INSERÇÃO COM TIMEOUT E LOG DE ERRO DETALHADO
-    console.log("DEBUG: Tentando inserir job na tabela 'generation_jobs'...");
-    const { data: job, error: insertError } = await supabase
+    // INSERÇÃO COM SERVICE ROLE KEY
+    // A inserção é feita em nome do serviço, não do usuário.
+    // As políticas RLS na tabela 'generation_jobs' devem permitir isso.
+    const { data: job, error: insertError } = await supabaseServiceRole
         .from('generation_jobs')
         .insert({
             keyword: keyword,
