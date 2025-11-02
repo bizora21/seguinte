@@ -11,8 +11,8 @@ import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
-import BlogPublishingTab from '../components/Marketing/BlogPublishingTab'
-import ContentMachineTab from '../components/Marketing/ContentMachineTab'
+import ContentManagerTab from '../components/Marketing/ContentManagerTab' // Importação correta
+// O componente ContentManagerTab agora é o default export do seu arquivo.
 
 interface MarketingStats {
   totalLeads: number
@@ -25,7 +25,7 @@ interface MarketingStats {
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = searchParams.get('tab') || 'leads' // Define a aba ativa, padrão para 'leads'
+  const activeTab = searchParams.get('tab') || 'content' // Default to 'content'
   
   const [stats, setStats] = useState<MarketingStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -150,16 +150,15 @@ const AdminMarketingCenter = () => {
                 <div className="flex items-center space-x-3">
                     <Zap className="w-6 h-6 text-yellow-600" />
                     <p className="font-semibold text-yellow-800">
-                        Máquina de Conteúdo: Gere um artigo completo em segundos.
+                        Máquina de Conteúdo: Gere, revise e publique artigos otimizados em segundos.
                     </p>
                 </div>
                 <Button 
-                    // Chamada direta para setSearchParams
-                    onClick={() => handleTabChange('content-machine')}
+                    onClick={() => handleTabChange('content')}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
                     size="sm"
                 >
-                    Acessar Máquina <ArrowRight className="w-4 h-4 ml-2 rotate-180" />
+                    Acessar Máquina <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
             </CardContent>
         </Card>
@@ -223,9 +222,9 @@ const AdminMarketingCenter = () => {
 
         {/* Tabs de Módulos */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 h-auto p-1">
-            <TabsTrigger value="content-machine" className="py-2 text-xs sm:text-sm flex items-center">
-                <Zap className="w-4 h-4 mr-1" /> Máquina
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsTrigger value="content" className="py-2 text-xs sm:text-sm flex items-center">
+                <Zap className="w-4 h-4 mr-1" /> Conteúdo IA
             </TabsTrigger>
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
                 <Users className="w-4 h-4 mr-1" /> Leads
@@ -236,9 +235,6 @@ const AdminMarketingCenter = () => {
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
                 <Share2 className="w-4 h-4 mr-1" /> Social
             </TabsTrigger>
-            <TabsTrigger value="blog" className="py-2 text-xs sm:text-sm flex items-center">
-                <Globe className="w-4 h-4 mr-1" /> Blog
-            </TabsTrigger>
             <TabsTrigger value="metrics" className="py-2 text-xs sm:text-sm flex items-center">
                 <TrendingUp className="w-4 h-4 mr-1" /> Métricas
             </TabsTrigger>
@@ -247,9 +243,9 @@ const AdminMarketingCenter = () => {
             </TabsTrigger>
           </TabsList>
           
-          {/* Tab 0: Content Machine */}
-          <TabsContent value="content-machine">
-            <ContentMachineTab />
+          {/* Tab 0: Content Manager (Novo) */}
+          <TabsContent value="content">
+            <ContentManagerTab />
           </TabsContent>
           
           {/* Tab 1: Captura de Leads */}
@@ -267,17 +263,12 @@ const AdminMarketingCenter = () => {
             <SocialMediaIntegrationTab />
           </TabsContent>
           
-          {/* Tab 4: Blog Publishing */}
-          <TabsContent value="blog">
-            <BlogPublishingTab />
-          </TabsContent>
-          
-          {/* Tab 5: Advanced Metrics */}
+          {/* Tab 4: Advanced Metrics */}
           <TabsContent value="metrics">
             <AdvancedMetricsTab />
           </TabsContent>
           
-          {/* Tab 6: Integration Settings */}
+          {/* Tab 5: Integration Settings */}
           <TabsContent value="settings">
             <IntegrationSettingsTab />
           </TabsContent>

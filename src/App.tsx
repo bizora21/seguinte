@@ -42,6 +42,7 @@ const SearchResults = React.lazy(() => import("./pages/SearchResults"));
 const StorePage = React.lazy(() => import("./pages/StorePage"));
 const SobreNosPage = React.lazy(() => import("./pages/SobreNosPage"));
 const BlogPage = React.lazy(() => import("./pages/BlogPage"));
+const BlogDetail = React.lazy(() => import("./pages/BlogDetail"));
 const FaqPage = React.lazy(() => import("./pages/FaqPage"));
 const ContatoPage = React.lazy(() => import("./pages/ContatoPage"));
 const ConfirmarEncomendaPage = React.lazy(() => import("./pages/ConfirmarEncomendaPage"));
@@ -50,8 +51,7 @@ const TermosDeUsoPage = React.lazy(() => import("./pages/TermosDeUsoPage"));
 const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePrivacidadePage"));
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
-const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost"));
-const BlogDetail = React.lazy(() => import("./pages/BlogDetail")); // NOVO IMPORT
+// const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost")); // REMOVIDO
 
 const queryClient = new QueryClient();
 
@@ -109,8 +109,8 @@ const App = () => (
                           </AdminRoute>
                         } 
                       />
-                      {/* ROTAS DE BLOG ADMIN */}
-                      <Route 
+                      {/* ROTAS DE BLOG ADMIN (REMOVIDAS, pois a gestão agora é feita via ContentManagerTab) */}
+                      {/* <Route 
                         path="/dashboard/admin/blog/new" 
                         element={
                           <AdminRoute>
@@ -125,7 +125,7 @@ const App = () => (
                             <ManageBlogPost />
                           </AdminRoute>
                         } 
-                      />
+                      /> */}
                       
                       {/* Rota de Cliente (Usando /lojas como área principal do cliente) */}
                       <Route 
