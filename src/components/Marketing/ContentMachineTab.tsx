@@ -36,7 +36,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../utils/t
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../LoadingSpinner'
 import { useNavigate } from 'react-router-dom'
-import { BlogCategory, AIGeneratedContent } from '../../types/blog'
+import { BlogCategory, AIGeneratedContent, LinkItem } from '../../types/blog'
 import OptimizedImageUpload from './OptimizedImageUpload'
 
 interface SeoSuggestion {
@@ -49,7 +49,7 @@ interface GenerationJob {
   id: string
   status: 'queued' | 'processing' | 'completed' | 'failed'
   progress: number
-  result_data: AIGeneratedContent | null
+  result_data: Partial<AIGeneratedContent> | null // Usamos Partial aqui para ser mais seguro
   error_message: string | null
 }
 
@@ -111,7 +111,25 @@ const ContentMachineTab = () => {
           
           if (updatedJob.status === 'completed' && updatedJob.result_data) {
             // Job concluído: Carregar dados e limpar
-            const content = updatedJob.result_data as AIGeneratedContent
+            const rawContent = updatedJob.result_data
+            
+            // --- INÍCIO DA CORREÇÃO DE ROBUSTEZ ---
+            // Aplica destructuring com valores padrão para garantir que a UI não quebre
+            const content: AIGeneratedContent = {
+                title: rawContent.title || 'Título Padrão (Erro na IA)',
+                slug: rawContent.slug || 'slug-padrao',
+                meta_description: rawContent.meta_description || '',
+                content: rawContent.content || 'Conteúdo não gerado. Verifique o log de erro da Edge Function.',
+                image_prompt: rawContent.image_prompt || '',
+                secondary_keywords: (rawContent.secondary_keywords || []) as string[],
+                external_links: (rawContent.external_links || []) as LinkItem[],
+                internal_links: (rawContent.internal_links || []) as LinkItem[],
+                suggested_category: rawContent.suggested_category || 'Outros',
+                seo_score: rawContent.seo_score || 50,
+                readability_score: rawContent.readability_score || 'Médio',
+            }
+            // --- FIM DA CORREÇÃO DE ROBUSTEZ ---
+            
             setPreviewContent(content)
             setImagePrompt(content.image_prompt || '')
             showSuccess('Artigo gerado com sucesso! Revise abaixo.')
