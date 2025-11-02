@@ -10,19 +10,6 @@ const corsHeaders = {
 }
 
 // @ts-ignore
-const supabase = createClient(
-  // @ts-ignore
-  Deno.env.get('SUPABASE_URL') ?? '',
-  // @ts-ignore
-  Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
-)
-
-// @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -34,22 +21,42 @@ serve(async (req) => {
   const audience = url.searchParams.get('audience') || 'Empreendedores';
   const type = url.searchParams.get('type') || 'Guia prático';
   
-  // 1. Autenticação (Admin apenas)
+  // 1. Autenticação e Extração do Token
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     console.error("DEBUG: Authorization header missing.");
     return new Response(JSON.stringify({ error: 'Unauthorized: Authorization header missing.' }), { status: 401, headers: corsHeaders })
   }
   
-  // 2. Verificar se a palavra-chave está presente
+  const token = authHeader.replace('Bearer ', '');
+  
+  // 2. Inicializar o cliente Supabase com o token do usuário
+  // @ts-ignore
+  const supabase = createClient(
+    // @ts-ignore
+    Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+      },
+    },
+  )
+  
+  // 3. Verificar se a palavra-chave está presente
   if (!keyword) {
       console.error("DEBUG: Keyword missing.");
       return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
   }
 
   try {
-    // 3. Verificar se o usuário é o administrador (RLS deve cuidar disso, mas é bom ter uma verificação extra)
-    const token = authHeader.replace('Bearer ', '');
+    // 4. Verificar se o usuário é o administrador (o RLS fará a verificação final)
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !userData.user) {
@@ -57,7 +64,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token.' }), { status: 401, headers: corsHeaders })
     }
     
-    // Se a autenticação passou, prosseguir com a inserção do job
     console.log(`DEBUG: User ${userData.user.id} authenticated. Enfileirando job para: ${keyword}`);
     
     // Payload completo para o job processor
@@ -68,7 +74,7 @@ serve(async (req) => {
         type,
     }
     
-    // Insere o job na fila (tabela generation_jobs)
+    // Insere o job na fila (tabela generation_jobs) - Agora o RLS deve permitir
     const { data: job, error: insertError } = await supabase
         .from('generation_jobs')
         .insert({
@@ -82,6 +88,7 @@ serve(async (req) => {
 
     if (insertError) {
         console.error("DEBUG: Supabase Insert Error:", insertError);
+        // Retorna 500 com a mensagem de erro detalhada
         return new Response(JSON.stringify({ error: `Supabase Insert Error: ${insertError.message}` }), { status: 500, headers: corsHeaders })
     }
     
