@@ -116,7 +116,6 @@ const ContentManagerTab: React.FC = () => {
     const toastId = showLoading('Gerando conteúdo com IA...')
     
     try {
-      // Chamada para a Edge Function (Módulo 1)
       const { data: { session } } = await supabase.auth.getSession()
       
       const response = await fetch('/functions/v1/content-generator', {
@@ -134,12 +133,19 @@ const ContentManagerTab: React.FC = () => {
         })
       })
 
+      // Adicionado tratamento robusto de resposta
+      if (!response.ok) {
+        const errorText = await response.text()
+        dismissToast(toastId)
+        throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`)
+      }
+      
+      // Tenta analisar o JSON
       const result = await response.json()
       
-      if (result.jobId) { // Supondo que a Edge Function retorna jobId em caso de sucesso
+      if (result.success) {
         dismissToast(toastId)
         showSuccess(`Conteúdo gerado! Revise na aba Rascunhos.`)
-        // O Realtime cuidará do loadContent
       } else {
         dismissToast(toastId)
         throw new Error(result.error || 'Erro desconhecido na Edge Function.')
