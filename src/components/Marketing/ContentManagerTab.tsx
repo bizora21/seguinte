@@ -5,7 +5,7 @@ import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Badge } from '../ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs' // Adicionado importação de Tabs
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs' // CORRIGIDO: Caminho de importação
 import { AlertCircle, CheckCircle, Edit, Eye, Send, Zap, Target, Globe, FileText, BarChart3, Loader2, ArrowRight, Trash2, Save } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
@@ -123,7 +123,6 @@ const ContentManagerTab: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // CORREÇÃO TS2339: Usar getSession().session.access_token
           'Authorization': `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({
@@ -447,58 +446,58 @@ const ContentManagerTab: React.FC = () => {
                   <Badge className="bg-blue-100 text-blue-800">
                     <Globe className="w-3 h-3 mr-1" /> Contexto: {currentDraft.context}
                   </Badge>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Título</label>
-                    <Input 
-                      value={currentDraft.title} 
-                      onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, title: e.target.value } : null)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Meta Descrição</label>
-                    <Textarea 
-                      value={currentDraft.meta_description} 
-                      onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, meta_description: e.target.value } : null)}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Conteúdo (Markdown)</label>
-                    <Textarea 
-                      value={currentDraft.content} 
-                      onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, content: e.target.value } : null)}
-                      rows={20}
-                      className="font-mono"
-                    />
-                  </div>
-                  
-                  <div className="flex space-x-4">
-                    <Button onClick={saveDraftChanges} className="bg-blue-600 hover:bg-blue-700">
-                      <Save className="w-4 h-4 mr-2" /> Salvar Rascunho
-                    </Button>
-                    <Button onClick={() => publishDraft(currentDraft)} className="bg-green-600 hover:bg-green-700">
-                      <Send className="w-4 h-4 mr-2" /> Publicar Agora
-                    </Button>
-                    <Button onClick={() => setActiveTab('drafts')} variant="outline">
-                      Cancelar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <Edit className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">Selecione um rascunho para editar</h2>
-                  <p className="text-gray-600">Vá para a aba 'Rascunhos' ou gere um novo artigo.</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Título</label>
+                  <Input 
+                    value={currentDraft.title} 
+                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, title: e.target.value } : null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Meta Descrição</label>
+                  <Textarea 
+                    value={currentDraft.meta_description} 
+                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, meta_description: e.target.value } : null)}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Conteúdo (Markdown)</label>
+                  <Textarea 
+                    value={currentDraft.content} 
+                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, content: e.target.value } : null)}
+                    rows={20}
+                    className="font-mono"
+                  />
+                </div>
+                
+                <div className="flex space-x-4">
+                  <Button onClick={saveDraftChanges} className="bg-blue-600 hover:bg-blue-700">
+                    <Save className="w-4 h-4 mr-2" /> Salvar Rascunho
+                  </Button>
+                  <Button onClick={() => publishDraft(currentDraft)} className="bg-green-600 hover:bg-green-700">
+                    <Send className="w-4 h-4 mr-2" /> Publicar Agora
+                  </Button>
+                  <Button onClick={() => setActiveTab('drafts')} variant="outline">
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Edit className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Selecione um rascunho para editar</h2>
+                <p className="text-gray-600">Vá para a aba 'Rascunhos' ou gere um novo artigo.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
