@@ -136,7 +136,7 @@ const ContentManagerTab: React.FC = () => {
 
       const result = await response.json()
       
-      if (result.success) {
+      if (result.jobId) { // Supondo que a Edge Function retorna jobId em caso de sucesso
         dismissToast(toastId)
         showSuccess(`Conteúdo gerado! Revise na aba Rascunhos.`)
         // O Realtime cuidará do loadContent
@@ -395,7 +395,8 @@ const ContentManagerTab: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -426,7 +427,8 @@ const ContentManagerTab: React.FC = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              ))
+            )}
           </div>
         </TabsContent>
 
