@@ -51,6 +51,8 @@ async function callOpenAITextApi(prompt: string, model: string = 'gpt-4o-mini') 
 
     if (!response.ok) {
         const errorBody = await response.json();
+        // Logando o corpo do erro para debug
+        console.error("DEBUG: OpenAI API Error Body:", errorBody);
         throw new Error(`Falha na API da OpenAI (Texto): ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
     }
 

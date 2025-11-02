@@ -153,6 +153,7 @@ const ContentMachineTab = () => {
       setCategories(data || [])
     } catch (error) {
       console.error('Error fetching categories:', error)
+      showError('Erro ao carregar categorias do blog.')
     }
   }
 
@@ -221,11 +222,16 @@ const ContentMachineTab = () => {
       showSuccess(`Job #${jobId.slice(0, 8)} enfileirado. Monitorando progresso...`)
       
       // 2. Chamar o Consumer (job-processor) para iniciar o processamento
-      // Nota: Em um ambiente real, um webhook ou cron job faria isso. Aqui, chamamos manualmente.
-      await supabase.functions.invoke('job-processor', {
+      const { error: processorError } = await supabase.functions.invoke('job-processor', {
         method: 'POST',
         body: { jobId }
       })
+      
+      if (processorError) {
+        // Se o job-processor falhar, o job ficará preso em 'queued'.
+        // Exibimos o erro e tentamos marcar o job como falho (embora o job-processor devesse fazer isso).
+        throw new Error(`Falha ao iniciar o processador: ${processorError.message}`)
+      }
       
     } catch (error: any) {
       dismissToast(toastId)
@@ -426,6 +432,11 @@ const ContentMachineTab = () => {
                 <p className="text-sm text-blue-700">
                   Progresso: {jobStatus.progress}%
                 </p>
+                {jobStatus.error_message && (
+                  <p className="text-sm text-red-600 mt-1">
+                    Erro: {jobStatus.error_message}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
