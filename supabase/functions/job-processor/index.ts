@@ -9,12 +9,13 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// Inicializa o cliente Supabase com SERVICE_ROLE_KEY para operações de backend
 // @ts-ignore
-const supabase = createClient(
+const supabaseServiceRole = createClient(
   // @ts-ignore
   Deno.env.get('SUPABASE_URL') ?? '',
   // @ts-ignore
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Usar SERVICE_ROLE_KEY para escrita em generation_jobs
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // CHAVE DE SERVIÇO
   {
     auth: {
       persistSession: false,
@@ -64,46 +65,13 @@ async function callOpenAITextApi(prompt: string, model: string = 'gpt-4o-mini') 
     }
 }
 
-// Função auxiliar para chamar a API DALL-E (mantida)
-// @ts-ignore
-async function callDalleApi(prompt: string) {
-    if (!OPENAI_API_KEY) {
-        console.warn("OPENAI_API_KEY não configurada. Pulando geração de imagem.");
-        return null;
-    }
-    
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: prompt,
-            n: 1,
-            size: '1024x1024',
-            response_format: 'url',
-        })
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.json();
-        console.error(`Falha na API DALL-E: ${response.status} - ${errorBody.error?.message || 'Erro desconhecido'}`);
-        return null;
-    }
-
-    const data = await response.json();
-    return data.data?.[0]?.url || null;
-}
-
 // Função principal de processamento
 // @ts-ignore
 async function processJob(jobId: string, payload: any) {
     const { keyword, context, audience, type } = payload;
     
-    // 1. Atualizar status para 'processing'
-    await supabase.from('generation_jobs').update({ status: 'processing', progress: 10 }).eq('id', jobId);
+    // 1. Atualizar status para 'processing' usando SERVICE ROLE
+    await supabaseServiceRole.from('generation_jobs').update({ status: 'processing', progress: 10 }).eq('id', jobId);
 
     try {
         // --- PROMPT AVANÇADO PARA HUMANIZAÇÃO ---
@@ -167,8 +135,8 @@ RETORNE JSON:
         let content = articleData.content || '';
         content = content.replace(/\*([^*]+)\*/g, '**$1**'); // *texto* -> **texto**
         
-        // 4. Atualizar progresso (Artigo gerado)
-        await supabase.from('generation_jobs').update({ progress: 50, partial_content: content }).eq('id', jobId);
+        // 4. Atualizar progresso (Artigo gerado) usando SERVICE ROLE
+        await supabaseServiceRole.from('generation_jobs').update({ progress: 50, partial_content: content }).eq('id', jobId);
 
         // 5. Geração da Imagem (Apenas retorna o prompt, não gera a imagem automaticamente)
         const imagePrompt = articleData.image_prompt;
@@ -184,8 +152,8 @@ RETORNE JSON:
             secondary_keywords: secondaryKeywordsArray, // Mantém como array para o frontend
         };
 
-        // 7. Finalizar Job
-        await supabase.from('generation_jobs').update({ 
+        // 7. Finalizar Job usando SERVICE ROLE
+        await supabaseServiceRole.from('generation_jobs').update({ 
             status: 'completed', 
             progress: 100,
             result_data: finalResponse,
@@ -194,8 +162,8 @@ RETORNE JSON:
 
     } catch (error) {
         console.error(`Job ${jobId} failed:`, error);
-        // 8. Marcar Job como falho
-        await supabase.from('generation_jobs').update({ 
+        // 8. Marcar Job como falho usando SERVICE ROLE
+        await supabaseServiceRole.from('generation_jobs').update({ 
             status: 'failed', 
             error_message: error.message || 'Erro desconhecido na geração de IA' 
         }).eq('id', jobId);
@@ -208,8 +176,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
   
-  // Esta função deve ser chamada por um webhook ou cron job (simulado aqui)
-  // Em um ambiente real, você teria um mecanismo para buscar jobs 'queued'
+  // Esta função não precisa de autenticação de usuário, pois usa a Service Role Key
   
   try {
     const { jobId } = await req.json();
@@ -218,8 +185,8 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Job ID ausente' }), { status: 400, headers: corsHeaders })
     }
     
-    // Buscar o job
-    const { data: job, error: fetchError } = await supabase
+    // Buscar o job usando SERVICE ROLE
+    const { data: job, error: fetchError } = await supabaseServiceRole
         .from('generation_jobs')
         .select('*')
         .eq('id', jobId)
