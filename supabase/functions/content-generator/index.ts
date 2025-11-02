@@ -37,15 +37,28 @@ serve(async (req) => {
   // 1. Autenticação (Admin apenas)
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    console.error("DEBUG: Authorization header missing.");
+    return new Response(JSON.stringify({ error: 'Unauthorized: Authorization header missing.' }), { status: 401, headers: corsHeaders })
   }
   
+  // 2. Verificar se a palavra-chave está presente
   if (!keyword) {
-      return new Response(JSON.stringify({ error: 'Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
+      console.error("DEBUG: Keyword missing.");
+      return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
   }
 
   try {
-    console.log(`Enfileirando job para: ${keyword}`)
+    // 3. Verificar se o usuário é o administrador (RLS deve cuidar disso, mas é bom ter uma verificação extra)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !userData.user) {
+        console.error("DEBUG: Invalid token or user not found.", userError);
+        return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token.' }), { status: 401, headers: corsHeaders })
+    }
+    
+    // Se a autenticação passou, prosseguir com a inserção do job
+    console.log(`DEBUG: User ${userData.user.id} authenticated. Enfileirando job para: ${keyword}`);
     
     // Payload completo para o job processor
     const jobPayload = {
@@ -68,7 +81,8 @@ serve(async (req) => {
         .single()
 
     if (insertError) {
-        throw insertError
+        console.error("DEBUG: Supabase Insert Error:", insertError);
+        return new Response(JSON.stringify({ error: `Supabase Insert Error: ${insertError.message}` }), { status: 500, headers: corsHeaders })
     }
     
     // Retorna o ID do job imediatamente
@@ -78,7 +92,7 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('Edge Function Error:', error)
+    console.error('Edge Function Error (Catch Block):', error)
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
       headers: corsHeaders,
       status: 500,
