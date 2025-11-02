@@ -32,9 +32,11 @@ serve(async (req) => {
   
   try {
     if (req.method !== 'POST') {
+        // Retorna 405 se não for POST
         return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: corsHeaders })
     }
     
+    // Processamento da requisição POST
     const body = await req.json();
     const { keyword, context, audience, type } = body;
     
@@ -43,18 +45,6 @@ serve(async (req) => {
     }
 
     console.log(`DEBUG: Enfileirando job para: ${keyword}`);
-    
-    const jobPayload = {
-        keyword,
-        context,
-        audience,
-        type,
-    }
-    
-    // 1. Inserir o job na tabela content_drafts (simulando a geração imediata de um rascunho)
-    // NOTE: A Edge Function não está mais usando a tabela 'generation_jobs' para este fluxo,
-    // mas sim inserindo diretamente um rascunho na tabela 'content_drafts' com dados mockados
-    // para simular o conteúdo gerado pela IA.
     
     // Simulação de conteúdo gerado pela IA
     const mockContent = {
@@ -65,13 +55,12 @@ serve(async (req) => {
         seo_score: Math.floor(Math.random() * 30) + 70, // 70-100
         context: context,
         audience: audience,
-        // Outros campos necessários para o rascunho
     }
     
     const { data: draft, error: insertError } = await supabaseServiceRole
         .from('content_drafts')
         .insert({
-            user_id: '00000000-0000-0000-0000-000000000000', // Placeholder, assumindo que o RLS permite a inserção pelo Service Role Key
+            user_id: '00000000-0000-0000-0000-000000000000', // Placeholder
             keyword: keyword,
             status: 'draft',
             title: mockContent.title,
@@ -92,7 +81,7 @@ serve(async (req) => {
     
     console.log(`DEBUG: Rascunho inserido com sucesso! ID: ${draft.id}`);
 
-    return new Response(JSON.stringify({ success: true, draftId: draft.id, status: 'draft_created' }), {
+    return new Response(JSON.stringify({ success: true, jobId: draft.id, status: 'draft_created' }), {
       headers: corsHeaders,
       status: 200, 
     })
