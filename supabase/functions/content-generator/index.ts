@@ -95,7 +95,7 @@ serve(async (req) => {
     // Retorna o ID do job imediatamente
     return new Response(JSON.stringify({ jobId: job.id, status: 'queued' }), {
       headers: corsHeaders,
-      status: 202, // Accepted
+      status: 200, // MUDANÇA: Retorna 200 OK para garantir que o invoke do Supabase preencha o campo 'data'
     })
 
   } catch (error) {
