@@ -233,6 +233,11 @@ const ContentMachineTab = () => {
 
       if (error) throw error
       
+      // CORREÇÃO DE ROBUSTEZ: Garantir que data e jobId existem
+      if (!data || !data.jobId) {
+        throw new Error('A Edge Function não retornou um Job ID válido.')
+      }
+      
       const { jobId } = data as { jobId: string }
       setActiveJobId(jobId)
       
@@ -603,7 +608,7 @@ const ContentMachineTab = () => {
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   {/* CORREÇÃO: Usar optional chaining e nullish coalescing */}
-                  <div className="text-2xl font-bold text-orange-600">{previewContent.internal_links?.length ?? 0}</div>
+                  <div className="2xl font-bold text-orange-600">{previewContent.internal_links?.length ?? 0}</div>
                   <div className="text-xs text-gray-600">Links Internos</div>
                 </div>
               </CardContent>
