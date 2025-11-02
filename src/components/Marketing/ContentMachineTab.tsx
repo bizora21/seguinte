@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -44,6 +44,15 @@ interface SeoSuggestion {
   suggestion: string
 }
 
+// Interface para o Job
+interface GenerationJob {
+  id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  progress: number
+  result_data: AIGeneratedContent | null
+  error_message: string | null
+}
+
 const ContentMachineTab = () => {
   const navigate = useNavigate()
   const [keyword, setKeyword] = useState('')
@@ -52,6 +61,10 @@ const ContentMachineTab = () => {
   const [localContext, setLocalContext] = useState('maputo')
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<BlogCategory[]>([])
+  
+  // Estados do Job Queue
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<GenerationJob | null>(null)
   
   // Estados para preview do conteúdo gerado
   const [previewContent, setPreviewContent] = useState<AIGeneratedContent | null>(null)
@@ -70,10 +83,65 @@ const ContentMachineTab = () => {
     'Checklist de Lançamento de Produto'
   ])
   const [generatingProactive, setGeneratingProactive] = useState(false)
+  
+  const realtimeChannelRef = useRef<any>(null)
 
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  // --- Realtime Job Monitoring ---
+  useEffect(() => {
+    if (!activeJobId) return
+
+    // 1. Configurar Realtime
+    const channel = supabase
+      .channel(`job_progress:${activeJobId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generation_jobs',
+          filter: `id=eq.${activeJobId}`
+        },
+        (payload) => {
+          const updatedJob = payload.new as GenerationJob
+          setJobStatus(updatedJob)
+          
+          if (updatedJob.status === 'completed' && updatedJob.result_data) {
+            // Job concluído: Carregar dados e limpar
+            const content = updatedJob.result_data as AIGeneratedContent
+            setPreviewContent(content)
+            setImagePrompt(content.image_prompt || '')
+            showSuccess('Artigo gerado com sucesso! Revise abaixo.')
+            setActiveJobId(null)
+            setLoading(false)
+          } else if (updatedJob.status === 'failed') {
+            showError(`Falha na geração: ${updatedJob.error_message}`)
+            setActiveJobId(null)
+            setLoading(false)
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Realtime: Monitoring job ${activeJobId}`)
+        }
+      })
+      
+    realtimeChannelRef.current = channel
+
+    // 2. Cleanup
+    return () => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current)
+        realtimeChannelRef.current = null
+      }
+    }
+  }, [activeJobId])
+  
+  // --- End Realtime Job Monitoring ---
 
   const fetchCategories = async () => {
     try {
@@ -104,7 +172,6 @@ const ContentMachineTab = () => {
       
       if (error) throw error
       
-      // CORREÇÃO: Usar optional chaining para acessar suggestions
       setSeoSuggestions(data?.data?.suggestions || [])
     } catch (error) {
       console.error('Error fetching SEO suggestions:', error)
@@ -136,38 +203,34 @@ const ContentMachineTab = () => {
 
     setLoading(true)
     setPreviewContent(null)
-    const toastId = showLoading('Gerando conteúdo hiper-localizado para Moçambique...')
+    setJobStatus(null)
+    const toastId = showLoading('Enfileirando job de geração de conteúdo...')
 
     try {
-      // Chamar Edge Function para gerar artigo e prompt de imagem
+      // 1. Chamar o Producer (content-generator)
       const { data, error } = await supabase.functions.invoke(`content-generator?keyword=${encodeURIComponent(keyword.trim())}&context=${localContext}&audience=${targetAudience}&type=${contentType}`, {
         method: 'POST',
-        body: {} // O prompt é gerado dentro da Edge Function
       })
 
       if (error) throw error
       
-      const content = data.data as AIGeneratedContent & { image_prompt: string }
-      
-      // CORREÇÃO: Garantir que os arrays de links existem
-      const safeContent: AIGeneratedContent = {
-        ...content,
-        external_links: content.external_links || [],
-        internal_links: content.internal_links || [],
-        secondary_keywords: content.secondary_keywords || [],
-      }
-      
-      setPreviewContent(safeContent)
-      setImagePrompt(content.image_prompt)
+      const { jobId } = data as { jobId: string }
+      setActiveJobId(jobId)
       
       dismissToast(toastId)
-      showSuccess('Conteúdo e prompt de imagem gerados com sucesso! Revise abaixo.')
+      showSuccess(`Job #${jobId.slice(0, 8)} enfileirado. Monitorando progresso...`)
+      
+      // 2. Chamar o Consumer (job-processor) para iniciar o processamento
+      // Nota: Em um ambiente real, um webhook ou cron job faria isso. Aqui, chamamos manualmente.
+      await supabase.functions.invoke('job-processor', {
+        method: 'POST',
+        body: { jobId }
+      })
       
     } catch (error: any) {
       dismissToast(toastId)
       console.error('Error generating content:', error)
-      showError('Falha na geração de conteúdo: ' + error.message)
-    } finally {
+      showError('Falha ao enfileirar job: ' + error.message)
       setLoading(false)
     }
   }
@@ -243,6 +306,8 @@ const ContentMachineTab = () => {
     'nampula': 'Nampula e região norte',
     'nacional': 'todo território moçambicano'
   }
+  
+  const isGenerating = loading || jobStatus?.status === 'processing' || jobStatus?.status === 'queued'
 
   return (
     <div className="space-y-6">
@@ -266,12 +331,12 @@ const ContentMachineTab = () => {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Ex: vender eletrônicos online"
-                disabled={loading}
+                disabled={isGenerating}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="targetAudience">Público-Alvo</Label>
-              <Select value={targetAudience} onValueChange={setTargetAudience} disabled={loading}>
+              <Select value={targetAudience} onValueChange={setTargetAudience} disabled={isGenerating}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -287,7 +352,7 @@ const ContentMachineTab = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="contentType">Tipo de Conteúdo</Label>
-              <Select value={contentType} onValueChange={setContentType} disabled={loading}>
+              <Select value={contentType} onValueChange={setContentType} disabled={isGenerating}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -301,7 +366,7 @@ const ContentMachineTab = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="localContext">Contexto Local</Label>
-              <Select value={localContext} onValueChange={setLocalContext} disabled={loading}>
+              <Select value={localContext} onValueChange={setLocalContext} disabled={isGenerating}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -329,14 +394,14 @@ const ContentMachineTab = () => {
 
           <Button 
             onClick={handleGenerateContent} 
-            disabled={loading || !keyword.trim()}
+            disabled={isGenerating || !keyword.trim()}
             className="w-full bg-green-600 hover:bg-green-700"
             size="lg"
           >
-            {loading ? (
+            {isGenerating ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Gerando Conteúdo Localizado...
+                {jobStatus?.status === 'queued' ? 'Aguardando na fila...' : `Gerando (${jobStatus?.progress || 0}%)`}
               </>
             ) : (
               <>
@@ -347,6 +412,25 @@ const ContentMachineTab = () => {
           </Button>
         </CardContent>
       </Card>
+      
+      {/* Status do Job */}
+      {jobStatus && isGenerating && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <div>
+                <p className="font-semibold text-blue-800">
+                  Job #{jobStatus.id.slice(0, 8)} em andamento: {jobStatus.status}
+                </p>
+                <p className="text-sm text-blue-700">
+                  Progresso: {jobStatus.progress}%
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Preview do Conteúdo Gerado */}
       {previewContent && (
@@ -415,7 +499,7 @@ const ContentMachineTab = () => {
                     key={index}
                     variant="outline"
                     onClick={() => handleProactiveSuggestion(suggestion)}
-                    disabled={generatingProactive || loading}
+                    disabled={generatingProactive || isGenerating}
                     className="flex items-center"
                   >
                     {generatingProactive ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -500,7 +584,7 @@ const ContentMachineTab = () => {
       )}
 
       {/* Instruções de Uso */}
-      {!previewContent && (
+      {!previewContent && !isGenerating && (
         <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
             <CardTitle className="flex items-center text-yellow-800">
