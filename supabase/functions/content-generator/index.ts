@@ -74,7 +74,8 @@ serve(async (req) => {
         type,
     }
     
-    // Insere o job na fila (tabela generation_jobs) - Agora o RLS deve permitir
+    // INSERÇÃO COM TIMEOUT E LOG DE ERRO DETALHADO
+    console.log("DEBUG: Tentando inserir job na tabela 'generation_jobs'...");
     const { data: job, error: insertError } = await supabase
         .from('generation_jobs')
         .insert({
@@ -87,15 +88,21 @@ serve(async (req) => {
         .single()
 
     if (insertError) {
-        console.error("DEBUG: Supabase Insert Error:", insertError);
+        console.error("DEBUG: FALHA NA INSERÇÃO DO JOB!");
+        console.error("DEBUG: Erro de Inserção:", insertError);
+        console.error("DEBUG: Mensagem do Erro:", insertError.message);
+        console.error("DEBUG: Detalhes do Erro:", insertError.details);
+        console.error("DEBUG: Hint do Erro:", insertError.hint);
         // Retorna 500 com a mensagem de erro detalhada
-        return new Response(JSON.stringify({ error: `Supabase Insert Error: ${insertError.message}` }), { status: 500, headers: corsHeaders })
+        return new Response(JSON.stringify({ error: `Falha ao enfileirar job: ${insertError.message}` }), { status: 500, headers: corsHeaders })
     }
+    
+    console.log(`DEBUG: Job inserido com sucesso! ID: ${job.id}`);
     
     // Retorna o ID do job imediatamente
     return new Response(JSON.stringify({ jobId: job.id, status: 'queued' }), {
       headers: corsHeaders,
-      status: 200, // MUDANÇA: Retorna 200 OK para garantir que o invoke do Supabase preencha o campo 'data'
+      status: 200, 
     })
 
   } catch (error) {
