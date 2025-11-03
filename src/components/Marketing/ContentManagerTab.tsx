@@ -71,7 +71,7 @@ const ContentManagerTab: React.FC = () => {
       // Fetch Published (from the renamed table)
       const { data: publishedData } = await supabase
         .from('published_articles')
-        .select('id, title, slug, published_at, seo_score')
+        .select('id, title, slug, published_at, seo_score, content, meta_description, featured_image_url, image_alt_text, external_links, internal_links, secondary_keywords, readability_score, category_id, image_prompt, keyword, context, audience')
         .order('published_at', { ascending: false })
       
       setDrafts(draftsData as ContentDraft[] || [])
@@ -292,9 +292,69 @@ const ContentManagerTab: React.FC = () => {
     }
   }
 
-  const editDraft = (draft: ContentDraft) => {
-    setCurrentDraft(draft);
-    setActiveTab('editor');
+  const editDraft = async (contentItem: ContentDraft) => {
+    if (contentItem.status === 'published') {
+        // Se for publicado, criamos um novo rascunho a partir dele
+        const toastId = showLoading('Criando rascunho para edição...')
+        
+        // 1. Buscar dados completos do artigo publicado
+        const { data: publishedArticle, error: fetchError } = await supabase
+            .from('published_articles')
+            .select('*')
+            .eq('id', contentItem.id)
+            .single()
+            
+        if (fetchError || !publishedArticle) {
+            dismissToast(toastId)
+            showError('Erro ao buscar artigo publicado para edição.')
+            return
+        }
+        
+        // 2. Criar um novo rascunho (ContentDraft) com os dados do publicado
+        const newDraftData: Partial<ContentDraft> = {
+            user_id: user?.id,
+            keyword: publishedArticle.keyword || 'Edição de Artigo',
+            context: publishedArticle.context || 'nacional',
+            audience: publishedArticle.audience || 'geral',
+            status: 'draft',
+            title: publishedArticle.title,
+            slug: `${publishedArticle.slug}-edit-${Date.now()}`, // Novo slug temporário
+            meta_description: publishedArticle.meta_description,
+            content: publishedArticle.content,
+            featured_image_url: publishedArticle.featured_image_url,
+            image_alt_text: publishedArticle.image_alt_text,
+            external_links: publishedArticle.external_links,
+            internal_links: publishedArticle.internal_links,
+            secondary_keywords: publishedArticle.secondary_keywords,
+            seo_score: publishedArticle.seo_score,
+            readability_score: publishedArticle.readability_score,
+            category_id: publishedArticle.category_id,
+            image_prompt: publishedArticle.image_prompt,
+            // Não copiamos o published_at
+        }
+        
+        const { data: newDraft, error: insertError } = await supabase
+            .from('content_drafts')
+            .insert(newDraftData)
+            .select()
+            .single()
+            
+        dismissToast(toastId)
+        
+        if (insertError) {
+            showError('Falha ao criar rascunho de edição: ' + insertError.message)
+            return
+        }
+        
+        showSuccess('Rascunho de edição criado com sucesso! Lembre-se de atualizar o slug antes de republicar.')
+        setCurrentDraft(newDraft as ContentDraft)
+        setActiveTab('editor')
+        
+    } else {
+        // Se for rascunho, edita diretamente
+        setCurrentDraft(contentItem);
+        setActiveTab('editor');
+    }
   }
 
   const viewSerp = (post: ContentDraft) => {

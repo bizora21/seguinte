@@ -152,7 +152,9 @@ const OptimizedImageUpload = ({
       await new Promise(resolve => setTimeout(resolve, 3000))
       
       // Gerar URL mockada otimizada para Google Discover (1200x675)
-      const mockImageUrl = `https://picsum.photos/seed/${encodeURIComponent(imagePrompt)}/1200/675`
+      // Usar o prompt como seed para garantir que a imagem "mude"
+      const seed = encodeURIComponent(imagePrompt.slice(0, 50))
+      const mockImageUrl = `https://picsum.photos/seed/${seed}/1200/675`
       
       onImageChange(mockImageUrl)
       onAltTextChange(imagePrompt) // Usar o prompt como alt text inicial
@@ -239,11 +241,11 @@ const OptimizedImageUpload = ({
               ) : (
                 <div className="space-y-2">
                   <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 mb-1">
                     Arraste uma imagem aqui ou clique para selecionar
                   </p>
                   <p className="text-xs text-gray-500">
-                    Será automaticamente redimensionada para 1200x675px
+                    Max: 10MB • Será redimensionada para 1200x675px
                   </p>
                 </div>
               )}

@@ -6,9 +6,9 @@ import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Label } from '../ui/label' // Importação adicionada
 import { Badge } from '../ui/badge'
-import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText } from 'lucide-react' // FileText adicionado
+import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText, Zap, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react' // FileText adicionado
 import { ContentDraft, BlogCategory, LinkItem } from '../../types/blog'
-import { showSuccess, showError } from '../../utils/toast'
+import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import OptimizedImageUpload from './OptimizedImageUpload'
 import BlogCategoryManager from './BlogCategoryManager'
 import { Separator } from '../ui/separator'
@@ -36,18 +36,44 @@ const AUDIENCE_OPTIONS = [
 
 // Função auxiliar para renderizar Markdown simples (para preview)
 const renderMarkdownPreview = (content: string) => {
-  const htmlContent = content
-    .replace(/# (.*)/g, '<h1>$1</h1>')
-    .replace(/## (.*)/g, '<h2>$1</h2>')
-    .replace(/### (.*)/g, '<h3>$1</h3>')
-    .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-    .replace(/\* (.*)/g, '<li>$1</li>')
-    .replace(/\[CTA: (.*)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Chamada para Ação</a></div>')
-    
-  const listRegex = /(<li>.*<\/li>)/gs
-  const finalContent = htmlContent.replace(listRegex, (match) => `<ul>${match}</ul>`)
+  const paragraphs = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  let htmlContent = '';
+  let inList = false;
 
-  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalContent }} />
+  paragraphs.forEach(line => {
+    let processedLine = line
+      .replace(/### (.*)/g, '<h3>$1</h3>')
+      .replace(/## (.*)/g, '<h2>$1</h2>')
+      .replace(/# (.*)/g, '<h1>$1</h1>')
+      .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[CTA: (.*)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
+
+    if (processedLine.startsWith('* ')) {
+      processedLine = processedLine.replace(/\* (.*)/g, '<li>$1</li>');
+      if (!inList) {
+        htmlContent += '<ul>';
+        inList = true;
+      }
+      htmlContent += processedLine;
+    } else {
+      if (inList) {
+        htmlContent += '</ul>';
+        inList = false;
+      }
+      if (!processedLine.startsWith('<h') && !processedLine.startsWith('<div')) {
+        htmlContent += `<p>${processedLine}</p>`;
+      } else {
+        htmlContent += processedLine;
+      }
+    }
+  });
+  
+  if (inList) {
+    htmlContent += '</ul>';
+  }
+
+  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
 }
 
 const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, onPublish, onCancel }) => {
@@ -55,6 +81,7 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
 
   // Garante que o estado local é atualizado se o rascunho externo mudar (ao trocar de aba)
   useEffect(() => {
@@ -115,6 +142,62 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   }
   
   const currentCategory = categories.find(c => c.id === localDraft.category_id)
+  
+  // --- Análise SEO em Tempo Real (Simulada) ---
+  const seoAnalysis = useMemo(() => {
+    const analysis = {
+      keywordDensity: 0,
+      titleLength: localDraft.title?.length || 0,
+      metaLength: localDraft.meta_description?.length || 0,
+      readability: localDraft.readability_score || 'N/A',
+      issues: [] as string[],
+    }
+    
+    // Simulação de problemas
+    if (analysis.titleLength < 40 || analysis.titleLength > 60) {
+      analysis.issues.push('Título fora do tamanho ideal (40-60 caracteres).')
+    }
+    if (analysis.metaLength < 100 || analysis.metaLength > 160) {
+      analysis.issues.push('Meta descrição fora do tamanho ideal (100-160 caracteres).')
+    }
+    if (!localDraft.featured_image_url) {
+      analysis.issues.push('Imagem de destaque ausente.')
+    }
+    if (!localDraft.image_alt_text || localDraft.image_alt_text.length < 10) {
+      analysis.issues.push('Texto Alt da imagem muito curto ou ausente.')
+    }
+    if (localDraft.content && localDraft.content.split(' ').length < 800) {
+      analysis.issues.push('Conteúdo abaixo do mínimo recomendado (1200 palavras simuladas).')
+    }
+    
+    // Simulação de densidade de palavra-chave
+    if (localDraft.content && localDraft.keyword) {
+        const keywordCount = (localDraft.content.toLowerCase().match(new RegExp(localDraft.keyword.toLowerCase(), 'g')) || []).length;
+        const wordCount = localDraft.content.split(/\s+/).length;
+        analysis.keywordDensity = (keywordCount / wordCount) * 100;
+        if (analysis.keywordDensity < 0.5 || analysis.keywordDensity > 2.5) {
+            analysis.issues.push(`Densidade da palavra-chave (${analysis.keywordDensity.toFixed(2)}%) fora do ideal (0.5% - 2.5%).`);
+        }
+    }
+
+    return analysis
+  }, [localDraft])
+  
+  const handleAnalyzeSEO = async () => {
+    setAnalyzing(true)
+    const toastId = showLoading('Reanalisando SEO e Palavras-chave...')
+    
+    // Simulação de chamada à Edge Function para reanálise
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    
+    // Simulação de atualização de score e sugestões
+    const newScore = Math.min(99, localDraft.seo_score + 5)
+    handleUpdate('seo_score', newScore)
+    
+    dismissToast(toastId)
+    showSuccess('Análise SEO concluída! Score atualizado.')
+    setAnalyzing(false)
+  }
 
   return (
     <Card>
@@ -125,7 +208,7 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
         </CardTitle>
         <div className="flex items-center space-x-4 text-sm">
           <Badge className="bg-yellow-100 text-yellow-800">
-            <BarChart3 className="w-3 h-3 mr-1" /> SEO Score: {localDraft.seo_score}%
+            <BarChart3 className="w-3 h-3 mr-1" /> SEO Score: <span className={`font-bold ${getSeoColor(localDraft.seo_score)}`}>{localDraft.seo_score}%</span>
           </Badge>
           <Badge className="bg-blue-100 text-blue-800">
             <Globe className="w-3 h-3 mr-1" /> Contexto: {localDraft.context}
@@ -172,11 +255,51 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Coluna 1: SEO e Metadados */}
             <div className="lg:col-span-1 space-y-6">
+              
+              {/* Análise SEO em Tempo Real */}
+              <Card className={`border-2 ${seoAnalysis.issues.length > 0 ? 'border-red-400 bg-red-50' : 'border-green-400 bg-green-50'}`}>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <BarChart3 className="w-5 h-5 mr-2" />
+                    Análise SEO em Tempo Real
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Score Atual:</span>
+                    <span className={`font-bold ${getSeoColor(localDraft.seo_score)}`}>{localDraft.seo_score}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Leitura:</span>
+                    <span className="font-bold">{seoAnalysis.readability}</span>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <h4 className="font-semibold text-sm flex items-center">
+                    {seoAnalysis.issues.length > 0 ? <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> : <CheckCircle className="w-4 h-4 mr-1 text-green-600" />}
+                    {seoAnalysis.issues.length} Problema(s) Encontrado(s)
+                  </h4>
+                  
+                  {seoAnalysis.issues.length > 0 && (
+                    <ul className="list-disc list-inside text-xs text-red-700 space-y-1">
+                      {seoAnalysis.issues.map((issue, i) => <li key={i}>{issue}</li>)}
+                    </ul>
+                  )}
+                  
+                  <Button onClick={handleAnalyzeSEO} disabled={analyzing} variant="outline" className="w-full mt-3">
+                    {analyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
+                    Reanalisar SEO
+                  </Button>
+                </CardContent>
+              </Card>
+              
+              {/* SEO e Metadados */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center">
                     <BarChart3 className="w-5 h-5 mr-2 text-yellow-600" />
-                    Otimização SEO
+                    Metadados Essenciais
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

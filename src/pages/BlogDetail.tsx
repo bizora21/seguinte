@@ -10,20 +10,49 @@ import { SEO, generateBreadcrumbSchema } from '../components/SEO'
 
 // Função auxiliar para renderizar Markdown simples (usando o 'prose' do Tailwind)
 const renderMarkdown = (content: string) => {
-  // Substituições simples para garantir que o prose funcione com o formato da IA
-  const htmlContent = content
-    .replace(/# (.*)/g, '<h1>$1</h1>')
-    .replace(/## (.*)/g, '<h2>$1</h2>')
-    .replace(/### (.*)/g, '<h3>$1</h3>')
-    .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-    .replace(/\* (.*)/g, '<li>$1</li>')
-    .replace(/\[CTA: (.*)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">Começar a Vender Agora</a></div>')
-    
-  // Envolve listas em <ul>
-  const listRegex = /(<li>.*<\/li>)/gs
-  const finalContent = htmlContent.replace(listRegex, (match) => `<ul>${match}</ul>`)
+  // 1. Tratar quebras de linha e parágrafos
+  const paragraphs = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  let htmlContent = '';
+  let inList = false;
 
-  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalContent }} />
+  paragraphs.forEach(line => {
+    // 2. Substituições Markdown
+    let processedLine = line
+      .replace(/### (.*)/g, '<h3>$1</h3>')
+      .replace(/## (.*)/g, '<h2>$1</h2>')
+      .replace(/# (.*)/g, '<h1>$1</h1>')
+      .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[CTA: (.*)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
+
+    // 3. Tratamento de Listas
+    if (processedLine.startsWith('* ')) {
+      processedLine = processedLine.replace(/\* (.*)/g, '<li>$1</li>');
+      if (!inList) {
+        htmlContent += '<ul>';
+        inList = true;
+      }
+      htmlContent += processedLine;
+    } else {
+      if (inList) {
+        htmlContent += '</ul>';
+        inList = false;
+      }
+      // Se não for um título ou lista, é um parágrafo
+      if (!processedLine.startsWith('<h') && !processedLine.startsWith('<div')) {
+        htmlContent += `<p>${processedLine}</p>`;
+      } else {
+        htmlContent += processedLine;
+      }
+    }
+  });
+  
+  // Fechar lista se estiver aberta no final
+  if (inList) {
+    htmlContent += '</ul>';
+  }
+
+  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
 }
 
 const BlogDetail = () => {
