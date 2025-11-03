@@ -22,41 +22,54 @@ const supabaseServiceRole = createClient(
   },
 )
 
-// Função para gerar o prompt avançado (simulação de chamada à IA)
-const createAdvancedPrompt = (keyword: string, context?: string, audience?: string) => {
+// Função para gerar o prompt avançado
+const createAdvancedPrompt = (keyword: string, context?: string, audience?: string, type?: string) => {
   const ctx = context || 'Moçambique';
   const aud = audience || 'empreendedores';
+  const content_type = type || 'Guia Completo';
+  
+  // Palavras-chave secundárias obrigatórias para SEO local
+  const secondary_keywords = ["vender online em Moçambique", "empreendedorismo moçambicano", "logística Maputo", "pagamento na entrega"];
+
   return `
-Você é um jornalista moçambicano, especialista em SEO e contador de histórias. Sua missão é escrever um artigo para o blog da LojaRápida que seja tão humano e envolvente que o leitor sentirá que foi escrito por um amigo.
+Você é um jornalista moçambicano, especialista em SEO e Growth Hacking. Sua missão é escrever um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
 
-Palavra-chave principal: "${keyword}"
-Contexto: "${ctx}"
-Público-alvo: "${aud}"
+**TEMA PRINCIPAL:** "${content_type}" sobre a palavra-chave: "${keyword}"
+**CONTEXTO LOCAL:** "${ctx}"
+**PÚBLICO-ALVO:** "${aud}"
 
-**REGRAS ESTRITAS:**
-1.  **Tom e Humanização:** Escreva como uma conversa. Use referências a cidades, culturas e a realidade de Moçambique. Evite clichês e jargões técnicos.
-2.  **Estrutura:** Título (H1), introdução, corpo (mínimo 1200 palavras com subtítulos H2/H3), conclusão com um CTA claro e direto.
-3.  **Formatação:** Use markdown (**negrito**, *itálico*, [links](URL)).
-4.  **SEO Avançado:** Use a palavra-chave "${keyword}" de forma natural. Inclua as secundárias: "vender online em Moçambique", "empreendedorismo moçambicano".
-5.  **Humanização Absoluta:** Escreva o conteúdo final diretamente, sem rótulos como "Título:" ou "Introdução:".
-6.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, que seja relevante para o tema do artigo.
-7.  **Dados Estruturados:** Gere um \`schema_data\` completo para Schema.org, que será usado para SEO avançado.
+**REGRAS ESTRITAS DE GERAÇÃO:**
+1.  **Exclusividade e Profundidade:** O artigo deve ter no mínimo 1200 palavras (simuladas por conteúdo detalhado). Deve ser 100% original e focado em fornecer valor prático para o público moçambicano.
+2.  **Tom e Humanização:** Escreva como uma conversa envolvente. Use referências a cidades, culturas e a realidade de Moçambique.
+3.  **Estrutura:** Título (H1), introdução, corpo com subtítulos (H2/H3) e conclusão com um CTA claro.
+4.  **Formatação:** Use **Markdown** para todo o conteúdo. Garanta que o conteúdo seja limpo e bem estruturado (sem caracteres especiais desnecessários fora da sintaxe Markdown).
+5.  **SEO Avançado:** Use a palavra-chave principal ("${keyword}") e as secundárias ("${secondary_keywords.join('", "')}") de forma natural e estratégica ao longo do texto.
+6.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+7.  **Métricas:** Gere um \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
-Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
+Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`content\` deve conter o artigo completo em Markdown.
+
+\`\`\`json
 {
   "title": "O título H1 do artigo aqui",
+  "slug": "o-slug-do-artigo-aqui",
   "meta_description": "A meta descrição (até 160 caracteres) aqui",
-  "content": "O artigo completo em markdown aqui, sem caracteres especiais.",
+  "content": "O artigo completo em markdown aqui, com no mínimo 1200 palavras simuladas por profundidade de conteúdo.",
   "image_prompt": "A detailed prompt in English for a high-quality, professional photograph-style image relevant to the article's theme.",
-  "secondary_keywords": ["palavra1", "palavra2", "palavra3"],
-  "focus_keyword": "${keyword}",
-  "schema_data": {
-    "@type": "Article",
-    "headline": "O título H1 do artigo aqui",
-    "description": "A meta descrição (até 160 caracteres) aqui"
-  }
+  "secondary_keywords": ["${secondary_keywords[0]}", "${secondary_keywords[1]}", "palavra-chave-adicional"],
+  "seo_score": 92,
+  "readability_score": "Excelente",
+  "context": "${ctx}",
+  "audience": "${aud}",
+  "external_links": [
+    { "title": "Referência Externa 1", "url": "https://exemplo.com/ref1" }
+  ],
+  "internal_links": [
+    { "title": "Artigo Interno Relacionado", "url": "/blog/slug-interno" }
+  ]
 }
+\`\`\`
 `;
 };
 
@@ -94,93 +107,71 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
         }
 
-        console.log(`DEBUG: Enfileirando job para: ${keyword} por user ${userId}`);
+        console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId}`);
         
-        // --- SIMULAÇÃO DE CONTEÚDO AVANÇADO (Substituindo a chamada real à IA) ---
-        const advancedPrompt = createAdvancedPrompt(keyword, context, audience);
-        console.log("DEBUG: Prompt enviado para IA (simulado):", advancedPrompt);
-        
-        // Simulação de conteúdo gerado pela IA (1200 palavras simuladas)
-        const mockContent = {
-            title: `Como Vender Online em ${context === 'nacional' ? 'Moçambique' : context} e Dominar o Mercado Local`,
-            slug: keyword.toLowerCase().replace(/\s+/g, '-').slice(0, 50),
-            meta_description: `Guia definitivo para ${audience} moçambicanos. Descubra as melhores estratégias para ${keyword} e maximize seus lucros na LojaRápida.`,
-            content: `
-# ${keyword} em Moçambique: O Guia Definitivo para o Sucesso
-
-**Introdução: A Revolução Digital Chegou ao Nosso Mercado**
-
-Olá! Se você está lendo isso, provavelmente já sentiu o cheiro da oportunidade. Vender online em Moçambique não é mais um luxo, é uma necessidade. Mas como fazer isso de forma inteligente, sem perder dinheiro e, o mais importante, construindo confiança com o cliente moçambicano?
-
-**A Realidade do Pagamento na Entrega (COD)**
-
-Em ${context}, a confiança é tudo. É por isso que o Pagamento na Entrega (COD) é o rei. Seus clientes querem ver o produto antes de pagar.
-
-## Estratégias de SEO Local para ${context}
-
-Não basta estar online; você precisa ser encontrado.
-
-### Otimização para Maputo e Matola
-
-Se o seu foco é a capital, use termos como **"loja de eletrônicos Maputo"** ou **"entrega rápida Matola"**. O Google adora relevância local.
-
-### Palavras-chave Secundárias Essenciais
-
-Integre naturalmente termos como **"empreendedorismo moçambicano"** e **"vender online em Moçambique"** em seus títulos e descrições.
-
-## A Importância da Humanização no Atendimento
-
-O cliente moçambicano valoriza o contacto pessoal. Use o chat da LojaRápida para responder rapidamente.
-
-*   **Seja Rápido:** Responda em menos de 1 hora.
-*   **Seja Claro:** Use português claro e evite jargões.
-*   **Seja Amigável:** Trate o cliente como um vizinho.
-
-## Logística e Entrega: O Segredo da LojaRápida
-
-Nossa plataforma cuida da logística, mas você precisa embalar bem.
-
-### Dicas de Embalagem
-
-Use materiais resistentes. Lembre-se que o produto vai viajar por ${context}.
-
-## Conclusão: Seu Próximo Passo
-
-O sucesso está à sua espera. Comece hoje, use estas dicas e veja sua loja crescer.
-
-[CTA: Cadastre-se Agora]
-`,
-            image_prompt: `A high-quality, professional photograph of a young Mozambican entrepreneur smiling confidently while holding a smartphone, standing in front of a vibrant market or modern city skyline in Maputo. Focus on bright colors and a sense of local success. Cinematic lighting, 8K resolution.`,
-            secondary_keywords: ["vender online em Moçambique", "empreendedorismo moçambicano", "logística Maputo", "pagamento na entrega"],
-            seo_score: Math.floor(Math.random() * 30) + 70, // 70-100
-            context: context,
-            audience: audience,
-            // Adicionando campos para o frontend
-            external_links: [{ title: "Lei de E-commerce em Moçambique", url: "https://gov.mz/lei-ecommerce" }],
-            internal_links: [{ title: "Guia de Produtos Mais Vendidos", url: "/blog/produtos-mais-vendidos" }],
-            readability_score: "Excelente",
-            category_id: null, // Será preenchido no editor
+        // --- CHAMADA REAL À API DO OPENAI ---
+        // @ts-ignore
+        const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+        if (!OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY não configurada como secret.');
         }
         
+        const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
+        
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini', // Modelo eficiente e capaz de JSON
+                messages: [
+                    { role: "system", content: "Você é um assistente de SEO e Growth Hacking. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
+                    { role: "user", content: advancedPrompt }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.7,
+            }),
+        });
+
+        if (!aiResponse.ok) {
+            const errorBody = await aiResponse.json();
+            console.error("OpenAI API Error:", errorBody);
+            throw new Error(`Falha na API do OpenAI: ${errorBody.error?.message || aiResponse.statusText}`);
+        }
+        
+        const aiData = await aiResponse.json();
+        const rawContent = aiData.choices[0].message.content;
+        
+        // 2. Parse e Validação do Conteúdo
+        let generatedContent;
+        try {
+            generatedContent = JSON.parse(rawContent);
+        } catch (e) {
+            console.error("Failed to parse AI JSON output:", rawContent);
+            throw new Error("A IA não retornou um JSON válido. Tente novamente.");
+        }
+        
+        // 3. Inserção no Banco de Dados
         const { data: draft, error: insertError } = await supabaseServiceRole
             .from('content_drafts')
             .insert({
                 user_id: userId,
                 keyword: keyword,
                 status: 'draft',
-                title: mockContent.title,
-                slug: mockContent.slug,
-                meta_description: mockContent.meta_description,
-                content: mockContent.content,
-                seo_score: mockContent.seo_score,
-                context: mockContent.context,
-                audience: mockContent.audience,
-                // Novos campos
-                image_prompt: mockContent.image_prompt,
-                secondary_keywords: mockContent.secondary_keywords,
-                external_links: mockContent.external_links,
-                internal_links: mockContent.internal_links,
-                readability_score: mockContent.readability_score,
+                title: generatedContent.title,
+                slug: generatedContent.slug,
+                meta_description: generatedContent.meta_description,
+                content: generatedContent.content,
+                seo_score: generatedContent.seo_score,
+                context: generatedContent.context,
+                audience: generatedContent.audience,
+                image_prompt: generatedContent.image_prompt,
+                secondary_keywords: generatedContent.secondary_keywords,
+                external_links: generatedContent.external_links,
+                internal_links: generatedContent.internal_links,
+                readability_score: generatedContent.readability_score,
             })
             .select('id')
             .single()
