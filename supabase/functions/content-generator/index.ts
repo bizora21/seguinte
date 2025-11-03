@@ -28,6 +28,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
   
+  // 1. Autenticação e Extração do UID
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
+  }
+  
+  const token = authHeader.replace('Bearer ', '')
+  
+  // Usar o cliente Supabase para verificar o token e obter o UID
+  const { data: userData, error: authError } = await supabaseServiceRole.auth.getUser(token)
+  
+  if (authError || !userData.user) {
+    console.error('Authentication failed:', authError?.message)
+    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), { status: 401, headers: corsHeaders })
+  }
+  
+  const userId = userData.user.id;
+  
   try {
     if (req.method === 'POST') {
         // Processamento da requisição POST
@@ -38,7 +56,7 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
         }
 
-        console.log(`DEBUG: Enfileirando job para: ${keyword}`);
+        console.log(`DEBUG: Enfileirando job para: ${keyword} por user ${userId}`);
         
         // Simulação de conteúdo gerado pela IA
         const mockContent = {
@@ -54,7 +72,7 @@ serve(async (req) => {
         const { data: draft, error: insertError } = await supabaseServiceRole
             .from('content_drafts')
             .insert({
-                user_id: '00000000-0000-0000-0000-000000000000', // Placeholder
+                user_id: userId, // Usando o ID do usuário autenticado
                 keyword: keyword,
                 status: 'draft',
                 title: mockContent.title,
