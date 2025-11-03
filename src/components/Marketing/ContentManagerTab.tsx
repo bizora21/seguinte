@@ -168,6 +168,16 @@ const ContentManagerTab: React.FC = () => {
   }
 
   const publishDraft = async (draft: ContentDraft) => {
+    if (draft.status === 'published') {
+        showError('Este rascunho já foi publicado. Edite o artigo diretamente na aba "Publicados".');
+        return;
+    }
+    
+    if (!draft.slug) {
+        showError('O slug do artigo não pode estar vazio. Edite na aba Editor.');
+        return;
+    }
+    
     const toastId = showLoading('Publicando artigo...')
     
     try {
@@ -214,7 +224,15 @@ const ContentManagerTab: React.FC = () => {
     } catch (error: any) {
       dismissToast(toastId)
       console.error('Error publishing draft:', error)
-      showError(`Erro ao publicar: ${error.message}`)
+      
+      let errorMessage = `Erro ao publicar: ${error.message}`;
+      
+      // Check for unique constraint violation (code 23505)
+      if (error.code === '23505') {
+          errorMessage = `Erro de Conflito (Slug Duplicado): O endereço URL (slug) "${draft.slug}" já está em uso por outro artigo. Por favor, edite o slug na aba 'Editor' para torná-lo único.`;
+      }
+      
+      showError(errorMessage)
     }
   }
   

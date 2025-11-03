@@ -99,6 +99,10 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
       showError('Selecione uma categoria antes de publicar.')
       return
     }
+    if (!localDraft.slug || localDraft.slug.trim() === '') {
+      showError('O slug (URL) do artigo é obrigatório.')
+      return
+    }
     setPublishing(true)
     await onPublish(localDraft)
     setPublishing(false)
@@ -138,7 +142,7 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
           <Button onClick={handleSaveClick} disabled={saving || publishing} className="bg-blue-600 hover:bg-blue-700">
             <Save className="w-4 h-4 mr-2" /> {saving ? 'Salvando...' : 'Salvar Rascunho'}
           </Button>
-          <Button onClick={handlePublishClick} disabled={publishing || saving || !localDraft.featured_image_url || !localDraft.category_id} className="bg-green-600 hover:bg-green-700">
+          <Button onClick={handlePublishClick} disabled={publishing || saving || !localDraft.featured_image_url || !localDraft.category_id || !localDraft.slug} className="bg-green-600 hover:bg-green-700">
             <Send className="w-4 h-4 mr-2" /> {publishing ? 'Publicando...' : 'Publicar Agora'}
           </Button>
           <Button onClick={() => setPreviewMode(!previewMode)} variant="outline">
@@ -184,6 +188,18 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                       onChange={(e) => handleUpdate('title', e.target.value)}
                       placeholder="Título principal do artigo"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="slug">Slug (URL) *</Label>
+                    <Input 
+                      id="slug"
+                      value={localDraft.slug || ''} 
+                      onChange={(e) => handleUpdate('slug', e.target.value)}
+                      placeholder="slug-do-artigo"
+                    />
+                    <p className="text-xs text-gray-500">
+                      URL final: /blog/{localDraft.slug}
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="meta_description">Meta Descrição (Máx 160)</Label>
