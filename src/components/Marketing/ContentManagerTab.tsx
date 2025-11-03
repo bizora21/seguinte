@@ -175,10 +175,7 @@ const ContentManagerTab: React.FC = () => {
       const { error: publishError } = await supabase
         .from('published_articles')
         .insert({
-          ...draft,
-          status: 'published',
-          published_at: new Date().toISOString(),
-          // Mapeamento de campos para a tabela published_articles
+          // Mapeamento explícito dos campos para a tabela published_articles
           title: draft.title,
           slug: draft.slug,
           meta_description: draft.meta_description,
@@ -192,12 +189,10 @@ const ContentManagerTab: React.FC = () => {
           readability_score: draft.readability_score,
           category_id: draft.category_id,
           image_prompt: draft.image_prompt,
-          // Remove campos específicos de rascunho
-          id: undefined, 
-          user_id: undefined,
-          keyword: undefined,
-          context: undefined,
-          audience: undefined,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          context: draft.context, // Adicionado
+          audience: draft.audience, // Adicionado
         })
         .select()
         .single()
