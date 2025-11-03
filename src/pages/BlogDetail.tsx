@@ -41,7 +41,7 @@ const BlogDetail = () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('blog_posts')
+        .from('published_articles') // MUDANÇA AQUI
         .select(`
           *,
           category:blog_categories ( name, slug )
@@ -197,7 +197,7 @@ const BlogDetail = () => {
             <div className="aspect-video w-full overflow-hidden bg-gray-100">
                 <img
                     src={post.featured_image_url || '/placeholder.svg'}
-                    alt={post.title}
+                    alt={post.image_alt_text || post.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg'

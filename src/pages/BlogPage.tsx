@@ -31,9 +31,9 @@ const BlogPage = () => {
       if (catError) throw catError
       setCategories(catData || [])
 
-      // 2. Buscar Posts Publicados
+      // 2. Buscar Posts Publicados da tabela correta
       let query = supabase
-        .from('blog_posts')
+        .from('published_articles') // MUDANÇA AQUI
         .select(`
           *,
           category:blog_categories ( name, slug )
@@ -184,13 +184,15 @@ const BlogPage = () => {
                             <CardContent>
                                 <p className="text-gray-600 mb-4 line-clamp-3">{post.meta_description}</p>
                                 <div className="flex flex-wrap gap-2 mb-4">
+                                    {/* CORREÇÃO: post.category pode ser null */}
                                     {post.category && (
                                         <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
                                             <Tag className="w-3 h-3 mr-1" />
                                             {post.category.name}
                                         </Badge>
                                     )}
-                                    {post.secondary_keywords.slice(0, 2).map((tag, index) => (
+                                    {/* CORREÇÃO: secondary_keywords pode ser null ou undefined */}
+                                    {(post.secondary_keywords || []).slice(0, 2).map((tag, index) => (
                                         <Badge
                                             key={index}
                                             variant="outline"
