@@ -5,7 +5,7 @@ import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Badge } from '../ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs' // CORRIGIDO: Caminho de importação
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { AlertCircle, CheckCircle, Edit, Eye, Send, Zap, Target, Globe, FileText, BarChart3, Loader2, ArrowRight, Trash2, Save } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
@@ -45,6 +45,9 @@ const TYPE_OPTIONS = [
   { value: 'dicas-praticas', label: 'Dicas Práticas' },
   { value: 'tendencias', label: 'Análise de Tendências' },
 ]
+
+// URL ABSOLUTA DA EDGE FUNCTION
+const EDGE_FUNCTION_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
 
 const ContentManagerTab: React.FC = () => {
   const { user } = useAuth()
@@ -118,11 +121,15 @@ const ContentManagerTab: React.FC = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       
-      const response = await fetch('/functions/v1/content-generator', {
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado. Faça login novamente.')
+      }
+      
+      const response = await fetch(EDGE_FUNCTION_URL, { // USANDO URL ABSOLUTA
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || ''}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           action: 'generate',
@@ -133,19 +140,25 @@ const ContentManagerTab: React.FC = () => {
         })
       })
 
-      // Adicionado tratamento robusto de resposta
       if (!response.ok) {
         const errorText = await response.text()
         dismissToast(toastId)
         throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`)
       }
       
-      // Tenta analisar o JSON
       const result = await response.json()
       
       if (result.success) {
         dismissToast(toastId)
         showSuccess(`Conteúdo gerado! Revise na aba Rascunhos.`)
+        // Tenta carregar o rascunho recém-criado para edição imediata
+        if (result.draftId) {
+            const { data: newDraft } = await supabase.from('content_drafts').select('*').eq('id', result.draftId).single()
+            if (newDraft) {
+                setCurrentDraft(newDraft as ContentDraft)
+                setActiveTab('editor')
+            }
+        }
       } else {
         dismissToast(toastId)
         throw new Error(result.error || 'Erro desconhecido na Edge Function.')
@@ -191,6 +204,7 @@ const ContentManagerTab: React.FC = () => {
       dismissToast(toastId)
       showSuccess('Artigo publicado com sucesso!')
       loadContent()
+      setActiveTab('published')
     } catch (error: any) {
       dismissToast(toastId)
       console.error('Error publishing draft:', error)
