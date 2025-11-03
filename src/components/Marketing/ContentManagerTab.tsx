@@ -11,21 +11,8 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../utils/t
 import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../LoadingSpinner'
 import { useAuth } from '../../contexts/AuthContext'
-
-interface ContentDraft {
-  id: string
-  title: string
-  slug: string
-  meta_description: string
-  content: string
-  keyword: string
-  context: string
-  audience: string
-  seo_score: number
-  status: 'draft' | 'published'
-  created_at: string
-  published_at: string | null
-}
+import { ContentDraft, BlogCategory } from '../../types/blog'
+import DraftEditor from './DraftEditor' // Importando o novo editor
 
 const CONTEXT_OPTIONS = [
   { value: 'maputo', label: 'Maputo e Região' },
@@ -53,6 +40,7 @@ const ContentManagerTab: React.FC = () => {
   const { user } = useAuth()
   const [drafts, setDrafts] = useState<ContentDraft[]>([])
   const [published, setPublished] = useState<ContentDraft[]>([])
+  const [categories, setCategories] = useState<BlogCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [currentDraft, setCurrentDraft] = useState<ContentDraft | null>(null)
@@ -66,6 +54,13 @@ const ContentManagerTab: React.FC = () => {
   const loadContent = useCallback(async () => {
     setLoading(true)
     try {
+      // Fetch Categories
+      const { data: catData } = await supabase
+        .from('blog_categories')
+        .select('*')
+        .order('name')
+      setCategories(catData as BlogCategory[] || [])
+      
       // Fetch Drafts
       const { data: draftsData } = await supabase
         .from('content_drafts')
@@ -125,7 +120,7 @@ const ContentManagerTab: React.FC = () => {
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
-      const response = await fetch(EDGE_FUNCTION_URL, { // USANDO URL ABSOLUTA
+      const response = await fetch(EDGE_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,8 +168,6 @@ const ContentManagerTab: React.FC = () => {
   }
 
   const publishDraft = async (draft: ContentDraft) => {
-    if (!window.confirm(`Tem certeza que deseja publicar o artigo: ${draft.title}?`)) return;
-    
     const toastId = showLoading('Publicando artigo...')
     
     try {
@@ -185,15 +178,33 @@ const ContentManagerTab: React.FC = () => {
           ...draft,
           status: 'published',
           published_at: new Date().toISOString(),
-          // Remove campos específicos de rascunho se houver
-          id: undefined, // Deixa o banco gerar um novo ID para o artigo publicado
+          // Mapeamento de campos para a tabela published_articles
+          title: draft.title,
+          slug: draft.slug,
+          meta_description: draft.meta_description,
+          content: draft.content,
+          featured_image_url: draft.featured_image_url,
+          image_alt_text: draft.image_alt_text,
+          external_links: draft.external_links,
+          internal_links: draft.internal_links,
+          secondary_keywords: draft.secondary_keywords,
+          seo_score: draft.seo_score,
+          readability_score: draft.readability_score,
+          category_id: draft.category_id,
+          image_prompt: draft.image_prompt,
+          // Remove campos específicos de rascunho
+          id: undefined, 
+          user_id: undefined,
+          keyword: undefined,
+          context: undefined,
+          audience: undefined,
         })
         .select()
         .single()
 
       if (publishError) throw publishError;
 
-      // 2. Marcar o rascunho como 'published' na tabela de rascunhos (ou deletar, mas marcamos para histórico)
+      // 2. Marcar o rascunho como 'published' na tabela de rascunhos
       const { error: draftUpdateError } = await supabase
         .from('content_drafts')
         .update({ status: 'published' })
@@ -231,21 +242,30 @@ const ContentManagerTab: React.FC = () => {
     }
   }
 
-  const saveDraftChanges = async () => {
-    if (!currentDraft) return;
-    
+  const saveDraftChanges = async (draftToSave: ContentDraft) => {
     const toastId = showLoading('Salvando alterações...')
     
     try {
+      // Mapeia o rascunho local para o formato de atualização do banco
+      const updateData = {
+        title: draftToSave.title,
+        slug: draftToSave.slug,
+        meta_description: draftToSave.meta_description,
+        content: draftToSave.content,
+        featured_image_url: draftToSave.featured_image_url,
+        image_alt_text: draftToSave.image_alt_text,
+        external_links: draftToSave.external_links,
+        internal_links: draftToSave.internal_links,
+        secondary_keywords: draftToSave.secondary_keywords,
+        category_id: draftToSave.category_id,
+        image_prompt: draftToSave.image_prompt,
+        // Mantém os campos de geração (keyword, context, audience)
+      }
+      
       const { error } = await supabase
         .from('content_drafts')
-        .update({
-          title: currentDraft.title,
-          meta_description: currentDraft.meta_description,
-          content: currentDraft.content,
-          // Adicione outros campos editáveis aqui
-        })
-        .eq('id', currentDraft.id);
+        .update(updateData)
+        .eq('id', draftToSave.id);
         
       if (error) throw error;
       
@@ -455,60 +475,13 @@ const ContentManagerTab: React.FC = () => {
         {/* Editor Tab */}
         <TabsContent value="editor">
           {currentDraft ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-blue-800">
-                  <Edit className="w-6 h-6 mr-2" />
-                  Editor Avançado: {currentDraft.title}
-                </CardTitle>
-                <div className="flex items-center space-x-4 text-sm">
-                  <Badge className="bg-yellow-100 text-yellow-800">
-                    <BarChart3 className="w-3 h-3 mr-1" /> SEO Score: {currentDraft.seo_score}%
-                  </Badge>
-                  <Badge className="bg-blue-100 text-blue-800">
-                    <Globe className="w-3 h-3 mr-1" /> Contexto: {currentDraft.context}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Título</label>
-                  <Input 
-                    value={currentDraft.title} 
-                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, title: e.target.value } : null)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Meta Descrição</label>
-                  <Textarea 
-                    value={currentDraft.meta_description} 
-                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, meta_description: e.target.value } : null)}
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Conteúdo (Markdown)</label>
-                  <Textarea 
-                    value={currentDraft.content} 
-                    onChange={(e) => setCurrentDraft(prev => prev ? { ...prev, content: e.target.value } : null)}
-                    rows={20}
-                    className="font-mono"
-                  />
-                </div>
-                
-                <div className="flex space-x-4">
-                  <Button onClick={saveDraftChanges} className="bg-blue-600 hover:bg-blue-700">
-                    <Save className="w-4 h-4 mr-2" /> Salvar Rascunho
-                  </Button>
-                  <Button onClick={() => publishDraft(currentDraft)} className="bg-green-600 hover:bg-green-700">
-                    <Send className="w-4 h-4 mr-2" /> Publicar Agora
-                  </Button>
-                  <Button onClick={() => setActiveTab('drafts')} variant="outline">
-                    Cancelar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <DraftEditor 
+              draft={currentDraft}
+              categories={categories}
+              onSave={saveDraftChanges}
+              onPublish={publishDraft}
+              onCancel={() => setActiveTab('drafts')}
+            />
           ) : (
             <Card>
               <CardContent className="p-12 text-center">
