@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, Image as ImageIcon, Zap, Download, AlertTriangle } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, Zap, Download, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Input } from '../ui/input'
@@ -72,8 +72,9 @@ const OptimizedImageUpload = ({
       const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
       const filePath = `blog-images/${fileName}`
 
+      // Nota: O bucket 'product-images' é usado para blog-images também.
       const { error: uploadError } = await supabase.storage
-        .from('product-images') // Usando o bucket existente
+        .from('product-images') 
         .upload(filePath, optimizedFile)
 
       if (uploadError) {
@@ -145,25 +146,39 @@ const OptimizedImageUpload = ({
     }
 
     setGenerating(true)
-    const toastId = showLoading('Gerando imagem com IA...')
+    const toastId = showLoading('Buscando imagem no Unsplash...')
 
     try {
-      // Simulação de geração de imagem com IA (em produção usaria DALL-E, Midjourney API, etc.)
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // 1. Chamar a Edge Function para buscar a imagem
+      const response = await supabase.functions.invoke('unsplash-image-generator', {
+        method: 'POST',
+        body: { prompt: imagePrompt.trim() }
+      })
       
-      // Gerar URL mockada otimizada para Google Discover (1200x675)
-      // Usar o prompt como seed para garantir que a imagem "mude"
-      const seed = encodeURIComponent(imagePrompt.slice(0, 50))
-      const mockImageUrl = `https://picsum.photos/seed/${seed}/1200/675`
+      // A Edge Function retorna { data: { success, imageUrl, imageAlt }, error }
+      if (response.error) throw response.error
       
-      onImageChange(mockImageUrl)
-      onAltTextChange(imagePrompt) // Usar o prompt como alt text inicial
+      const result = response.data as { success: boolean, imageUrl: string, imageAlt: string }
+      
+      if (!result.success || !result.imageUrl) {
+        // Se success for false, a Edge Function deve ter retornado um erro no corpo,
+        // mas como o invoke não lança exceção para erros 4xx/5xx do corpo, tratamos aqui.
+        // No entanto, a Edge Function está configurada para lançar exceção em caso de falha na API do Unsplash.
+        // Se chegarmos aqui com success: false, é um erro interno da Edge Function que não foi capturado.
+        throw new Error('Nenhuma imagem relevante encontrada no Unsplash.')
+      }
+      
+      // 2. Usar a URL retornada
+      onImageChange(result.imageUrl)
+      onAltTextChange(result.imageAlt)
       
       dismissToast(toastId)
-      showSuccess('Imagem gerada com sucesso! Dimensões otimizadas para Google Discover.')
-    } catch (error) {
+      showSuccess('Imagem do Unsplash carregada com sucesso!')
+      
+    } catch (error: any) {
       dismissToast(toastId)
-      showError('Erro ao gerar imagem')
+      console.error('Error generating image:', error)
+      showError(`Falha ao buscar imagem: ${error.message || 'Erro de conexão.'}`)
     } finally {
       setGenerating(false)
     }
@@ -177,7 +192,7 @@ const OptimizedImageUpload = ({
           Imagem de Destaque (Otimizada para Google Discover)
         </CardTitle>
         <p className="text-sm text-purple-700">
-          Dimensões automáticas: 1200x675px (16:9) • Compressão otimizada • Alt text para acessibilidade
+          Busque imagens de alta qualidade no Unsplash ou faça upload manual.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -185,7 +200,7 @@ const OptimizedImageUpload = ({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="ai" className="flex items-center">
               <Zap className="w-4 h-4 mr-2" />
-              Gerar com IA
+              Buscar no Unsplash
             </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center">
               <Upload className="w-4 h-4 mr-2" />
@@ -193,15 +208,15 @@ const OptimizedImageUpload = ({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Gerar com IA */}
+          {/* Tab: Gerar com IA (Unsplash) */}
           <TabsContent value="ai" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="imagePrompt">Prompt para Geração de Imagem</Label>
+              <Label htmlFor="imagePrompt">Prompt de Busca (Ex: "vendedor moçambicano", "e-commerce")</Label>
               <Input
                 id="imagePrompt"
                 value={imagePrompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                placeholder="Ex: Vendedor moçambicano sorrindo com produtos, estilo profissional"
+                placeholder="Insira o tema da imagem"
                 disabled={generating}
               />
             </div>
@@ -212,13 +227,13 @@ const OptimizedImageUpload = ({
             >
               {generating ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Gerando...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Buscando...
                 </>
               ) : (
                 <>
                   <Zap className="w-4 h-4 mr-2" />
-                  Gerar Imagem com IA
+                  Buscar Imagem no Unsplash
                 </>
               )}
             </Button>
@@ -291,10 +306,10 @@ const OptimizedImageUpload = ({
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center text-green-800 text-sm">
                 <Download className="w-4 h-4 mr-2" />
-                <span className="font-medium">Imagem otimizada para Google Discover</span>
+                <span className="font-medium">Imagem carregada/buscada com sucesso!</span>
               </div>
               <p className="text-xs text-green-700 mt-1">
-                Dimensões: 1200x675px • Formato: JPEG • Compressão: 85% • Carregamento rápido garantido
+                Se for upload manual, a imagem foi redimensionada para 1200x675px.
               </p>
             </div>
           </div>

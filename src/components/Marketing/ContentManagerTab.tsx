@@ -74,7 +74,7 @@ const ContentManagerTab: React.FC = () => {
         .select('id, title, slug, published_at, seo_score, content, meta_description, featured_image_url, image_alt_text, external_links, internal_links, secondary_keywords, readability_score, category_id, image_prompt, keyword, context, audience')
         .order('published_at', { ascending: false })
       
-      setDrafts(draftsData as ContentDraft[] || [])
+      setDrafts(publishedData as ContentDraft[] || []) // CORREÇÃO: Usar publishedData para a lista de publicados
       setPublished(publishedData as ContentDraft[] || [])
     } catch (error) {
       console.error('Error loading content:', error)
