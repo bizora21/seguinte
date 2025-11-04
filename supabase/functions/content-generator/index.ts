@@ -153,6 +153,7 @@ serve(async (req) => {
             // @ts-ignore
             const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
             if (!ANTHROPIC_API_KEY) {
+                console.error('ERRO CRÍTICO: ANTHROPIC_API_KEY não configurada.');
                 throw new Error('ANTHROPIC_API_KEY não configurada como secret.');
             }
             
@@ -177,7 +178,8 @@ serve(async (req) => {
 
             if (!anthropicResponse.ok) {
                 const errorBody = await anthropicResponse.json();
-                console.error("Anthropic API Error:", errorBody);
+                console.error("Anthropic API Error Body:", errorBody);
+                // Lançar erro mais detalhado
                 throw new Error(`Falha na API do Anthropic: ${errorBody.error?.message || anthropicResponse.statusText}`);
             }
             
