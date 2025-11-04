@@ -22,7 +22,7 @@ const supabaseServiceRole = createClient(
   },
 )
 
-// Função para gerar o prompt avançado (usando Anthropic)
+// Função para gerar o prompt avançado (usando OpenAI)
 const createAdvancedPrompt = (keyword: string, context?: string, audience?: string, type?: string) => {
   const ctx = context || 'Moçambique';
   const aud = audience || 'empreendedores';
@@ -140,7 +140,13 @@ serve(async (req) => {
         const body = await req.json();
         const { action } = body;
         
-        // --- AÇÃO: GERAR CONTEÚDO INICIAL (USANDO ANTHROPIC) ---
+        // @ts-ignore
+        const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+        if (!OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY não configurada como secret.');
+        }
+        
+        // --- AÇÃO: GERAR CONTEÚDO INICIAL (USANDO OPENAI) ---
         if (action === 'generate') {
             const { keyword, context, audience, type } = body;
             
@@ -148,57 +154,42 @@ serve(async (req) => {
                 return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
             }
 
-            console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando Anthropic`);
-            
-            // @ts-ignore
-            const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-            
-            // Log de verificação da chave
-            if (!ANTHROPIC_API_KEY) {
-                console.error('ERRO CRÍTICO: ANTHROPIC_API_KEY não configurada.');
-                throw new Error('ANTHROPIC_API_KEY não configurada como secret.');
-            } else {
-                console.log('DEBUG: ANTHROPIC_API_KEY está presente.');
-            }
+            console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando OpenAI`);
             
             const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
             
-            const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': ANTHROPIC_API_KEY,
-                    'anthropic-version': '2023-06-01',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
                 },
                 body: JSON.stringify({
-                    model: 'claude-3-sonnet-20240229', // MUDANÇA AQUI: Usando Claude 3 Sonnet
+                    model: 'gpt-4o-mini', // Usando gpt-4o-mini para JSON mode e custo/velocidade
                     max_tokens: 4096,
                     messages: [
+                        { role: "system", content: "Você é um jornalista moçambicano, especialista em SEO de alto nível e Growth Hacking. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
                         { role: "user", content: advancedPrompt }
                     ],
-                    // Claude não tem response_format nativo, mas é excelente em seguir instruções JSON
+                    response_format: { type: "json_object" }, // CRUCIAL para JSON mode
+                    temperature: 0.7, // Temperatura mais alta para criatividade
                 }),
             });
 
-            if (!anthropicResponse.ok) {
-                const errorBody = await anthropicResponse.json();
-                console.error("Anthropic API Error Body:", errorBody);
-                // Lançar erro mais detalhado
-                throw new Error(`Falha na API do Anthropic: ${errorBody.error?.message || anthropicResponse.statusText}`);
+            if (!openaiResponse.ok) {
+                const errorBody = await openaiResponse.json();
+                console.error("OpenAI API Error Body (Generate):", errorBody);
+                throw new Error(`Falha na API do OpenAI (Geração): ${errorBody.error?.message || openaiResponse.statusText}`);
             }
             
-            const anthropicData = await anthropicResponse.json();
-            const rawContent = anthropicData.content[0].text;
-            
-            // Tenta extrair o JSON do bloco de código (comum no Claude)
-            const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
-            const jsonString = jsonMatch ? jsonMatch[1] : rawContent;
+            const openaiData = await openaiResponse.json();
+            const rawContent = openaiData.choices[0].message.content;
             
             let generatedContent;
             try {
-                generatedContent = JSON.parse(jsonString);
+                generatedContent = JSON.parse(rawContent);
             } catch (e) {
-                console.error("Failed to parse AI JSON output:", jsonString);
+                console.error("Failed to parse AI JSON output (Generate):", rawContent);
                 throw new Error("A IA não retornou um JSON válido. Tente novamente.");
             }
             
@@ -241,12 +232,6 @@ serve(async (req) => {
             
             if (!draft || !draft.content || !draft.keyword) {
                 return new Response(JSON.stringify({ error: 'Bad Request: Dados do rascunho incompletos para reanálise.' }), { status: 400, headers: corsHeaders })
-            }
-            
-            // @ts-ignore
-            const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-            if (!OPENAI_API_KEY) {
-                throw new Error('OPENAI_API_KEY não configurada como secret.');
             }
             
             const reanalyzePrompt = createReanalyzePrompt(draft);
