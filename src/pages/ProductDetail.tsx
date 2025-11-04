@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { showSuccess, showError } from '../utils/toast';
 import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO';
 import { getFirstImageUrl } from '../utils/images';
+import ProductDetailSkeleton from '../components/ProductDetailSkeleton'; // Importado
 
 // Interface para os dados do produto
 interface Product {
@@ -333,14 +334,7 @@ const ProductDetail = () => {
   const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando produto...</p>
-        </div>
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (error || !product) {

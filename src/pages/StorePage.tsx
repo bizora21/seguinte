@@ -11,6 +11,7 @@ import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
 import { SEO, generateStoreSchema, generateBreadcrumbSchema } from '../components/SEO'
+import StorePageSkeleton from '../components/StorePageSkeleton' // Importado
 
 const StorePage = () => {
   const { sellerId } = useParams<{ sellerId: string }>()
@@ -98,11 +99,7 @@ const StorePage = () => {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    )
+    return <StorePageSkeleton />
   }
 
   if (!seller) {
