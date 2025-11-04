@@ -32,21 +32,26 @@ const createAdvancedPrompt = (keyword: string, context?: string, audience?: stri
   const secondary_keywords = ["vender online em Moçambique", "empreendedorismo moçambicano", "logística Maputo", "pagamento na entrega"];
 
   return `
-Você é um jornalista moçambicano, especialista em SEO e Growth Hacking. Sua missão é escrever um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
+Você é um jornalista moçambicano, especialista em SEO de alto nível e Growth Hacking. Sua missão é escrever um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
 
 **TEMA PRINCIPAL:** "${content_type}" sobre a palavra-chave: "${keyword}"
 **CONTEXTO LOCAL:** "${ctx}"
 **PÚBLICO-ALVO:** "${aud}"
 
-**REGRAS ESTRITAS DE GERAÇÃO:**
-1.  **Exclusividade e Profundidade:** O artigo deve ter no mínimo 1200 palavras (simuladas por conteúdo detalhado). Deve ser 100% original e focado em fornecer valor prático para o público moçambicano.
-2.  **Tom e Humanização:** Escreva como uma conversa envolvente. Use referências a cidades, culturas e a realidade de Moçambique.
-3.  **Estrutura:** Título (H1), introdução, corpo com subtítulos (H2/H3) e conclusão com um CTA claro.
-4.  **Formatação:** Use **Markdown** para todo o conteúdo. Garanta que o conteúdo seja limpo e bem estruturado. **NÃO** use caracteres especiais desnecessários nos títulos e subtítulos (ex: \`##\`, \`***\`). O Markdown deve ser estrito (ex: \`## Título\`).
-5.  **Meta Descrição:** A meta descrição deve ser altamente persuasiva e **NÃO** deve conter clichês como "descubra", "confira", "veja". Foque no valor e na ação.
-6.  **SEO Avançado:** Use a palavra-chave principal ("${keyword}") e as secundárias ("${secondary_keywords.join('", "')}") de forma natural e estratégica ao longo do texto.
-7.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-8.  **Métricas:** Gere um \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+**REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO):**
+1.  **Profundidade e Qualidade:** O artigo deve ser extenso e detalhado, simulando no mínimo 1200 palavras através da profundidade e riqueza do conteúdo. Deve ser 100% original e focado em fornecer valor prático para o público moçambicano.
+2.  **Estrutura Markdown Rigorosa:**
+    *   O título principal (H1) deve ser fornecido APENAS no campo \`title\` do JSON.
+    *   Use \`##\` para os títulos principais das seções (H2).
+    *   Use \`###\` para subtítulos dentro das seções (H3).
+    *   Use \`**negrito**\` para destacar termos importantes.
+    *   Use listas com \`* \` (asterisco e espaço).
+    *   Garanta que o conteúdo seja limpo e bem estruturado.
+3.  **Meta Descrição:** A meta descrição deve ser altamente persuasiva, com no máximo 160 caracteres, e focar no valor e na ação.
+4.  **SEO Avançado:** Use a palavra-chave principal ("${keyword}") e as secundárias ("${secondary_keywords.join('", "')}") de forma natural e estratégica ao longo do texto, especialmente nos H2 e H3.
+5.  **CTA:** Inclua um Call-to-Action claro no final do artigo usando o formato \`[CTA: Texto do Botão]\`.
+6.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+7.  **Métricas:** Gere um \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
 Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`content\` deve conter o artigo completo em Markdown.
@@ -56,7 +61,7 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`cont
   "title": "O título H1 do artigo aqui",
   "slug": "o-slug-do-artigo-aqui",
   "meta_description": "A meta descrição (até 160 caracteres) aqui, focada em valor e sem clichês.",
-  "content": "O artigo completo em markdown aqui, com no mínimo 1200 palavras simuladas por profundidade de conteúdo.",
+  "content": "## Introdução ao Tema\\n\\nO artigo começa aqui, com parágrafos detalhados e uso de **negrito** para termos chave.\\n\\n## Título da Primeira Seção (H2)\\n\\n### Subtítulo da Seção (H3)\\n\\n* Item de lista 1\\n* Item de lista 2\\n\\nMais conteúdo detalhado aqui.\\n\\n## Conclusão\\n\\nResumo e chamada final.\\n\\n[CTA: Comece a Vender Agora na LojaRápida]",
   "image_prompt": "A detailed prompt in English for a high-quality, professional photograph-style image relevant to the article's theme.",
   "secondary_keywords": ["${secondary_keywords[0]}", "${secondary_keywords[1]}", "palavra-chave-adicional"],
   "seo_score": 92,

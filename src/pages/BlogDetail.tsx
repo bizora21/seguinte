@@ -10,49 +10,65 @@ import { SEO, generateBreadcrumbSchema } from '../components/SEO'
 
 // Função auxiliar para renderizar Markdown simples (usando o 'prose' do Tailwind)
 const renderMarkdown = (content: string) => {
-  // 1. Tratar quebras de linha e parágrafos
-  const paragraphs = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
-  let htmlContent = '';
+  // 1. Substituições Markdown para HTML
+  let htmlContent = content
+    // Substituir negrito **texto** por <strong>texto</strong>
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Substituir H3 (###)
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    // Substituir H2 (##)
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    // Substituir H1 (#) - Embora o título principal esteja fora do content, mantemos a regra
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    // Substituir CTA [CTA: Texto]
+    .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
+
+  // 2. Tratamento de Listas e Parágrafos
+  const lines = htmlContent.split('\n');
+  let finalHtml = '';
   let inList = false;
 
-  paragraphs.forEach(line => {
-    // 2. Substituições Markdown
-    let processedLine = line
-      .replace(/### (.*)/g, '<h3>$1</h3>')
-      .replace(/## (.*)/g, '<h2>$1</h2>')
-      .replace(/# (.*)/g, '<h1>$1</h1>')
-      .replace(/\*\*(.*)\*\*/g, '<strong>$1</strong>')
-      .replace(/\[CTA: (.*)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
-
-    // 3. Tratamento de Listas
-    if (processedLine.startsWith('* ')) {
-      processedLine = processedLine.replace(/\* (.*)/g, '<li>$1</li>');
-      if (!inList) {
-        htmlContent += '<ul>';
-        inList = true;
-      }
-      htmlContent += processedLine;
-    } else {
+  lines.forEach(line => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0) {
+      // Linha vazia
       if (inList) {
-        htmlContent += '</ul>';
+        finalHtml += '</ul>';
         inList = false;
       }
-      // Se não for um título ou lista, é um parágrafo
-      if (!processedLine.startsWith('<h') && !processedLine.startsWith('<div')) {
-        htmlContent += `<p>${processedLine}</p>`;
+      return;
+    }
+
+    if (trimmedLine.startsWith('* ')) {
+      // Item de lista
+      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
+      if (!inList) {
+        finalHtml += '<ul>';
+        inList = true;
+      }
+      finalHtml += listItem;
+    } else {
+      // Não é lista
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      
+      // Se não for um bloco HTML (título, CTA, etc.), envolve em <p>
+      if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<div')) {
+        finalHtml += `<p>${trimmedLine}</p>`;
       } else {
-        htmlContent += processedLine;
+        finalHtml += trimmedLine;
       }
     }
   });
   
   // Fechar lista se estiver aberta no final
   if (inList) {
-    htmlContent += '</ul>';
+    finalHtml += '</ul>';
   }
 
-  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }
 
 const BlogDetail = () => {
