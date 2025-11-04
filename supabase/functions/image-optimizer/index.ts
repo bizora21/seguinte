@@ -57,13 +57,14 @@ serve(async (req) => {
     console.log(`OPTIMIZER DEBUG: Imagem baixada. Tamanho: ${imageBuffer.byteLength} bytes`);
     
     // 3. SIMULAÇÃO DE OTIMIZAÇÃO (WebP e Redimensionamento)
-    // Em um ambiente Deno real, usaríamos uma biblioteca de processamento de imagem aqui
-    // para redimensionar para 1200x675 e converter para WebP.
-    const optimizedBuffer = imageBuffer; // Mantemos o buffer original para a simulação
-    const mimeType = 'image/webp'; // Forçamos o tipo para WebP (simulação)
-    const fileName = `blog-optimized-${Date.now()}.webp`;
-    const filePath = `blog-images/${fileName}`;
-
+    const optimizedBuffer = imageBuffer; 
+    const mimeType = 'image/webp'; 
+    
+    // CORREÇÃO CRÍTICA: Simplificando o caminho do arquivo para evitar 'requested path is invalid'
+    // Usaremos o subdiretório 'blog/' dentro do bucket 'product-images'
+    const fileName = `optimized-${Date.now()}.webp`;
+    const filePath = `blog/${fileName}`; // Usando 'blog/' como subdiretório
+    
     // 4. Upload para o Supabase Storage (usando Service Role Key)
     console.log(`OPTIMIZER DEBUG: Iniciando upload para ${filePath}`);
     const { error: uploadError } = await supabaseServiceRole.storage
@@ -75,7 +76,8 @@ serve(async (req) => {
 
     if (uploadError) {
         console.error('OPTIMIZER DEBUG: Upload Error:', uploadError);
-        throw new Error(`Falha no upload para o storage: ${uploadError.message}`);
+        // Lançar erro detalhado para debug
+        throw new Error(`Falha no upload para o storage: ${uploadError.message}. Caminho: ${filePath}`);
     }
 
     const { data: publicUrlData } = supabaseServiceRole.storage
