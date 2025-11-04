@@ -14,64 +14,45 @@ const renderMarkdown = (content: string) => {
   let htmlContent = content
     // Substituir negrito **texto** por <strong>texto</strong>
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Substituir H3 (###)
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    // Substituir H2 (## (espaço))
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    // Substituir H1 (# (espaço))
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
 
-  // 2. Tratamento de Listas e Parágrafos
-  const lines = htmlContent.split('\n');
-  let finalHtml = '';
-  let inList = false;
-
-  lines.forEach(line => {
-    const trimmedLine = line.trim();
-    if (trimmedLine.length === 0) {
-      // Linha vazia: fecha a lista e adiciona um parágrafo vazio para espaçamento
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      // Adiciona um parágrafo vazio para garantir espaçamento entre blocos
-      finalHtml += '<p></p>'; 
-      return;
-    }
-
-    if (trimmedLine.startsWith('* ')) {
-      // Item de lista
-      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
-      if (!inList) {
-        finalHtml += '<ul>';
-        inList = true;
-      }
-      finalHtml += listItem;
-    } else {
-      // Não é lista
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      
-      // Se não for um bloco HTML (título, CTA, etc.), envolve em <p>
-      if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<div') && !trimmedLine.startsWith('<ul') && !trimmedLine.startsWith('<li')) {
-        finalHtml += `<p>${trimmedLine}</p>`;
-      } else {
-        finalHtml += trimmedLine;
-      }
-    }
-  });
+  // 2. Substituir quebras de linha por <br> para manter o espaçamento dentro dos parágrafos,
+  // mas garantir que os elementos de bloco (H2, H3, listas) sejam separados por linhas vazias
+  // para que o 'prose' os trate como blocos separados.
   
-  // Fechar lista se estiver aberta no final
-  if (inList) {
-    finalHtml += '</ul>';
-  }
+  // Esta abordagem é mais simples e confia no @tailwindcss/typography para o resto.
+  
+  // Substituir títulos e listas por tags HTML para que o prose os reconheça
+  htmlContent = htmlContent
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    .replace(/^\* (.*)$/gm, '<li>$1</li>'); // Substitui itens de lista
 
-  // Remove parágrafos vazios duplicados que podem ter sido inseridos
-  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
+  // Envolver itens de lista em <ul> (simples, assume que listas são separadas por linhas vazias)
+  let finalHtml = htmlContent.split('\n').map(line => {
+    if (line.startsWith('<li>')) {
+      return line;
+    }
+    return line;
+  }).join('\n');
+  
+  // Adicionar tags <p> em torno de texto que não é bloco (H, UL, DIV)
+  finalHtml = finalHtml.split('\n').map(line => {
+    const trimmedLine = line.trim();
+    if (trimmedLine.length === 0 || trimmedLine.startsWith('<h') || trimmedLine.startsWith('<div') || trimmedLine.startsWith('<ul') || trimmedLine.startsWith('<li')) {
+      return trimmedLine;
+    }
+    return `<p>${trimmedLine}</p>`;
+  }).join('');
+  
+  // Limpeza de tags de lista órfãs e parágrafos vazios
+  finalHtml = finalHtml.replace(/<\/li><p>/g, '</li>').replace(/<\/ul><p>/g, '</ul>').replace(/<p><\/p>/g, '');
+  
+  // Envolver listas (li) em ul
+  finalHtml = finalHtml.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
+  finalHtml = finalHtml.replace(/<\/ul><ul>/g, ''); // Corrige listas adjacentes
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }

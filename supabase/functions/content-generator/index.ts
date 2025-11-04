@@ -79,6 +79,37 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`cont
 `;
 };
 
+// Função para gerar o prompt de reanálise
+const createReanalyzePrompt = (draft: any) => {
+    return `
+Você é um especialista em SEO e Growth Hacking. Sua tarefa é analisar o conteúdo Markdown fornecido abaixo e fornecer uma reavaliação do SEO Score e Readability Score.
+
+**Palavra-chave Principal:** ${draft.keyword}
+**Conteúdo Atual (Markdown):**
+---
+${draft.content}
+---
+
+**REGRAS ESTRITAS DE REANÁLISE:**
+1.  **Foco:** Avalie a densidade da palavra-chave, a estrutura de títulos (H2, H3), a profundidade do conteúdo e a clareza da escrita.
+2.  **Métricas:** Gere um novo \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom", "Mediano").
+3.  **Saída:** Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
+
+**FORMATO DE SAÍDA OBRIGATÓRIO:**
+\`\`\`json
+{
+  "seo_score": 95,
+  "readability_score": "Excelente",
+  "suggestions": [
+    "Aumentar a densidade da palavra-chave principal em 0.5%.",
+    "Adicionar um link interno para a página de Lojas."
+  ]
+}
+\`\`\`
+`;
+}
+
+
 // @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -105,94 +136,153 @@ serve(async (req) => {
   
   try {
     if (req.method === 'POST') {
-        // Processamento da requisição POST
         const body = await req.json();
-        const { keyword, context, audience, type } = body;
+        const { action } = body;
         
-        if (!keyword) {
-            return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
-        }
+        // --- AÇÃO: GERAR CONTEÚDO INICIAL ---
+        if (action === 'generate') {
+            const { keyword, context, audience, type } = body;
+            
+            if (!keyword) {
+                return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
+            }
 
-        console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId}`);
-        
-        // --- CHAMADA REAL À API DO OPENAI ---
-        // @ts-ignore
-        const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-        if (!OPENAI_API_KEY) {
-            throw new Error('OPENAI_API_KEY não configurada como secret.');
-        }
-        
-        const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
-        
-        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini', // Modelo eficiente e capaz de JSON
-                messages: [
-                    { role: "system", content: "Você é um assistente de SEO e Growth Hacking. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
-                    { role: "user", content: advancedPrompt }
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.7,
-            }),
-        });
+            console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId}`);
+            
+            // @ts-ignore
+            const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+            if (!OPENAI_API_KEY) {
+                throw new Error('OPENAI_API_KEY não configurada como secret.');
+            }
+            
+            const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
+            
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini', // Modelo eficiente e capaz de JSON
+                    messages: [
+                        { role: "system", content: "Você é um assistente de SEO e Growth Hacking. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
+                        { role: "user", content: advancedPrompt }
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.7,
+                }),
+            });
 
-        if (!aiResponse.ok) {
-            const errorBody = await aiResponse.json();
-            console.error("OpenAI API Error:", errorBody);
-            throw new Error(`Falha na API do OpenAI: ${errorBody.error?.message || aiResponse.statusText}`);
-        }
-        
-        const aiData = await aiResponse.json();
-        const rawContent = aiData.choices[0].message.content;
-        
-        // 2. Parse e Validação do Conteúdo
-        let generatedContent;
-        try {
-            generatedContent = JSON.parse(rawContent);
-        } catch (e) {
-            console.error("Failed to parse AI JSON output:", rawContent);
-            throw new Error("A IA não retornou um JSON válido. Tente novamente.");
-        }
-        
-        // 3. Inserção no Banco de Dados
-        const { data: draft, error: insertError } = await supabaseServiceRole
-            .from('content_drafts')
-            .insert({
-                user_id: userId,
-                keyword: keyword,
-                status: 'draft',
-                title: generatedContent.title,
-                slug: generatedContent.slug,
-                meta_description: generatedContent.meta_description,
-                content: generatedContent.content,
-                seo_score: generatedContent.seo_score,
-                context: generatedContent.context,
-                audience: generatedContent.audience,
-                image_prompt: generatedContent.image_prompt,
-                secondary_keywords: generatedContent.secondary_keywords,
-                external_links: generatedContent.external_links,
-                internal_links: generatedContent.internal_links,
-                readability_score: generatedContent.readability_score,
+            if (!aiResponse.ok) {
+                const errorBody = await aiResponse.json();
+                console.error("OpenAI API Error:", errorBody);
+                throw new Error(`Falha na API do OpenAI: ${errorBody.error?.message || aiResponse.statusText}`);
+            }
+            
+            const aiData = await aiResponse.json();
+            const rawContent = aiData.choices[0].message.content;
+            
+            let generatedContent;
+            try {
+                generatedContent = JSON.parse(rawContent);
+            } catch (e) {
+                console.error("Failed to parse AI JSON output:", rawContent);
+                throw new Error("A IA não retornou um JSON válido. Tente novamente.");
+            }
+            
+            const { data: draft, error: insertError } = await supabaseServiceRole
+                .from('content_drafts')
+                .insert({
+                    user_id: userId,
+                    keyword: keyword,
+                    status: 'draft',
+                    title: generatedContent.title,
+                    slug: generatedContent.slug,
+                    meta_description: generatedContent.meta_description,
+                    content: generatedContent.content,
+                    seo_score: generatedContent.seo_score,
+                    context: generatedContent.context,
+                    audience: generatedContent.audience,
+                    image_prompt: generatedContent.image_prompt,
+                    secondary_keywords: generatedContent.secondary_keywords,
+                    external_links: generatedContent.external_links,
+                    internal_links: generatedContent.internal_links,
+                    readability_score: generatedContent.readability_score,
+                })
+                .select('id')
+                .single()
+
+            if (insertError) {
+                console.error("DEBUG: FALHA NA INSERÇÃO DO RASCUNHO:", insertError);
+                return new Response(JSON.stringify({ error: `Falha ao criar rascunho: ${insertError.message}` }), { status: 500, headers: corsHeaders })
+            }
+            
+            return new Response(JSON.stringify({ success: true, draftId: draft.id, status: 'draft_created' }), {
+              headers: corsHeaders,
+              status: 200, 
             })
-            .select('id')
-            .single()
-
-        if (insertError) {
-            console.error("DEBUG: FALHA NA INSERÇÃO DO RASCUNHO:", insertError);
-            return new Response(JSON.stringify({ error: `Falha ao criar rascunho: ${insertError.message}` }), { status: 500, headers: corsHeaders })
         }
         
-        console.log(`DEBUG: Rascunho inserido com sucesso! ID: ${draft.id}`);
+        // --- AÇÃO: REANÁLISE DE SEO ---
+        if (action === 'reanalyze') {
+            const { draft } = body;
+            
+            if (!draft || !draft.content || !draft.keyword) {
+                return new Response(JSON.stringify({ error: 'Bad Request: Dados do rascunho incompletos para reanálise.' }), { status: 400, headers: corsHeaders })
+            }
+            
+            // @ts-ignore
+            const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+            if (!OPENAI_API_KEY) {
+                throw new Error('OPENAI_API_KEY não configurada como secret.');
+            }
+            
+            const reanalyzePrompt = createReanalyzePrompt(draft);
+            
+            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        { role: "system", content: "Você é um assistente de SEO. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
+                        { role: "user", content: reanalyzePrompt }
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.1, // Baixa temperatura para análise
+                }),
+            });
 
-        return new Response(JSON.stringify({ success: true, draftId: draft.id, status: 'draft_created' }), {
-          headers: corsHeaders,
-          status: 200, 
-        })
+            if (!aiResponse.ok) {
+                const errorBody = await aiResponse.json();
+                console.error("OpenAI API Error (Reanalyze):", errorBody);
+                throw new Error(`Falha na API do OpenAI (Reanálise): ${errorBody.error?.message || aiResponse.statusText}`);
+            }
+            
+            const aiData = await aiResponse.json();
+            const rawContent = aiData.choices[0].message.content;
+            
+            let reanalyzeResult;
+            try {
+                reanalyzeResult = JSON.parse(rawContent);
+            } catch (e) {
+                console.error("Failed to parse AI JSON output (Reanalyze):", rawContent);
+                throw new Error("A IA não retornou um JSON válido na reanálise.");
+            }
+            
+            // Retorna o novo score e sugestões
+            return new Response(JSON.stringify({ success: true, data: reanalyzeResult }), {
+              headers: corsHeaders,
+              status: 200, 
+            })
+        }
+        
+        // Se a ação não for reconhecida
+        return new Response(JSON.stringify({ error: 'Bad Request: Ação não reconhecida' }), { status: 400, headers: corsHeaders })
     }
     
     // Se não for OPTIONS nem POST, retorna 405

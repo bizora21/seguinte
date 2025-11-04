@@ -12,6 +12,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../utils/t
 import OptimizedImageUpload from './OptimizedImageUpload'
 import BlogCategoryManager from './BlogCategoryManager'
 import { Separator } from '../ui/separator'
+import { supabase } from '../../lib/supabase'
 
 interface DraftEditorProps {
   draft: ContentDraft
@@ -34,70 +35,40 @@ const AUDIENCE_OPTIONS = [
   { value: 'geral', label: 'Público Geral' },
 ]
 
+// URL ABSOLUTA DA EDGE FUNCTION
+const CONTENT_GENERATOR_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
+
 // Função auxiliar para renderizar Markdown simples (para preview)
 const renderMarkdownPreview = (content: string) => {
   // 1. Substituições Markdown para HTML
   let htmlContent = content
     // Substituir negrito **texto** por <strong>texto</strong>
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Substituir H3 (###)
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    // Substituir H2 (## (espaço))
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    // Substituir H1 (# (espaço))
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
 
-  // 2. Tratamento de Listas e Parágrafos
-  const lines = htmlContent.split('\n');
-  let finalHtml = '';
-  let inList = false;
+  // 2. Substituir títulos e listas por tags HTML para que o prose os reconheça
+  htmlContent = htmlContent
+    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
+    .replace(/^\* (.*)$/gm, '<li>$1</li>');
 
-  lines.forEach(line => {
+  // 3. Adicionar tags <p> em torno de texto que não é bloco (H, UL, DIV)
+  let finalHtml = htmlContent.split('\n').map(line => {
     const trimmedLine = line.trim();
-    if (trimmedLine.length === 0) {
-      // Linha vazia: fecha a lista e adiciona um parágrafo vazio para espaçamento
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      // Adiciona um parágrafo vazio para garantir espaçamento entre blocos
-      finalHtml += '<p></p>'; 
-      return;
+    if (trimmedLine.length === 0 || trimmedLine.startsWith('<h') || trimmedLine.startsWith('<div') || trimmedLine.startsWith('<ul') || trimmedLine.startsWith('<li')) {
+      return trimmedLine;
     }
-
-    if (trimmedLine.startsWith('* ')) {
-      // Item de lista
-      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
-      if (!inList) {
-        finalHtml += '<ul>';
-        inList = true;
-      }
-      finalHtml += listItem;
-    } else {
-      // Não é lista
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      
-      // Se não for um bloco HTML (título, CTA, etc.), envolve em <p>
-      if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<div') && !trimmedLine.startsWith('<ul') && !trimmedLine.startsWith('<li')) {
-        finalHtml += `<p>${trimmedLine}</p>`;
-      } else {
-        finalHtml += trimmedLine;
-      }
-    }
-  });
+    return `<p>${trimmedLine}</p>`;
+  }).join('');
   
-  // Fechar lista se estiver aberta no final
-  if (inList) {
-    finalHtml += '</ul>';
-  }
-
-  // Remove parágrafos vazios duplicados que podem ter sido inseridos
-  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
+  // 4. Limpeza de tags de lista órfãs e parágrafos vazios
+  finalHtml = finalHtml.replace(/<\/li><p>/g, '</li>').replace(/<\/ul><p>/g, '</ul>').replace(/<p><\/p>/g, '');
+  
+  // 5. Envolver listas (li) em ul
+  finalHtml = finalHtml.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
+  finalHtml = finalHtml.replace(/<\/ul><ul>/g, ''); // Corrige listas adjacentes
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }
@@ -211,18 +182,57 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   
   const handleAnalyzeSEO = async () => {
     setAnalyzing(true)
-    const toastId = showLoading('Reanalisando SEO e Palavras-chave...')
+    const toastId = showLoading('Reanalisando SEO e Palavras-chave com IA...')
     
-    // Simulação de chamada à Edge Function para reanálise
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Simulação de atualização de score e sugestões
-    const newScore = Math.min(99, localDraft.seo_score + 5)
-    handleUpdate('seo_score', newScore)
-    
-    dismissToast(toastId)
-    showSuccess('Análise SEO concluída! Score atualizado.')
-    setAnalyzing(false)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado. Faça login novamente.')
+      }
+      
+      const response = await fetch(CONTENT_GENERATOR_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'reanalyze',
+          draft: localDraft, // Envia o rascunho atual para análise
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        dismissToast(toastId)
+        throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Atualiza o rascunho local com os novos dados de SEO
+        setLocalDraft(prev => ({
+            ...prev,
+            seo_score: result.data.seo_score,
+            readability_score: result.data.readability_score,
+            // Opcional: atualizar sugestões de links ou keywords
+        }))
+        dismissToast(toastId)
+        showSuccess('Análise SEO concluída! Score atualizado.')
+      } else {
+        dismissToast(toastId)
+        throw new Error(result.error || 'Erro desconhecido na Edge Function de reanálise.')
+      }
+      
+    } catch (error: any) {
+      dismissToast(toastId)
+      console.error('Error reanalyzing SEO:', error)
+      showError(`Falha na reanálise: ${error.message}`)
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   return (
