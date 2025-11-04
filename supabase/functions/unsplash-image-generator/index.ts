@@ -52,6 +52,9 @@ async function translateToPortuguese(text: string): Promise<string> {
 
         if (!aiResponse.ok) {
             console.error("OpenAI Translation API Error:", aiResponse.statusText);
+            // Tenta ler o corpo do erro para mais detalhes
+            const errorBody = await aiResponse.json();
+            console.error("OpenAI Translation Error Body:", errorBody);
             return text;
         }
         
