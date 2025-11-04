@@ -22,7 +22,7 @@ const supabaseServiceRole = createClient(
   },
 )
 
-// Função para gerar o prompt avançado
+// Função para gerar o prompt avançado (usando Anthropic)
 const createAdvancedPrompt = (keyword: string, context?: string, audience?: string, type?: string) => {
   const ctx = context || 'Moçambique';
   const aud = audience || 'empreendedores';
@@ -47,11 +47,12 @@ Você é um jornalista moçambicano, especialista em SEO de alto nível e Growth
     *   Use \`**negrito**\` para destacar termos importantes.
     *   Use listas com \`* \` (asterisco e espaço).
     *   Garanta que o conteúdo seja limpo e bem estruturado.
-3.  **Meta Descrição:** A meta descrição deve ser altamente persuasiva, com no máximo 160 caracteres, e focar no valor e na ação.
+3.  **Meta Descrição:** A meta descrição deve ser altamente persuasiva, com no máximo 160 caracteres, e focar no valor e na ação. **Deve ser escrita em tom humano e envolvente.**
 4.  **SEO Avançado:** Use a palavra-chave principal ("${keyword}") e as secundárias ("${secondary_keywords.join('", "')}") de forma natural e estratégica ao longo do texto, especialmente nos H2 e H3.
-5.  **CTA:** Inclua um Call-to-Action claro no final do artigo usando o formato \`[CTA: Texto do Botão]\`.
-6.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-7.  **Métricas:** Gere um \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+5.  **Links Externos Relevantes:** Inclua 1 a 3 links externos relevantes para fontes de autoridade (ex: sites governamentais, estatísticas, notícias de Moçambique).
+6.  **CTA:** Inclua um Call-to-Action claro no final do artigo usando o formato \`[CTA: Texto do Botão]\`.
+7.  **Imagem Profissional:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+8.  **Métricas:** Gere um \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
 Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`content\` deve conter o artigo completo em Markdown.
@@ -79,7 +80,7 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo. O campo \`cont
 `;
 };
 
-// Função para gerar o prompt de reanálise
+// Função para gerar o prompt de reanálise (usando OpenAI)
 const createReanalyzePrompt = (draft: any) => {
     return `
 Você é um especialista em SEO e Growth Hacking. Sua tarefa é analisar o conteúdo Markdown fornecido abaixo e fornecer uma reavaliação do SEO Score e Readability Score.
@@ -139,7 +140,7 @@ serve(async (req) => {
         const body = await req.json();
         const { action } = body;
         
-        // --- AÇÃO: GERAR CONTEÚDO INICIAL ---
+        // --- AÇÃO: GERAR CONTEÚDO INICIAL (USANDO ANTHROPIC) ---
         if (action === 'generate') {
             const { keyword, context, audience, type } = body;
             
@@ -147,47 +148,51 @@ serve(async (req) => {
                 return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
             }
 
-            console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId}`);
+            console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando Anthropic`);
             
             // @ts-ignore
-            const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-            if (!OPENAI_API_KEY) {
-                throw new Error('OPENAI_API_KEY não configurada como secret.');
+            const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+            if (!ANTHROPIC_API_KEY) {
+                throw new Error('ANTHROPIC_API_KEY não configurada como secret.');
             }
             
             const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
             
-            const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'x-api-key': ANTHROPIC_API_KEY,
+                    'anthropic-version': '2023-06-01',
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o-mini', // Modelo eficiente e capaz de JSON
+                    model: 'claude-3-5-sonnet-20240620', // Modelo poderoso para escrita
+                    max_tokens: 4096,
                     messages: [
-                        { role: "system", content: "Você é um assistente de SEO e Growth Hacking. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
                         { role: "user", content: advancedPrompt }
                     ],
-                    response_format: { type: "json_object" },
-                    temperature: 0.7,
+                    // Claude não tem response_format nativo, mas é excelente em seguir instruções JSON
                 }),
             });
 
-            if (!aiResponse.ok) {
-                const errorBody = await aiResponse.json();
-                console.error("OpenAI API Error:", errorBody);
-                throw new Error(`Falha na API do OpenAI: ${errorBody.error?.message || aiResponse.statusText}`);
+            if (!anthropicResponse.ok) {
+                const errorBody = await anthropicResponse.json();
+                console.error("Anthropic API Error:", errorBody);
+                throw new Error(`Falha na API do Anthropic: ${errorBody.error?.message || anthropicResponse.statusText}`);
             }
             
-            const aiData = await aiResponse.json();
-            const rawContent = aiData.choices[0].message.content;
+            const anthropicData = await anthropicResponse.json();
+            const rawContent = anthropicData.content[0].text;
+            
+            // Tenta extrair o JSON do bloco de código (comum no Claude)
+            const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
+            const jsonString = jsonMatch ? jsonMatch[1] : rawContent;
             
             let generatedContent;
             try {
-                generatedContent = JSON.parse(rawContent);
+                generatedContent = JSON.parse(jsonString);
             } catch (e) {
-                console.error("Failed to parse AI JSON output:", rawContent);
+                console.error("Failed to parse AI JSON output:", jsonString);
                 throw new Error("A IA não retornou um JSON válido. Tente novamente.");
             }
             
@@ -224,7 +229,7 @@ serve(async (req) => {
             })
         }
         
-        // --- AÇÃO: REANÁLISE DE SEO ---
+        // --- AÇÃO: REANÁLISE DE SEO (USANDO OPENAI) ---
         if (action === 'reanalyze') {
             const { draft } = body;
             

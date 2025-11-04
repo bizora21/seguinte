@@ -102,7 +102,7 @@ const ContentManagerTab: React.FC = () => {
             audience: publishedArticle.audience || 'geral',
             status: 'draft',
             title: publishedArticle.title,
-            slug: `${publishedArticle.slug}-edit-${Date.now()}`, // Novo slug temporário
+            slug: publishedArticle.slug, // Mantemos o slug original, mas o usuário deve alterá-lo se for republicar
             meta_description: publishedArticle.meta_description,
             content: publishedArticle.content,
             featured_image_url: publishedArticle.featured_image_url,
@@ -186,10 +186,8 @@ const ContentManagerTab: React.FC = () => {
     const toastId = showLoading('Publicando artigo...')
     
     try {
-      // 1. Mover o rascunho para a tabela de artigos publicados
-      const { error: publishError } = await supabase
-        .from('published_articles')
-        .insert({
+      // 1. Tentar inserir/atualizar na tabela de artigos publicados
+      const articleData = {
           title: draft.title,
           slug: draft.slug,
           meta_description: draft.meta_description,
@@ -207,9 +205,27 @@ const ContentManagerTab: React.FC = () => {
           published_at: new Date().toISOString(),
           context: draft.context,
           audience: draft.audience,
-        })
-        .select()
-        .single()
+      }
+      
+      // Verifica se já existe um artigo publicado com este ID (se for uma republicação)
+      const existingPublished = published.find(p => p.id === draft.id);
+      
+      let publishError;
+      
+      if (existingPublished) {
+          // Se o rascunho foi criado a partir de um publicado, atualizamos o publicado original
+          const { error } = await supabase
+              .from('published_articles')
+              .update(articleData)
+              .eq('id', draft.id)
+          publishError = error;
+      } else {
+          // Se for um rascunho novo, inserimos
+          const { error } = await supabase
+              .from('published_articles')
+              .insert(articleData)
+          publishError = error;
+      }
 
       if (publishError) throw publishError;
 

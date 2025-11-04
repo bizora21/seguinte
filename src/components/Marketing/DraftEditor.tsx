@@ -4,9 +4,9 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Label } from '../ui/label' // Importação adicionada
+import { Label } from '../ui/label'
 import { Badge } from '../ui/badge'
-import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText, Zap, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react' // FileText adicionado
+import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText, Zap, CheckCircle, AlertTriangle, Loader2, Lightbulb } from 'lucide-react'
 import { ContentDraft, BlogCategory, LinkItem } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import OptimizedImageUpload from './OptimizedImageUpload'
@@ -133,10 +133,13 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   const [publishing, setPublishing] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
+  const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]) // Novo estado para sugestões
 
   // Garante que o estado local é atualizado se o rascunho externo mudar (ao trocar de aba)
   useEffect(() => {
     setLocalDraft(draft)
+    // Limpa sugestões ao carregar novo rascunho
+    setSeoSuggestions([])
   }, [draft])
 
   const handleUpdate = (field: keyof ContentDraft, value: any) => {
@@ -280,10 +283,12 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
             ...prev,
             seo_score: result.data.seo_score,
             readability_score: result.data.readability_score,
-            // Opcional: atualizar sugestões de links ou keywords
         }))
+        // Define as sugestões
+        setSeoSuggestions(result.data.suggestions || [])
+        
         dismissToast(toastId)
-        showSuccess('Análise SEO concluída! Score atualizado.')
+        showSuccess('Análise SEO concluída! Score e sugestões atualizados.')
       } else {
         dismissToast(toastId)
         throw new Error(result.error || 'Erro desconhecido na Edge Function de reanálise.')
@@ -392,6 +397,23 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                   </Button>
                 </CardContent>
               </Card>
+              
+              {/* Sugestões da IA */}
+              {seoSuggestions.length > 0 && (
+                <Card className="border-blue-400 bg-blue-50">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center text-blue-800">
+                            <Lightbulb className="w-5 h-5 mr-2" />
+                            Sugestões da IA
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc list-inside text-sm text-blue-800 space-y-2">
+                            {seoSuggestions.map((suggestion, i) => <li key={i}>{suggestion}</li>)}
+                        </ul>
+                    </CardContent>
+                </Card>
+              )}
               
               {/* SEO e Metadados */}
               <Card>

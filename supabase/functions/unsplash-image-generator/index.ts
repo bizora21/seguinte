@@ -1,11 +1,27 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+// @ts-ignore
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/json',
 }
+
+// Inicializa o cliente Supabase (para interagir com o banco de dados)
+// @ts-ignore
+const supabase = createClient(
+  // @ts-ignore
+  Deno.env.get('SUPABASE_URL') ?? '',
+  // @ts-ignore
+  Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  {
+    auth: {
+      persistSession: false,
+    },
+  },
+)
 
 // Função auxiliar para traduzir texto usando OpenAI
 // @ts-ignore
@@ -104,16 +120,38 @@ serve(async (req) => {
     const imageResult = unsplashData.results[0];
     
     // Usar a URL de tamanho regular
-    const imageUrl = imageResult.urls.regular;
+    const rawImageUrl = imageResult.urls.regular;
     const rawAlt = imageResult.alt_description || prompt;
     
     // 4. Traduzir o Alt Text para o português
     const translatedAlt = await translateToPortuguese(rawAlt);
+    
+    // 5. Chamar a Edge Function de Otimização para processar a imagem
+    const optimizeResponse = await fetch(`${req.url.replace('unsplash-image-generator', 'image-optimizer')}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            // Reutiliza o token de autenticação do cliente para a chamada interna
+            'Authorization': req.headers.get('Authorization') || '', 
+        },
+        body: JSON.stringify({
+            imageUrl: rawImageUrl,
+            altText: translatedAlt,
+        }),
+    });
+    
+    if (!optimizeResponse.ok) {
+        const errorBody = await optimizeResponse.json();
+        console.error("Optimizer API Error:", errorBody);
+        throw new Error(`Falha na otimização da imagem: ${errorBody.error || optimizeResponse.statusText}`);
+    }
+    
+    const optimizedData = await optimizeResponse.json();
 
     return new Response(JSON.stringify({ 
         success: true, 
-        imageUrl: imageUrl,
-        imageAlt: translatedAlt // Retorna o texto traduzido
+        imageUrl: optimizedData.optimizedUrl, // URL do Supabase Storage
+        imageAlt: translatedAlt 
     }), {
       headers: corsHeaders,
       status: 200,
