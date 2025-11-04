@@ -53,9 +53,11 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
     const toastId = showLoading('Gerando conteúdo com IA...')
     
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      // OBTENDO O TOKEN DE ACESSO ATUAL
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
+        dismissToast(toastId)
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
@@ -63,6 +65,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // ENVIANDO O TOKEN DE ACESSO
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
@@ -77,7 +80,13 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
       if (!response.ok) {
         const errorText = await response.text()
         dismissToast(toastId)
-        throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`)
+        // Tenta analisar o erro JSON da Edge Function
+        try {
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.error || `Falha na requisição (Status ${response.status})`);
+        } catch {
+            throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`);
+        }
       }
       
       const result = await response.json()
@@ -87,8 +96,12 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         showSuccess(`Conteúdo gerado! Revise na aba Rascunhos.`)
         setKeyword('')
         if (result.draftId) {
-            onContentGenerated(result.draftId)
-            onSetTab('editor')
+            // Tenta carregar o rascunho recém-criado para edição imediata
+            const { data: newDraft } = await supabase.from('content_drafts').select('*').eq('id', result.draftId).single()
+            if (newDraft) {
+                onContentGenerated(result.draftId)
+                onSetTab('editor')
+            }
         }
       } else {
         dismissToast(toastId)

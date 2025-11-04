@@ -38,7 +38,7 @@ const AUDIENCE_OPTIONS = [
 // URL ABSOLUTA DA EDGE FUNCTION
 const CONTENT_GENERATOR_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
 
-// Função auxiliar para renderizar Markdown simples (para preview)
+// Função auxiliar para renderizar Markdown simples (usando o 'prose' do Tailwind)
 const renderMarkdownPreview = (content: string) => {
   // 1. Substituições Markdown para HTML
   let htmlContent = content
@@ -239,9 +239,11 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
     const toastId = showLoading('Reanalisando SEO e Palavras-chave com IA...')
     
     try {
-      const { data: { session } } = await supabase.auth.getSession()
+      // OBTENDO O TOKEN DE ACESSO ATUAL
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (!session?.access_token) {
+      if (sessionError || !session?.access_token) {
+        dismissToast(toastId)
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
@@ -249,6 +251,7 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // ENVIANDO O TOKEN DE ACESSO
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
@@ -260,7 +263,13 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
       if (!response.ok) {
         const errorText = await response.text()
         dismissToast(toastId)
-        throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`)
+        // Tenta analisar o erro JSON da Edge Function
+        try {
+            const errorJson = JSON.parse(errorText);
+            throw new Error(errorJson.error || `Falha na requisição (Status ${response.status})`);
+        } catch {
+            throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`);
+        }
       }
       
       const result = await response.json()
@@ -408,7 +417,7 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                       id="slug"
                       value={localDraft.slug || ''} 
                       onChange={(e) => handleUpdate('slug', e.target.value)}
-                      placeholder="slug-do-artigo"
+                      placeholder="slug-do-artigo-aqui"
                     />
                     <p className="text-xs text-gray-500">
                       URL final: /blog/{localDraft.slug}
