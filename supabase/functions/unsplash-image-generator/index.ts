@@ -43,7 +43,7 @@ async function translateToPortuguese(text: string): Promise<string> {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 messages: [
-                    { role: "system", content: "Você é um tradutor profissional. Traduza o texto fornecido para o português de Moçambique. Retorne APENAS a tradução." },
+                    { role: "system", content: "Você é um tradutor profissional. Sua saída deve ser APENAS a tradução do texto fornecido para o português de Moçambique." },
                     { role: "user", content: `Traduza para o português: "${text}"` }
                 ],
                 temperature: 0.1,
@@ -88,12 +88,14 @@ serve(async (req) => {
     // @ts-ignore
     const UNSPLASH_ACCESS_KEY = Deno.env.get('UNSPLASH_ACCESS_KEY');
     if (!UNSPLASH_ACCESS_KEY) {
+        console.error('ERRO CRÍTICO: UNSPLASH_ACCESS_KEY não configurada.');
         throw new Error('UNSPLASH_ACCESS_KEY não configurada como secret.');
     }
     
     // 2. Construir a URL de busca do Unsplash
     const query = encodeURIComponent(`${prompt} moçambique e-commerce`); // Adicionando contexto local
     const unsplashUrl = `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`;
+    console.log(`DEBUG: Buscando no Unsplash com query: ${query}`);
 
     // 3. Fazer a requisição
     const unsplashResponse = await fetch(unsplashUrl, {
@@ -111,6 +113,7 @@ serve(async (req) => {
     const unsplashData = await unsplashResponse.json();
     
     if (unsplashData.results.length === 0) {
+        console.warn('Nenhuma imagem encontrada para o prompt.');
         return new Response(JSON.stringify({ success: false, error: 'Nenhuma imagem encontrada para o prompt.' }), {
             headers: corsHeaders,
             status: 404,
@@ -123,11 +126,18 @@ serve(async (req) => {
     const rawImageUrl = imageResult.urls.regular;
     const rawAlt = imageResult.alt_description || prompt;
     
+    console.log(`DEBUG: Imagem encontrada. URL: ${rawImageUrl}`);
+
     // 4. Traduzir o Alt Text para o português
     const translatedAlt = await translateToPortuguese(rawAlt);
+    console.log(`DEBUG: Alt Text traduzido: ${translatedAlt}`);
     
     // 5. Chamar a Edge Function de Otimização para processar a imagem
-    const optimizeResponse = await fetch(`${req.url.replace('unsplash-image-generator', 'image-optimizer')}`, {
+    // A URL da Edge Function é construída dinamicamente
+    const optimizerUrl = `${req.url.replace('unsplash-image-generator', 'image-optimizer')}`;
+    console.log(`DEBUG: Chamando Optimizer em: ${optimizerUrl}`);
+    
+    const optimizeResponse = await fetch(optimizerUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -147,6 +157,7 @@ serve(async (req) => {
     }
     
     const optimizedData = await optimizeResponse.json();
+    console.log(`DEBUG: Otimização concluída. URL final: ${optimizedData.optimizedUrl}`);
 
     return new Response(JSON.stringify({ 
         success: true, 
@@ -158,7 +169,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge Function Error:', error)
+    console.error('Edge Function Error (Catch Block):', error)
     return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), {
       headers: corsHeaders,
       status: 500,

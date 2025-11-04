@@ -32,6 +32,7 @@ serve(async (req) => {
   // mas mantemos a verificação de autenticação para segurança.
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
+    console.error('Optimizer: Unauthorized call.');
     return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
   }
   
@@ -42,14 +43,18 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Bad Request: URL da imagem ausente.' }), { status: 400, headers: corsHeaders })
     }
 
+    console.log(`OPTIMIZER DEBUG: Iniciando otimização para URL: ${imageUrl}`);
+
     // 1. Baixar a imagem
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
+        console.error(`OPTIMIZER DEBUG: Falha ao baixar imagem: ${imageResponse.statusText}`);
         throw new Error(`Falha ao baixar imagem: ${imageResponse.statusText}`);
     }
     
     // 2. Obter o ArrayBuffer da imagem
     const imageBuffer = await imageResponse.arrayBuffer();
+    console.log(`OPTIMIZER DEBUG: Imagem baixada. Tamanho: ${imageBuffer.byteLength} bytes`);
     
     // 3. SIMULAÇÃO DE OTIMIZAÇÃO (WebP e Redimensionamento)
     // Em um ambiente Deno real, usaríamos uma biblioteca de processamento de imagem aqui
@@ -60,6 +65,7 @@ serve(async (req) => {
     const filePath = `blog-images/${fileName}`;
 
     // 4. Upload para o Supabase Storage (usando Service Role Key)
+    console.log(`OPTIMIZER DEBUG: Iniciando upload para ${filePath}`);
     const { error: uploadError } = await supabaseServiceRole.storage
         .from('product-images') // Usando o bucket existente
         .upload(filePath, optimizedBuffer, {
@@ -68,7 +74,7 @@ serve(async (req) => {
         });
 
     if (uploadError) {
-        console.error('Upload Error:', uploadError);
+        console.error('OPTIMIZER DEBUG: Upload Error:', uploadError);
         throw new Error(`Falha no upload para o storage: ${uploadError.message}`);
     }
 
@@ -77,6 +83,7 @@ serve(async (req) => {
         .getPublicUrl(filePath);
         
     const optimizedUrl = publicUrlData.publicUrl;
+    console.log(`OPTIMIZER DEBUG: Upload concluído. URL pública: ${optimizedUrl}`);
 
     return new Response(JSON.stringify({ 
         success: true, 
@@ -88,7 +95,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge Function Error:', error)
+    console.error('Edge Function Error (Catch Block):', error)
     return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), {
       headers: corsHeaders,
       status: 500,
