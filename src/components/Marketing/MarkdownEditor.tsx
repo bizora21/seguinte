@@ -19,16 +19,16 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, label,
       autofocus: true,
       spellChecker: true,
       placeholder: placeholder || "Digite o conteúdo do artigo em Markdown...",
-      hideIcons: ["guide", "heading", "image", "side-by-side", "fullscreen"] as any,
-      showIcons: ["code", "table"] as any,
+      // Removendo hideIcons para garantir que todos os botões padrão sejam visíveis
+      // Adicionando 'heading' explicitamente para garantir H1, H2, H3
       toolbar: [
         "bold", "italic", "strikethrough", "|", 
-        "heading-2", "heading-3", "|", 
+        "heading", "heading-1", "heading-2", "heading-3", "|", // Adicionado heading e níveis
         "unordered-list", "ordered-list", "|", 
         "link", "quote", "code", "table", "|", 
-        "preview", "clean-block"
+        "preview", "clean-block", "fullscreen" // Adicionado fullscreen
       ] as any,
-      status: false, // Remove a barra de status
+      status: ["lines", "words", "cursor"], // Adicionando barra de status para mais recursos
     }
   }, [placeholder])
 
