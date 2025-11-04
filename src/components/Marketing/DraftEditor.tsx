@@ -11,7 +11,7 @@ import { ContentDraft, BlogCategory, LinkItem } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import OptimizedImageUpload from './OptimizedImageUpload'
 import BlogCategoryManager from './BlogCategoryManager'
-import { Separator } => '../ui/separator'
+import { Separator } from '../ui/separator'
 import { supabase } from '../../lib/supabase'
 import MarkdownEditor from './MarkdownEditor' // NOVO IMPORT
 
