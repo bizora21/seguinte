@@ -136,8 +136,8 @@ serve(async (req) => {
     console.log(`DEBUG: Alt Text traduzido: ${translatedAlt}`);
     
     // 5. Chamar a Edge Function de Otimização para processar a imagem
-    // A URL da Edge Function é construída dinamicamente
-    const optimizerUrl = `${req.url.replace('unsplash-image-generator', 'image-optimizer')}`;
+    // CORREÇÃO: Usar a URL completa e absoluta para a chamada interna
+    const optimizerUrl = `https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/image-optimizer`;
     console.log(`DEBUG: Chamando Optimizer em: ${optimizerUrl}`);
     
     const optimizeResponse = await fetch(optimizerUrl, {

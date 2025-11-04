@@ -29,6 +29,16 @@ export interface PaymentProof {
 // URL base da Edge Function para lidar com o retorno do OAuth
 const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
 
+// URL base da Edge Function para o Content Generator
+export const CONTENT_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
+
+// URL base da Edge Function para o Unsplash Image Generator
+export const UNSPLASH_IMAGE_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/unsplash-image-generator'
+
+// URL base da Edge Function para o Image Optimizer
+export const IMAGE_OPTIMIZER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/image-optimizer'
+
+
 // Credenciais (Lidas do .env.local do Vite)
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '' 
