@@ -12,7 +12,6 @@ import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegr
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
 import ContentManagerTab from '../components/Marketing/ContentManagerTab' // Importação correta
-// O componente ContentManagerTab agora é o default export do seu arquivo.
 
 interface MarketingStats {
   totalLeads: number
@@ -245,32 +244,32 @@ const AdminMarketingCenter = () => {
           
           {/* Tab 0: Content Manager (Novo) */}
           <TabsContent value="content">
-            <ContentManagerTab />
+            {activeTab === 'content' ? <ContentManagerTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
           
           {/* Tab 1: Captura de Leads */}
           <TabsContent value="leads">
-            <LeadCaptureTab />
+            {activeTab === 'leads' ? <LeadCaptureTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
 
           {/* Tab 2: E-mail Marketing */}
           <TabsContent value="email">
-            <EmailAutomationTab />
+            {activeTab === 'email' ? <EmailAutomationTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
           
           {/* Tab 3: Social Media Manager */}
           <TabsContent value="social">
-            <SocialMediaIntegrationTab />
+            {activeTab === 'social' ? <SocialMediaIntegrationTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
           
           {/* Tab 4: Advanced Metrics */}
           <TabsContent value="metrics">
-            <AdvancedMetricsTab />
+            {activeTab === 'metrics' ? <AdvancedMetricsTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
           
           {/* Tab 5: Integration Settings */}
           <TabsContent value="settings">
-            <IntegrationSettingsTab />
+            {activeTab === 'settings' ? <IntegrationSettingsTab /> : <div className="h-64 flex items-center justify-center"><LoadingSpinner /></div>}
           </TabsContent>
         </Tabs>
       </div>

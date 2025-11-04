@@ -34,7 +34,7 @@ const TYPE_OPTIONS = [
 ]
 
 // URL ABSOLUTA DA EDGE FUNCTION
-const EDGE_FUNCTION_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
+const CONTENT_GENERATOR_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
 
 const ContentManagerTab: React.FC = () => {
   const { user } = useAuth()
@@ -54,31 +54,24 @@ const ContentManagerTab: React.FC = () => {
   const loadContent = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch Categories
-      const { data: catData } = await supabase
-        .from('blog_categories')
-        .select('*')
-        .order('name')
-      setCategories(catData as BlogCategory[] || [])
+      // Usando Promise.all para buscar dados em paralelo
+      const [catResult, draftsResult, publishedResult] = await Promise.all([
+        supabase.from('blog_categories').select('*').order('name'),
+        supabase.from('content_drafts').select('*').eq('status', 'draft').order('created_at', { ascending: false }),
+        supabase.from('published_articles').select('id, title, slug, published_at, seo_score, content, meta_description, featured_image_url, image_alt_text, external_links, internal_links, secondary_keywords, readability_score, category_id, image_prompt, keyword, context, audience').order('published_at', { ascending: false }),
+      ])
       
-      // Fetch Drafts
-      const { data: draftsData } = await supabase
-        .from('content_drafts')
-        .select('*')
-        .eq('status', 'draft')
-        .order('created_at', { ascending: false })
-        
-      // Fetch Published (from the renamed table)
-      const { data: publishedData } = await supabase
-        .from('published_articles')
-        .select('id, title, slug, published_at, seo_score, content, meta_description, featured_image_url, image_alt_text, external_links, internal_links, secondary_keywords, readability_score, category_id, image_prompt, keyword, context, audience')
-        .order('published_at', { ascending: false })
+      if (catResult.error) throw catResult.error
+      if (draftsResult.error) throw draftsResult.error
+      if (publishedResult.error) throw publishedResult.error
       
-      setDrafts(publishedData as ContentDraft[] || []) // CORREÇÃO: Usar publishedData para a lista de publicados
-      setPublished(publishedData as ContentDraft[] || [])
+      setCategories(catResult.data as BlogCategory[] || [])
+      setDrafts(draftsResult.data as ContentDraft[] || [])
+      setPublished(publishedResult.data as ContentDraft[] || [])
+      
     } catch (error) {
       console.error('Error loading content:', error)
-      showError('Erro ao carregar conteúdo.')
+      showError('Erro ao carregar conteúdo. Tente recarregar a página.')
     } finally {
       setLoading(false)
     }
@@ -120,7 +113,7 @@ const ContentManagerTab: React.FC = () => {
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
-      const response = await fetch(EDGE_FUNCTION_URL, {
+      const response = await fetch(CONTENT_GENERATOR_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
