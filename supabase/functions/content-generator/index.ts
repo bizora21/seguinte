@@ -152,9 +152,13 @@ serve(async (req) => {
             
             // @ts-ignore
             const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+            
+            // Log de verificação da chave
             if (!ANTHROPIC_API_KEY) {
                 console.error('ERRO CRÍTICO: ANTHROPIC_API_KEY não configurada.');
                 throw new Error('ANTHROPIC_API_KEY não configurada como secret.');
+            } else {
+                console.log('DEBUG: ANTHROPIC_API_KEY está presente.');
             }
             
             const advancedPrompt = createAdvancedPrompt(keyword, context, audience, type);
@@ -167,7 +171,7 @@ serve(async (req) => {
                     'anthropic-version': '2023-06-01',
                 },
                 body: JSON.stringify({
-                    model: 'claude-3-5-sonnet-20240620', // Modelo poderoso para escrita
+                    model: 'claude-3-sonnet-20240229', // MUDANÇA AQUI: Usando Claude 3 Sonnet
                     max_tokens: 4096,
                     messages: [
                         { role: "user", content: advancedPrompt }
