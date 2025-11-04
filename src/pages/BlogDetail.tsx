@@ -17,42 +17,79 @@ const renderMarkdown = (content: string) => {
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
 
-  // 2. Substituir quebras de linha por <br> para manter o espaçamento dentro dos parágrafos,
-  // mas garantir que os elementos de bloco (H2, H3, listas) sejam separados por linhas vazias
-  // para que o 'prose' os trate como blocos separados.
-  
-  // Esta abordagem é mais simples e confia no @tailwindcss/typography para o resto.
-  
-  // Substituir títulos e listas por tags HTML para que o prose os reconheça
-  htmlContent = htmlContent
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
-    .replace(/^\* (.*)$/gm, '<li>$1</li>'); // Substitui itens de lista
+  // 2. Processamento de linhas para blocos HTML
+  const lines = htmlContent.split('\n');
+  let finalHtml = '';
+  let inList = false;
+  let currentParagraph = '';
 
-  // Envolver itens de lista em <ul> (simples, assume que listas são separadas por linhas vazias)
-  let finalHtml = htmlContent.split('\n').map(line => {
-    if (line.startsWith('<li>')) {
-      return line;
+  const flushParagraph = () => {
+    if (currentParagraph.trim().length > 0) {
+      finalHtml += `<p>${currentParagraph.trim()}</p>`;
+      currentParagraph = '';
     }
-    return line;
-  }).join('\n');
-  
-  // Adicionar tags <p> em torno de texto que não é bloco (H, UL, DIV)
-  finalHtml = finalHtml.split('\n').map(line => {
+  };
+
+  lines.forEach(line => {
     const trimmedLine = line.trim();
-    if (trimmedLine.length === 0 || trimmedLine.startsWith('<h') || trimmedLine.startsWith('<div') || trimmedLine.startsWith('<ul') || trimmedLine.startsWith('<li')) {
-      return trimmedLine;
+
+    if (trimmedLine.length === 0) {
+      // Linha vazia: fecha parágrafo e lista
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      return;
     }
-    return `<p>${trimmedLine}</p>`;
-  }).join('');
+
+    if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### ') || trimmedLine.startsWith('# ')) {
+      // Título: fecha parágrafo e lista, adiciona título
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      if (trimmedLine.startsWith('### ')) {
+        finalHtml += `<h3>${trimmedLine.substring(4)}</h3>`;
+      } else if (trimmedLine.startsWith('## ')) {
+        finalHtml += `<h2>${trimmedLine.substring(3)}</h2>`;
+      } else if (trimmedLine.startsWith('# ')) {
+        finalHtml += `<h1>${trimmedLine.substring(2)}</h1>`;
+      }
+    } else if (trimmedLine.startsWith('* ')) {
+      // Item de lista: fecha parágrafo
+      flushParagraph();
+      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
+      if (!inList) {
+        finalHtml += '<ul>';
+        inList = true;
+      }
+      finalHtml += listItem;
+    } else if (trimmedLine.startsWith('<div')) {
+      // CTA: fecha parágrafo e lista, adiciona div
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      finalHtml += trimmedLine;
+    } else {
+      // Conteúdo de parágrafo: acumula
+      if (inList) {
+        // Se estiver em uma lista, mas a linha não for um item de lista, fecha a lista
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      currentParagraph += (currentParagraph.length > 0 ? ' ' : '') + trimmedLine;
+    }
+  });
   
-  // Limpeza de tags de lista órfãs e parágrafos vazios
-  finalHtml = finalHtml.replace(/<\/li><p>/g, '</li>').replace(/<\/ul><p>/g, '</ul>').replace(/<p><\/p>/g, '');
-  
-  // Envolver listas (li) em ul
-  finalHtml = finalHtml.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
-  finalHtml = finalHtml.replace(/<\/ul><ul>/g, ''); // Corrige listas adjacentes
+  // Flush final
+  flushParagraph();
+  if (inList) {
+    finalHtml += '</ul>';
+  }
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }

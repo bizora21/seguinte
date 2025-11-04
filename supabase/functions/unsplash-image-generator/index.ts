@@ -7,6 +7,48 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// Função auxiliar para traduzir texto usando OpenAI
+// @ts-ignore
+async function translateToPortuguese(text: string): Promise<string> {
+    // @ts-ignore
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+        console.warn('OPENAI_API_KEY não configurada. Retornando texto original.');
+        return text;
+    }
+    
+    try {
+        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    { role: "system", content: "Você é um tradutor profissional. Traduza o texto fornecido para o português de Moçambique. Retorne APENAS a tradução." },
+                    { role: "user", content: `Traduza para o português: "${text}"` }
+                ],
+                temperature: 0.1,
+            }),
+        });
+
+        if (!aiResponse.ok) {
+            console.error("OpenAI Translation API Error:", aiResponse.statusText);
+            return text;
+        }
+        
+        const aiData = await aiResponse.json();
+        const translatedText = aiData.choices[0].message.content.trim().replace(/^"|"$/g, ''); // Remove aspas
+        return translatedText;
+        
+    } catch (e) {
+        console.error("Translation failed:", e);
+        return text;
+    }
+}
+
 // @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -61,14 +103,17 @@ serve(async (req) => {
     
     const imageResult = unsplashData.results[0];
     
-    // Usar a URL de tamanho regular e gerar um alt text simples
+    // Usar a URL de tamanho regular
     const imageUrl = imageResult.urls.regular;
-    const imageAlt = imageResult.alt_description || prompt;
+    const rawAlt = imageResult.alt_description || prompt;
+    
+    // 4. Traduzir o Alt Text para o português
+    const translatedAlt = await translateToPortuguese(rawAlt);
 
     return new Response(JSON.stringify({ 
         success: true, 
         imageUrl: imageUrl,
-        imageAlt: imageAlt
+        imageAlt: translatedAlt // Retorna o texto traduzido
     }), {
       headers: corsHeaders,
       status: 200,

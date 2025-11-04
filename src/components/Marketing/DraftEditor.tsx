@@ -47,28 +47,82 @@ const renderMarkdownPreview = (content: string) => {
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
 
-  // 2. Substituir títulos e listas por tags HTML para que o prose os reconheça
-  htmlContent = htmlContent
-    .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.*)$/gm, '<h1>$1</h1>')
-    .replace(/^\* (.*)$/gm, '<li>$1</li>');
+  // 2. Processamento de linhas para blocos HTML
+  const lines = htmlContent.split('\n');
+  let finalHtml = '';
+  let inList = false;
+  let currentParagraph = '';
 
-  // 3. Adicionar tags <p> em torno de texto que não é bloco (H, UL, DIV)
-  let finalHtml = htmlContent.split('\n').map(line => {
-    const trimmedLine = line.trim();
-    if (trimmedLine.length === 0 || trimmedLine.startsWith('<h') || trimmedLine.startsWith('<div') || trimmedLine.startsWith('<ul') || trimmedLine.startsWith('<li')) {
-      return trimmedLine;
+  const flushParagraph = () => {
+    if (currentParagraph.trim().length > 0) {
+      finalHtml += `<p>${currentParagraph.trim()}</p>`;
+      currentParagraph = '';
     }
-    return `<p>${trimmedLine}</p>`;
-  }).join('');
+  };
+
+  lines.forEach(line => {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine.length === 0) {
+      // Linha vazia: fecha parágrafo e lista
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      return;
+    }
+
+    if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### ') || trimmedLine.startsWith('# ')) {
+      // Título: fecha parágrafo e lista, adiciona título
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      if (trimmedLine.startsWith('### ')) {
+        finalHtml += `<h3>${trimmedLine.substring(4)}</h3>`;
+      } else if (trimmedLine.startsWith('## ')) {
+        finalHtml += `<h2>${trimmedLine.substring(3)}</h2>`;
+      } else if (trimmedLine.startsWith('# ')) {
+        finalHtml += `<h1>${trimmedLine.substring(2)}</h1>`;
+      }
+    } else if (trimmedLine.startsWith('* ')) {
+      // Item de lista: fecha parágrafo
+      flushParagraph();
+      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
+      if (!inList) {
+        finalHtml += '<ul>';
+        inList = true;
+      }
+      finalHtml += listItem;
+    } else if (trimmedLine.startsWith('<div')) {
+      // CTA: fecha parágrafo e lista, adiciona div
+      flushParagraph();
+      if (inList) {
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      finalHtml += trimmedLine;
+    } else {
+      // Conteúdo de parágrafo: acumula
+      if (inList) {
+        // Se estiver em uma lista, mas a linha não for um item de lista, fecha a lista
+        finalHtml += '</ul>';
+        inList = false;
+      }
+      currentParagraph += (currentParagraph.length > 0 ? ' ' : '') + trimmedLine;
+    }
+  });
   
-  // 4. Limpeza de tags de lista órfãs e parágrafos vazios
-  finalHtml = finalHtml.replace(/<\/li><p>/g, '</li>').replace(/<\/ul><p>/g, '</ul>').replace(/<p><\/p>/g, '');
-  
-  // 5. Envolver listas (li) em ul
-  finalHtml = finalHtml.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
-  finalHtml = finalHtml.replace(/<\/ul><ul>/g, ''); // Corrige listas adjacentes
+  // Flush final
+  flushParagraph();
+  if (inList) {
+    finalHtml += '</ul>';
+  }
+
+  // Remove parágrafos vazios duplicados que podem ter sido inseridos
+  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }
