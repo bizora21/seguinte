@@ -16,9 +16,9 @@ const renderMarkdown = (content: string) => {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     // Substituir H3 (###)
     .replace(/^### (.*)$/gm, '<h3>$1</h3>')
-    // Substituir H2 (##)
+    // Substituir H2 (## (espaço))
     .replace(/^## (.*)$/gm, '<h2>$1</h2>')
-    // Substituir H1 (#) - Embora o título principal esteja fora do content, mantemos a regra
+    // Substituir H1 (# (espaço))
     .replace(/^# (.*)$/gm, '<h1>$1</h1>')
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
@@ -31,11 +31,13 @@ const renderMarkdown = (content: string) => {
   lines.forEach(line => {
     const trimmedLine = line.trim();
     if (trimmedLine.length === 0) {
-      // Linha vazia
+      // Linha vazia: fecha a lista e adiciona um parágrafo vazio para espaçamento
       if (inList) {
         finalHtml += '</ul>';
         inList = false;
       }
+      // Adiciona um parágrafo vazio para garantir espaçamento entre blocos
+      finalHtml += '<p></p>'; 
       return;
     }
 
@@ -55,7 +57,7 @@ const renderMarkdown = (content: string) => {
       }
       
       // Se não for um bloco HTML (título, CTA, etc.), envolve em <p>
-      if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<div')) {
+      if (!trimmedLine.startsWith('<h') && !trimmedLine.startsWith('<div') && !trimmedLine.startsWith('<ul') && !trimmedLine.startsWith('<li')) {
         finalHtml += `<p>${trimmedLine}</p>`;
       } else {
         finalHtml += trimmedLine;
@@ -67,6 +69,9 @@ const renderMarkdown = (content: string) => {
   if (inList) {
     finalHtml += '</ul>';
   }
+
+  // Remove parágrafos vazios duplicados que podem ter sido inseridos
+  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }
