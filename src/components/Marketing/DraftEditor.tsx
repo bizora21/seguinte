@@ -11,8 +11,9 @@ import { ContentDraft, BlogCategory, LinkItem } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import OptimizedImageUpload from './OptimizedImageUpload'
 import BlogCategoryManager from './BlogCategoryManager'
-import { Separator } from '../ui/separator'
+import { Separator } => '../ui/separator'
 import { supabase } from '../../lib/supabase'
+import MarkdownEditor from './MarkdownEditor' // NOVO IMPORT
 
 interface DraftEditorProps {
   draft: ContentDraft
@@ -578,12 +579,11 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Textarea 
-                    value={localDraft.content || ''} 
-                    onChange={(e) => handleUpdate('content', e.target.value)}
-                    rows={25}
-                    className="font-mono text-sm"
-                    placeholder="O conteúdo gerado pela IA aparecerá aqui. Use Markdown para formatar."
+                  <MarkdownEditor
+                    label="Editor de Conteúdo"
+                    value={localDraft.content || ''}
+                    onChange={(value) => handleUpdate('content', value)}
+                    placeholder="O conteúdo gerado pela IA aparecerá aqui. Use as ferramentas acima para formatar."
                   />
                 </CardContent>
               </Card>

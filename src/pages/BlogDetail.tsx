@@ -14,6 +14,8 @@ const renderMarkdown = (content: string) => {
   let htmlContent = content
     // Substituir negrito **texto** por <strong>texto</strong>
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Substituir itálico *texto* por <em>texto</em>
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
     // Substituir CTA [CTA: Texto]
     .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
 
@@ -90,6 +92,9 @@ const renderMarkdown = (content: string) => {
   if (inList) {
     finalHtml += '</ul>';
   }
+
+  // Remove parágrafos vazios duplicados que podem ter sido inseridos
+  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
 
   return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
 }
@@ -275,7 +280,7 @@ const BlogDetail = () => {
 
             <CardContent className="p-6">
               {/* Conteúdo Renderizado */}
-              {renderMarkdown(post.content)}
+              {post.content && renderMarkdown(post.content)}
               
               {/* Links de Referência e Internos */}
               <div className="mt-10 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
