@@ -19,15 +19,15 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, label,
       autofocus: true,
       spellChecker: true,
       placeholder: placeholder || "Digite o conteúdo do artigo em Markdown...",
-      hideIcons: ["guide", "heading", "image", "side-by-side", "fullscreen"] as any, // Corrigido com 'as any'
-      showIcons: ["code", "table"] as any, // Corrigido com 'as any'
+      hideIcons: ["guide", "heading", "image", "side-by-side", "fullscreen"] as any,
+      showIcons: ["code", "table"] as any,
       toolbar: [
         "bold", "italic", "strikethrough", "|", 
         "heading-2", "heading-3", "|", 
         "unordered-list", "ordered-list", "|", 
         "link", "quote", "code", "table", "|", 
         "preview", "clean-block"
-      ] as any, // Corrigido com 'as any'
+      ] as any,
       status: false, // Remove a barra de status
     }
   }, [placeholder])
