@@ -23,13 +23,14 @@ const supabaseServiceRole = createClient(
 )
 
 // --- PROMPT AVANÇADO PARA O GLM-4.6 ---
+// @ts-ignore
 const createAdvancedPrompt = (keyword: string, serpAnalysis: any) => {
   const ctx = serpAnalysis?.context || 'Moçambique';
   const aud = serpAnalysis?.audience || 'empreendedores';
   const contentType = serpAnalysis?.contentType || 'Guia Completo';
 
   return `
-Você é um jornalista moçambicano de elite, especialista em SEO de alto nível e Growth Hacking. Sua missão é criar um artigo de blog exclusivo e de alta qualidade para a LojaRápica.
+Você é um jornalista moçambicano de elite, especialista em SEO de alto nível e Growth Hacking. Sua missão é criar um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
 
 **TEMA PRINCIPAL:** "${contentType}" sobre a palavra-chave: "${keyword}"
 **CONTEXTO LOCAL:** "${ctx}"
@@ -94,6 +95,7 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
 };
 
 // Função para gerar o prompt de reanálise (usando OpenAI)
+// @ts-ignore
 const createReanalyzePrompt = (draft: any) => {
     // Converte o conteúdo JSON do TipTap para texto simples para análise de SEO
     const contentText = JSON.stringify(draft.content).replace(/\{"type":"text","text":"(.*?)"\}/g, '$1').replace(/[^a-zA-Z0-9\s]/g, ' ');
@@ -144,7 +146,7 @@ serve(async (req) => {
 
   // Usar o cliente Supabase para verificar o token e obter o UID
   // @ts-ignore
-  const supabase = createClient(
+  const supabaseAnon = createClient(
     // @ts-ignore
     Deno.env.get('SUPABASE_URL') ?? '',
     // @ts-ignore
@@ -156,7 +158,7 @@ serve(async (req) => {
     },
   )
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+  const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token)
 
   if (authError || !user) {
     console.error('Authentication failed:', authError?.message)
