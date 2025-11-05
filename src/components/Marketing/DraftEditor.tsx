@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -6,14 +6,16 @@ import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Label } from '../ui/label'
 import { Badge } from '../ui/badge'
-import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText, Zap, CheckCircle, AlertTriangle, Loader2, Lightbulb } from 'lucide-react'
+import { Save, Send, X, Edit, BarChart3, Globe, Link as LinkIcon, ExternalLink, Trash2, Plus, Eye, FileText, Zap, CheckCircle, AlertTriangle, Loader2, Lightbulb, MessageCircle } from 'lucide-react'
 import { ContentDraft, BlogCategory, LinkItem } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import OptimizedImageUpload from './OptimizedImageUpload'
-import BlogCategoryManager from './BlogCategoryManager'
 import { Separator } from '../ui/separator'
 import { supabase } from '../../lib/supabase'
-import MarkdownEditor from './MarkdownEditor' // NOVO IMPORT
+import TipTapEditor from './TipTapEditor' // NOVO IMPORT
+import { JSONContent } from '@tiptap/react'
+import { useDebounce } from '../../hooks/useDebounce' // NOVO IMPORT
+import { CONTENT_GENERATOR_BASE_URL } from '../../utils/admin'
 
 interface DraftEditorProps {
   draft: ContentDraft
@@ -36,97 +38,7 @@ const AUDIENCE_OPTIONS = [
   { value: 'geral', label: 'Público Geral' },
 ]
 
-// URL ABSOLUTA DA EDGE FUNCTION
-const CONTENT_GENERATOR_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
-
-// Função auxiliar para renderizar Markdown simples (usando o 'prose' do Tailwind)
-const renderMarkdownPreview = (content: string) => {
-  // 1. Substituições Markdown para HTML
-  let htmlContent = content
-    // Substituir negrito **texto** por <strong>texto</strong>
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Substituir CTA [CTA: Texto]
-    .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
-
-  // 2. Processamento de linhas para blocos HTML
-  const lines = htmlContent.split('\n');
-  let finalHtml = '';
-  let inList = false;
-  let currentParagraph = '';
-
-  const flushParagraph = () => {
-    if (currentParagraph.trim().length > 0) {
-      finalHtml += `<p>${currentParagraph.trim()}</p>`;
-      currentParagraph = '';
-    }
-  };
-
-  lines.forEach(line => {
-    const trimmedLine = line.trim();
-
-    if (trimmedLine.length === 0) {
-      // Linha vazia: fecha parágrafo e lista
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      return;
-    }
-
-    if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### ') || trimmedLine.startsWith('# ')) {
-      // Título: fecha parágrafo e lista, adiciona título
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      if (trimmedLine.startsWith('### ')) {
-        finalHtml += `<h3>${trimmedLine.substring(4)}</h3>`;
-      } else if (trimmedLine.startsWith('## ')) {
-        finalHtml += `<h2>${trimmedLine.substring(3)}</h2>`;
-      } else if (trimmedLine.startsWith('# ')) {
-        finalHtml += `<h1>${trimmedLine.substring(2)}</h1>`;
-      }
-    } else if (trimmedLine.startsWith('* ')) {
-      // Item de lista: fecha parágrafo
-      flushParagraph();
-      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
-      if (!inList) {
-        finalHtml += '<ul>';
-        inList = true;
-      }
-      finalHtml += listItem;
-    } else if (trimmedLine.startsWith('<div')) {
-      // CTA: fecha parágrafo e lista, adiciona div
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      finalHtml += trimmedLine;
-    } else {
-      // Conteúdo de parágrafo: acumula
-      if (inList) {
-        // Se estiver em uma lista, mas a linha não for um item de lista, fecha a lista
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      currentParagraph += (currentParagraph.length > 0 ? ' ' : '') + trimmedLine;
-    }
-  });
-  
-  // Flush final
-  flushParagraph();
-  if (inList) {
-    finalHtml += '</ul>';
-  }
-
-  // Remove parágrafos vazios duplicados que podem ter sido inseridos
-  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
-
-  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
-}
+const SUGGESTIONS_API_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-suggestions'
 
 const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, onPublish, onCancel }) => {
   const [localDraft, setLocalDraft] = useState(draft)
@@ -134,12 +46,25 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   const [publishing, setPublishing] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
-  const [seoSuggestions, setSeoSuggestions] = useState<string[]>([]) // Novo estado para sugestões
+  const [seoSuggestions, setSeoSuggestions] = useState<string[]>([])
+  const [wordCount, setWordCount] = useState(0)
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
 
-  // Garante que o estado local é atualizado se o rascunho externo mudar (ao trocar de aba)
+  // Conteúdo do TipTap (JSON)
+  const initialTipTapContent: JSONContent | null = useMemo(() => {
+    if (localDraft.content) {
+      try {
+        return JSON.parse(localDraft.content) as JSONContent
+      } catch (e) {
+        console.error("Failed to parse TipTap JSON content:", e)
+        return null
+      }
+    }
+    return null
+  }, [localDraft.content])
+
   useEffect(() => {
     setLocalDraft(draft)
-    // Limpa sugestões ao carregar novo rascunho
     setSeoSuggestions([])
   }, [draft])
 
@@ -147,6 +72,10 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
     setLocalDraft(prev => ({ ...prev, [field]: value }))
   }
   
+  const handleTipTapChange = useCallback((content: JSONContent) => {
+    handleUpdate('content', JSON.stringify(content))
+  }, [])
+
   const handleLinkUpdate = (type: 'internal_links' | 'external_links', index: number, field: keyof LinkItem, value: string) => {
     const links = (localDraft[type] || []) as LinkItem[]
     const updatedLinks = links.map((link, i) => 
@@ -198,52 +127,59 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
   
   const currentCategory = categories.find(c => c.id === localDraft.category_id)
   
-  // --- Análise SEO em Tempo Real (Simulada) ---
-  const seoAnalysis = useMemo(() => {
-    const analysis = {
-      keywordDensity: 0,
-      titleLength: localDraft.title?.length || 0,
-      metaLength: localDraft.meta_description?.length || 0,
-      readability: localDraft.readability_score || 'N/A',
-      issues: [] as string[],
+  // --- LÓGICA DE SUGESTÕES EM TEMPO REAL ---
+  const fetchSuggestions = useCallback(async (keyword: string) => {
+    if (!keyword.trim()) {
+      setSeoSuggestions([])
+      return
     }
     
-    // Simulação de problemas
-    if (analysis.titleLength < 40 || analysis.titleLength > 60) {
-      analysis.issues.push('Título fora do tamanho ideal (40-60 caracteres).')
-    }
-    if (analysis.metaLength < 100 || analysis.metaLength > 160) {
-      analysis.issues.push('Meta descrição fora do tamanho ideal (100-160 caracteres).')
-    }
-    if (!localDraft.featured_image_url) {
-      analysis.issues.push('Imagem de destaque ausente.')
-    }
-    if (!localDraft.image_alt_text || localDraft.image_alt_text.length < 10) {
-      analysis.issues.push('Texto Alt da imagem muito curto ou ausente.')
-    }
-    if (localDraft.content && localDraft.content.split(' ').length < 800) {
-      analysis.issues.push('Conteúdo abaixo do mínimo recomendado (1200 palavras simuladas).')
-    }
+    setIsLoadingSuggestions(true)
     
-    // Simulação de densidade de palavra-chave
-    if (localDraft.content && localDraft.keyword) {
-        const keywordCount = (localDraft.content.toLowerCase().match(new RegExp(localDraft.keyword.toLowerCase(), 'g')) || []).length;
-        const wordCount = localDraft.content.split(/\s+/).length;
-        analysis.keywordDensity = (keywordCount / wordCount) * 100;
-        if (analysis.keywordDensity < 0.5 || analysis.keywordDensity > 2.5) {
-            analysis.issues.push(`Densidade da palavra-chave (${analysis.keywordDensity.toFixed(2)}%) fora do ideal (0.5% - 2.5%).`);
-        }
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.access_token) {
+        throw new Error('Usuário não autenticado.')
+      }
+      
+      const response = await fetch(SUGGESTIONS_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          keyword: keyword,
+          contentType: 'blog'
+        })
+      })
+      
+      if (!response.ok) throw new Error('Falha ao buscar sugestões.')
+      
+      const result = await response.json()
+      setSeoSuggestions(result.suggestions || [])
+      
+    } catch (error) {
+      console.error('Error fetching suggestions:', error)
+      setSeoSuggestions(['Erro ao carregar sugestões.'])
+    } finally {
+      setIsLoadingSuggestions(false)
     }
+  }, [])
 
-    return analysis
-  }, [localDraft])
+  const debouncedFetchSuggestions = useDebounce(fetchSuggestions, 800)
+
+  useEffect(() => {
+    debouncedFetchSuggestions(localDraft.keyword)
+  }, [localDraft.keyword, debouncedFetchSuggestions])
   
+  // --- LÓGICA DE REANÁLISE DE SEO ---
   const handleAnalyzeSEO = async () => {
     setAnalyzing(true)
     const toastId = showLoading('Reanalisando SEO e Palavras-chave com IA...')
     
     try {
-      // OBTENDO O TOKEN DE ACESSO ATUAL
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session?.access_token) {
@@ -251,23 +187,21 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
-      const response = await fetch(CONTENT_GENERATOR_URL, {
+      const response = await fetch(CONTENT_GENERATOR_BASE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // ENVIANDO O TOKEN DE ACESSO
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           action: 'reanalyze',
-          draft: localDraft, // Envia o rascunho atual para análise
+          draft: localDraft,
         })
       })
 
       if (!response.ok) {
         const errorText = await response.text()
         dismissToast(toastId)
-        // Tenta analisar o erro JSON da Edge Function
         try {
             const errorJson = JSON.parse(errorText);
             throw new Error(errorJson.error || `Falha na requisição (Status ${response.status})`);
@@ -279,13 +213,11 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
       const result = await response.json()
       
       if (result.success && result.data) {
-        // Atualiza o rascunho local com os novos dados de SEO
         setLocalDraft(prev => ({
             ...prev,
             seo_score: result.data.seo_score,
             readability_score: result.data.readability_score,
         }))
-        // Define as sugestões
         setSeoSuggestions(result.data.suggestions || [])
         
         dismissToast(toastId)
@@ -353,7 +285,10 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                 className="w-full h-auto object-cover rounded-lg mb-6"
               />
             )}
-            {localDraft.content && renderMarkdownPreview(localDraft.content)}
+            {/* Renderização do conteúdo TipTap em HTML (simulada, TipTap faria isso) */}
+            <div className="prose max-w-none">
+                <p className="text-gray-500 italic">Conteúdo TipTap renderizado aqui...</p>
+            </div>
           </div>
         ) : (
           // --- MODO EDIÇÃO ---
@@ -362,11 +297,11 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
             <div className="lg:col-span-1 space-y-6">
               
               {/* Análise SEO em Tempo Real */}
-              <Card className={`border-2 ${seoAnalysis.issues.length > 0 ? 'border-red-400 bg-red-50' : 'border-green-400 bg-green-50'}`}>
+              <Card className={`border-2 ${localDraft.seo_score < 70 ? 'border-red-400 bg-red-50' : 'border-green-400 bg-green-50'}`}>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center">
                     <BarChart3 className="w-5 h-5 mr-2" />
-                    Análise SEO em Tempo Real
+                    Análise SEO
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -376,21 +311,14 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">Leitura:</span>
-                    <span className="font-bold">{seoAnalysis.readability}</span>
+                    <span className="font-bold">{localDraft.readability_score || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Palavras:</span>
+                    <span className="font-bold">{wordCount}</span>
                   </div>
                   
                   <Separator />
-                  
-                  <h4 className="font-semibold text-sm flex items-center">
-                    {seoAnalysis.issues.length > 0 ? <AlertTriangle className="w-4 h-4 mr-1 text-red-600" /> : <CheckCircle className="w-4 h-4 mr-1 text-green-600" />}
-                    {seoAnalysis.issues.length} Problema(s) Encontrado(s)
-                  </h4>
-                  
-                  {seoAnalysis.issues.length > 0 && (
-                    <ul className="list-disc list-inside text-xs text-red-700 space-y-1">
-                      {seoAnalysis.issues.map((issue, i) => <li key={i}>{issue}</li>)}
-                    </ul>
-                  )}
                   
                   <Button onClick={handleAnalyzeSEO} disabled={analyzing} variant="outline" className="w-full mt-3">
                     {analyzing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
@@ -400,21 +328,28 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
               </Card>
               
               {/* Sugestões da IA */}
-              {seoSuggestions.length > 0 && (
-                <Card className="border-blue-400 bg-blue-50">
-                    <CardHeader>
-                        <CardTitle className="text-lg flex items-center text-blue-800">
-                            <Lightbulb className="w-5 h-5 mr-2" />
-                            Sugestões da IA
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc list-inside text-sm text-blue-800 space-y-2">
-                            {seoSuggestions.map((suggestion, i) => <li key={i}>{suggestion}</li>)}
-                        </ul>
-                    </CardContent>
-                </Card>
-              )}
+              <Card className="border-blue-400 bg-blue-50">
+                  <CardHeader>
+                      <CardTitle className="text-lg flex items-center text-blue-800">
+                          <Lightbulb className="w-5 h-5 mr-2" />
+                          Sugestões LSI
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      {isLoadingSuggestions ? (
+                          <div className="flex items-center text-sm text-blue-700">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Buscando sugestões...
+                          </div>
+                      ) : seoSuggestions.length > 0 ? (
+                          <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
+                              {seoSuggestions.map((suggestion, i) => <li key={i}>{suggestion}</li>)}
+                          </ul>
+                      ) : (
+                          <p className="text-sm text-blue-700">Nenhuma sugestão encontrada.</p>
+                      )}
+                  </CardContent>
+              </Card>
               
               {/* SEO e Metadados */}
               <Card>
@@ -575,15 +510,15 @@ const DraftEditor: React.FC<DraftEditorProps> = ({ draft, categories, onSave, on
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center">
                     <FileText className="w-5 h-5 mr-2" />
-                    Conteúdo do Artigo (Markdown)
+                    Conteúdo do Artigo (TipTap Editor)
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <MarkdownEditor
-                    label="Editor de Conteúdo"
-                    value={localDraft.content || ''}
-                    onChange={(value) => handleUpdate('content', value)}
-                    placeholder="O conteúdo gerado pela IA aparecerá aqui. Use as ferramentas acima para formatar."
+                <CardContent className="p-4">
+                  <TipTapEditor
+                    initialContent={initialTipTapContent}
+                    onChange={handleTipTapChange}
+                    wordCount={wordCount}
+                    onWordCountChange={setWordCount}
                   />
                 </CardContent>
               </Card>

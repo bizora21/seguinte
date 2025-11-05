@@ -78,10 +78,8 @@ const ContentManagerTab: React.FC = () => {
 
   const handleEditDraft = async (contentItem: ContentDraft) => {
     if (contentItem.status === 'published') {
-        // Se for publicado, criamos um novo rascunho a partir dele
         const toastId = showLoading('Criando rascunho para edição...')
         
-        // 1. Buscar dados completos do artigo publicado
         const { data: publishedArticle, error: fetchError } = await supabase
             .from('published_articles')
             .select('*')
@@ -102,9 +100,9 @@ const ContentManagerTab: React.FC = () => {
             audience: publishedArticle.audience || 'geral',
             status: 'draft',
             title: publishedArticle.title,
-            slug: publishedArticle.slug, // Mantemos o slug original, mas o usuário deve alterá-lo se for republicar
+            slug: publishedArticle.slug,
             meta_description: publishedArticle.meta_description,
-            content: publishedArticle.content,
+            content: publishedArticle.content, // Conteúdo JSON (TipTap)
             featured_image_url: publishedArticle.featured_image_url,
             image_alt_text: publishedArticle.image_alt_text,
             external_links: publishedArticle.external_links,
@@ -191,7 +189,7 @@ const ContentManagerTab: React.FC = () => {
           title: draft.title,
           slug: draft.slug,
           meta_description: draft.meta_description,
-          content: draft.content,
+          content: draft.content, // Conteúdo JSON (TipTap)
           featured_image_url: draft.featured_image_url,
           image_alt_text: draft.image_alt_text,
           external_links: draft.external_links,
@@ -205,6 +203,7 @@ const ContentManagerTab: React.FC = () => {
           published_at: new Date().toISOString(),
           context: draft.context,
           audience: draft.audience,
+          keyword: draft.keyword,
       }
       
       // Verifica se já existe um artigo publicado com este ID (se for uma republicação)
