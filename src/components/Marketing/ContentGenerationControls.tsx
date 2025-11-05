@@ -1,20 +1,14 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Zap, Target, Globe, Loader2 } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import KeywordSuggester from './KeywordSuggester'
 
-const CONTEXT_OPTIONS = [
-  { value: 'maputo', label: 'Maputo e Região' },
-  { value: 'beira', label: 'Beira e Sofala' },
-  { value: 'nampula', label: 'Nampula e Norte' },
-  { value: 'nacional', label: 'Nacional (Todo MZ)' },
-]
-
+// Opções para os selects
 const AUDIENCE_OPTIONS = [
   { value: 'vendedores', label: 'Vendedores e Empreendedores' },
   { value: 'clientes', label: 'Consumidores e Compradores' },
@@ -27,8 +21,15 @@ const TYPE_OPTIONS = [
   { value: 'tendencias', label: 'Análise de Tendências' },
 ]
 
-// URL ABSOLUTA DA EDGE FUNCTION
-const CONTENT_GENERATOR_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
+const CONTEXT_OPTIONS = [
+  { value: 'maputo', label: 'Maputo e Região' },
+  { value: 'beira', label: 'Beira e Sofala' },
+  { value: 'nampula', label: 'Nampula e Norte' },
+  { value: 'nacional', label: 'Nacional (Todo MZ)' },
+]
+
+// URL base da Edge Function para o Content Generator
+const CONTENT_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
 
 interface ContentGenerationControlsProps {
   onContentGenerated: (draftId: string) => void
@@ -53,7 +54,6 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
     const toastId = showLoading('Gerando conteúdo com IA...')
     
     try {
-      // OBTENDO O TOKEN DE ACESSO ATUAL
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError || !session?.access_token) {
@@ -61,11 +61,10 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         throw new Error('Usuário não autenticado. Faça login novamente.')
       }
       
-      const response = await fetch(CONTENT_GENERATOR_URL, {
+      const response = await fetch(CONTENT_GENERATOR_BASE_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // ENVIANDO O TOKEN DE ACESSO
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
@@ -80,7 +79,6 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
       if (!response.ok) {
         const errorText = await response.text()
         dismissToast(toastId)
-        // Tenta analisar o erro JSON da Edge Function
         try {
             const errorJson = JSON.parse(errorText);
             throw new Error(errorJson.error || `Falha na requisição (Status ${response.status})`);
@@ -96,7 +94,6 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         showSuccess(`Conteúdo gerado! Revise na aba Rascunhos.`)
         setKeyword('')
         if (result.draftId) {
-            // Tenta carregar o rascunho recém-criado para edição imediata
             const { data: newDraft } = await supabase.from('content_drafts').select('*').eq('id', result.draftId).single()
             if (newDraft) {
                 onContentGenerated(result.draftId)
@@ -127,9 +124,12 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Palavra-chave Principal</label>
-            <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Ex: vender eletrônicos online" />
+            <KeywordSuggester
+              value={keyword}
+              onChange={setKeyword}
+            />
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Público-Alvo</label>

@@ -39,7 +39,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
         types: ['heading', 'paragraph'],
       }),
       CharacterCount.configure({
-        limit: 10000, // Optional: Set a character limit if needed
+        limit: 10000,
       }),
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Comece a escrever aqui...' }] }] },
