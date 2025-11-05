@@ -29,7 +29,7 @@ const createAdvancedPrompt = (keyword: string, serpAnalysis: any) => {
   const contentType = serpAnalysis?.contentType || 'Guia Completo';
 
   return `
-Você é um jornalista moçambicano de elite, especialista em SEO de alto nível e Growth Hacking. Sua missão é criar um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
+Você é um jornalista moçambicano de elite, especialista em SEO de alto nível e Growth Hacking. Sua missão é criar um artigo de blog exclusivo e de alta qualidade para a LojaRápica.
 
 **TEMA PRINCIPAL:** "${contentType}" sobre a palavra-chave: "${keyword}"
 **CONTEXTO LOCAL:** "${ctx}"
@@ -39,13 +39,19 @@ Você é um jornalista moçambicano de elite, especialista em SEO de alto nível
 ${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise fornecida.'}
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
-1.  **QUALIDADE HUMANA:** O artigo deve ter um tom envolvente, natural e parecer escrito por um especialista humano moçambicano. Evite frases clichês de IA.
-2.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
-3.  **BLOCOS OBRIGATÓRIOS:** Inclua headings (H1, H2, H3), parágrafos, e listas.
-4.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto.
-5.  **LINKS E CTA:** Inclua 1-3 links externos e um CTA final no formato de bloco CTA.
-6.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-7.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+1.  **QUALIDADE HUMANA:** O artigo deve ter um tom envolvente, natural e parecer escrito por um especialista humano moçambicano. Evite frases clichês de IA. Seja autêntico e persuasivo.
+2.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
+    *   O artigo DEVE começar com um título principal em H1.
+    *   Use títulos H2 para as seções principais do artigo.
+    *   Use títulos H3 para subseções dentro de uma seção H2, se necessário.
+    *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
+    *   Os títulos (H1, H2, H3) são, por padrão, exibidos em negrito. Não adicione tags de negrito extras como ** ou __ dentro do texto do título.
+3.  **COMPRIMENTO DO ARTIGO:** O artigo deve ter entre 1200 e 1500 palavras. Seja conciso, mas completo.
+4.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror, refletindo a estrutura de títulos correta.
+5.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos, quando apropriado.
+6.  **LINKS E CTA:** Inclua 1-3 links externos relevantes e um CTA final claro e persuasivo no formato de bloco CTA.
+7.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+8.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
 Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
@@ -58,17 +64,19 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
   "content": {
     "type": "doc",
     "content": [
-      { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo" }] },
+      { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo (H1)" }] },
       { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente." }] },
-      { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção." }] },
+      { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção (H2)" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2." }] },
+      { "type": "heading", "attrs": {"level": 3}, "content": [{ "type": "text", "text": "Título da Subseção (H3)" }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da subseção H3." }] },
       { "type": "bulletList", "content": [
         { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 1" }] }] },
         { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 2" }] }] }
       ]}
     ]
   },
-  "image_prompt": "A detailed prompt in English for a high-quality, professional photograph-style image relevant to the article's theme.",
+  "image_prompt": "A detailed prompt in English for a high-quality, professional photograph-style image relevant to article's theme.",
   "secondary_keywords": ["palavra-chave-adicional-1", "palavra-chave-adicional-2"],
   "seo_score": 92,
   "readability_score": "Excelente",
