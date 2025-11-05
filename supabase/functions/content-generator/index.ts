@@ -40,19 +40,18 @@ Você é um jornalista moçambicano de elite, especialista em SEO de alto nível
 ${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise fornecida.'}
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
-1.  **QUALIDADE HUMANA:** O artigo deve ter um tom envolvente, natural e parecer escrito por um especialista humano moçambicano. Evite frases clichês de IA. Seja autêntico e persuasivo.
-2.  **COMPRIMENTO DO ARTIGO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. Este é um requisito não negociável.
-3.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
+1.  **QUALIDADE HUMANA E COMPRIMENTO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. Escreva parágrafos longos, detalhados e informativos. O tom deve ser envolvente, natural e parecer escrito por um especialista humano moçambicano.
+2.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
     *   O artigo DEVE começar com um título principal em H1.
     *   Use títulos H2 para as seções principais do artigo.
-    *   Use títulos H3 para subseções dentro de uma seção H2, se necessário.
+    *   Use títulos H3 para subseções dentro de uma seção H2.
     *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
-    *   **IMPORTANTE:** Os títulos (H1, H2, H3) devem ser renderizados em negrito e com espaçamento adequado pelo editor TipTap. Garanta que cada título seja um bloco de \`heading\` separado.
-4.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
-5.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos, quando apropriado.
-6.  **LINKS E CTA:** Inclua 1-3 links externos relevantes e um CTA final claro e persuasivo no formato de bloco CTA.
-7.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-8.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+    *   **FORMATO TIP-TAP:** Garanta que cada título seja um bloco de \`heading\` separado no JSON.
+3.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
+4.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos.
+5.  **LINKS E CTA:** Inclua 1-3 links externos relevantes e um CTA final claro e persuasivo.
+6.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+7.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
 Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
@@ -66,11 +65,11 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
     "type": "doc",
     "content": [
       { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo (H1)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente. Este parágrafo deve ser longo o suficiente para contribuir para o mínimo de 1200 palavras." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui. Este parágrafo deve ser muito longo e detalhado, com pelo menos 150 palavras, para garantir o comprimento mínimo do artigo. Continue a desenvolver o tema com profundidade e autoridade, focando no contexto moçambicano e no público-alvo." }] },
       { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção (H2)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2. Lembre-se de escrever parágrafos longos e informativos para atingir o mínimo de 1200 palavras." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2. Este bloco de texto deve ser extenso e cobrir o tópico completamente. Use exemplos locais e dados relevantes para Moçambique. Continue a escrever parágrafos longos e densos em informação." }] },
       { "type": "heading", "attrs": {"level": 3}, "content": [{ "type": "text", "text": "Título da Subseção (H3)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da subseção H3." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da subseção H3. Certifique-se de que a soma de todos os parágrafos e listas atinja o mínimo de 1200 palavras." }] },
       { "type": "bulletList", "content": [
         { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 1" }] }] },
         { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 2" }] }] }
@@ -184,7 +183,7 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
         }
 
-        console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando GLM-4.6`);
+        console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando GPT-4o`);
 
         const advancedPrompt = createAdvancedPrompt(keyword, serpAnalysis)
 
@@ -196,13 +195,13 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: 'gpt-4o', // Usando o modelo mais poderoso
-            max_tokens: 4096,
+            max_tokens: 4096, // Aumentado para o máximo
             messages: [
               { role: 'system', content: 'Você é um assistente que retorna apenas JSON válido. Sua saída deve ser um objeto JSON estruturado, sem texto adicional.' },
               { role: 'user', content: advancedPrompt }
             ],
             response_format: { type: 'json_object' }, // CRUCIAL para JSON mode
-            temperature: 0.7, // Temperatura mais alta para criatividade
+            temperature: 0.8, // Aumentado para incentivar mais texto
           }),
         })
 
