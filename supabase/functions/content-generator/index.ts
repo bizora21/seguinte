@@ -40,11 +40,12 @@ Você é um jornalista moçambicano de elite, especialista em SEO de alto nível
 ${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise fornecida.'}
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
-1.  **QUALIDADE HUMANA E COMPRIMENTO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. Escreva parágrafos longos, detalhados e informativos. O tom deve ser envolvente, natural e parecer escrito por um especialista humano moçambicano.
+1.  **QUALIDADE HUMANA E COMPRIMENTO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. **USE O MÁXIMO DE TOKENS POSSÍVEL.** Escreva parágrafos extremamente longos, detalhados e informativos. O tom deve ser envolvente, natural e parecer escrito por um especialista humano moçambicano.
 2.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
     *   O artigo DEVE começar com um título principal em H1.
     *   Use títulos H2 para as seções principais do artigo.
     *   Use títulos H3 para subseções dentro de uma seção H2.
+    *   Use títulos H4 para sub-subseções, se necessário.
     *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
     *   **FORMATO TIP-TAP:** Garanta que cada título seja um bloco de \`heading\` separado no JSON.
 3.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
@@ -65,7 +66,7 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
     "type": "doc",
     "content": [
       { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo (H1)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui. Este parágrafo deve ser muito longo e detalhado, com pelo menos 150 palavras, para garantir o comprimento mínimo do artigo. Continue a desenvolver o tema com profundidade e autoridade, focando no contexto moçambicano e no público-alvo." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente. Este parágrafo deve ser extremamente longo e detalhado, com pelo menos 200 palavras, para garantir o comprimento mínimo do artigo. Continue a desenvolver o tema com profundidade e autoridade, focando no contexto moçambicano e no público-alvo." }] },
       { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção (H2)" }] },
       { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2. Este bloco de texto deve ser extenso e cobrir o tópico completamente. Use exemplos locais e dados relevantes para Moçambique. Continue a escrever parágrafos longos e densos em informação." }] },
       { "type": "heading", "attrs": {"level": 3}, "content": [{ "type": "text", "text": "Título da Subseção (H3)" }] },
@@ -195,13 +196,13 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: 'gpt-4o', // Usando o modelo mais poderoso
-            max_tokens: 4096, // Aumentado para o máximo
+            max_tokens: 4096, // MÁXIMO DE TOKENS
             messages: [
               { role: 'system', content: 'Você é um assistente que retorna apenas JSON válido. Sua saída deve ser um objeto JSON estruturado, sem texto adicional.' },
               { role: 'user', content: advancedPrompt }
             ],
             response_format: { type: 'json_object' }, // CRUCIAL para JSON mode
-            temperature: 0.8, // Aumentado para incentivar mais texto
+            temperature: 0.8,
           }),
         })
 

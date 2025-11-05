@@ -78,6 +78,14 @@ const TipTapToolbar: React.FC<TipTapToolbarProps> = ({ editor }) => {
       >
         <Heading className="w-4 h-4" />
       </Button>
+      <Button
+        onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+        variant={editor.isActive('heading', { level: 4 }) ? 'secondary' : 'ghost'}
+        size="icon"
+        aria-label="Título H4"
+      >
+        <Heading className="w-3 h-3" />
+      </Button>
 
       <Separator orientation="vertical" className="h-6 mx-2" />
 

@@ -20,7 +20,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3],
+          levels: [1, 2, 3, 4], // Adicionado H4
         },
       }),
       Link.configure({
@@ -53,7 +53,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
     },
     editorProps: {
         attributes: {
-            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg max-w-none min-h-[400px] focus:outline-none p-4',
+            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base max-w-none min-h-[400px] focus:outline-none p-4',
         },
     },
   });

@@ -9,7 +9,8 @@
 
 .ProseMirror h1,
 .ProseMirror h2,
-.ProseMirror h3 {
+.ProseMirror h3,
+.ProseMirror h4 { /* Adicionado H4 */
   font-weight: bold !important;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -28,6 +29,11 @@
 .ProseMirror h3 {
   font-size: 1.25em;
   line-height: 1.4;
+}
+
+.ProseMirror h4 { /* Novo estilo para H4 */
+  font-size: 1.1em;
+  line-height: 1.5;
 }
 
 .ProseMirror p {

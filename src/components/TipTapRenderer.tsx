@@ -14,7 +14,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3],
+          levels: [1, 2, 3, 4], // Adicionado H4
         },
       }),
       Link.configure({
@@ -37,8 +37,8 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
     editable: false, // Modo somente leitura
     editorProps: {
         attributes: {
-            // Aplicando as mesmas classes de estilo do editor para consistência
-            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg max-w-none min-h-[100px] focus:outline-none',
+            // Aplicando as classes de estilo do editor para consistência, incluindo H4
+            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base max-w-none min-h-[100px] focus:outline-none',
         },
     },
   });
