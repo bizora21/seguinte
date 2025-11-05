@@ -45,7 +45,7 @@ ${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise forne
     *   Use títulos H2 para as seções principais do artigo.
     *   Use títulos H3 para subseções dentro de uma seção H2, se necessário.
     *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
-    *   Os títulos (H1, H2, H3) são, por padrão, exibidos em negrito. Não adicione tags de negrito extras como ** ou __ dentro do texto do título.
+    *   **IMPORTANTE:** Os títulos (H1, H2, H3) devem ser renderizados em negrito automaticamente pelo editor. Não adicione tags de negrito extras como ** ou __ dentro do texto do título.
 3.  **COMPRIMENTO DO ARTIGO:** O artigo deve ter entre 1200 e 1500 palavras. Seja conciso, mas completo.
 4.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror, refletindo a estrutura de títulos correta.
 5.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos, quando apropriado.
@@ -109,7 +109,7 @@ ${contentText.substring(0, 4000)}
 
 **REGRAS ESTRITAS DE REANÁLISE:**
 1.  **Foco:** Avalie a densidade da palavra-chave, a estrutura de títulos (H2, H3), a profundidade do conteúdo e a clareza da escrita.
-2.  **Métricas:** Gere um novo \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom", "Mediano").
+2.  **MÉTRICAS:** Gere um novo \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom", "Mediano").
 3.  **SAÍDA:** Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
@@ -153,8 +153,8 @@ serve(async (req) => {
       auth: {
         persistSession: false,
       },
-  },
-)
+    },
+  )
 
   const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 

@@ -53,7 +53,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
     },
     editorProps: {
         attributes: {
-            class: 'prose max-w-none min-h-[400px] focus:outline-none p-4',
+            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg max-w-none min-h-[400px] focus:outline-none p-4',
         },
     },
   });
