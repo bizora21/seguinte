@@ -38,16 +38,18 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      CharacterCount.configure({}), // Configuração vazia para evitar erro de tipagem
+      CharacterCount.configure({
+        limit: 10000, // Optional: Set a character limit if needed
+      }),
     ],
     content: initialContent || { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Comece a escrever aqui...' }] }] },
     onUpdate: ({ editor }) => {
       onChange(editor.getJSON());
-      
-      // Acessa a contagem de palavras através da API de storage do editor
-      if (editor.storage?.characterCount) {
-          onWordCountChange(editor.storage.characterCount.words());
-      }
+    },
+    onTransaction: ({ editor }) => {
+      // Update word count on every transaction
+      const words = editor.storage.characterCount.words();
+      onWordCountChange(words);
     },
     editorProps: {
         attributes: {
