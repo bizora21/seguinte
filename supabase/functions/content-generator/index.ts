@@ -41,14 +41,14 @@ ${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise forne
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
 1.  **QUALIDADE HUMANA:** O artigo deve ter um tom envolvente, natural e parecer escrito por um especialista humano moçambicano. Evite frases clichês de IA. Seja autêntico e persuasivo.
-2.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
+2.  **COMPRIMENTO DO ARTIGO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. Este é um requisito não negociável.
+3.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
     *   O artigo DEVE começar com um título principal em H1.
     *   Use títulos H2 para as seções principais do artigo.
     *   Use títulos H3 para subseções dentro de uma seção H2, se necessário.
     *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
-    *   **IMPORTANTE:** Os títulos (H1, H2, H3) devem ser renderizados em negrito automaticamente pelo editor. Não adicione tags de negrito extras como ** ou __ dentro do texto do título.
-3.  **COMPRIMENTO DO ARTIGO:** O artigo deve ter entre 1200 e 1500 palavras. Seja conciso, mas completo.
-4.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror, refletindo a estrutura de títulos correta.
+    *   **IMPORTANTE:** Os títulos (H1, H2, H3) devem ser renderizados em negrito e com espaçamento adequado pelo editor TipTap. Garanta que cada título seja um bloco de \`heading\` separado.
+4.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
 5.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos, quando apropriado.
 6.  **LINKS E CTA:** Inclua 1-3 links externos relevantes e um CTA final claro e persuasivo no formato de bloco CTA.
 7.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
@@ -66,9 +66,9 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
     "type": "doc",
     "content": [
       { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo (H1)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente. Este parágrafo deve ser longo o suficiente para contribuir para o mínimo de 1200 palavras." }] },
       { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção (H2)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2." }] },
+      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2. Lembre-se de escrever parágrafos longos e informativos para atingir o mínimo de 1200 palavras." }] },
       { "type": "heading", "attrs": {"level": 3}, "content": [{ "type": "text", "text": "Título da Subseção (H3)" }] },
       { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da subseção H3." }] },
       { "type": "bulletList", "content": [
