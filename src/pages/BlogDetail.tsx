@@ -7,97 +7,8 @@ import { ArrowLeft, Calendar, Tag, Link as LinkIcon, ExternalLink, Loader2, Stor
 import { BlogPostWithCategory, LinkItem } from '../types/blog'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { SEO, generateBreadcrumbSchema } from '../components/SEO'
-
-// Função auxiliar para renderizar Markdown simples (usando o 'prose' do Tailwind)
-const renderMarkdown = (content: string) => {
-  // 1. Substituições Markdown para HTML
-  let htmlContent = content
-    // Substituir negrito **texto** por <strong>texto</strong>
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Substituir itálico *texto* por <em>texto</em>
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Substituir CTA [CTA: Texto]
-    .replace(/\[CTA: (.*?)\]/g, '<div class="my-6 text-center"><a href="/register" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">$1</a></div>');
-
-  // 2. Processamento de linhas para blocos HTML
-  const lines = htmlContent.split('\n');
-  let finalHtml = '';
-  let inList = false;
-  let currentParagraph = '';
-
-  const flushParagraph = () => {
-    if (currentParagraph.trim().length > 0) {
-      finalHtml += `<p>${currentParagraph.trim()}</p>`;
-      currentParagraph = '';
-    }
-  };
-
-  lines.forEach(line => {
-    const trimmedLine = line.trim();
-
-    if (trimmedLine.length === 0) {
-      // Linha vazia: fecha parágrafo e lista
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      return;
-    }
-
-    if (trimmedLine.startsWith('## ') || trimmedLine.startsWith('### ') || trimmedLine.startsWith('# ')) {
-      // Título: fecha parágrafo e lista, adiciona título
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      if (trimmedLine.startsWith('### ')) {
-        finalHtml += `<h3>${trimmedLine.substring(4)}</h3>`;
-      } else if (trimmedLine.startsWith('## ')) {
-        finalHtml += `<h2>${trimmedLine.substring(3)}</h2>`;
-      } else if (trimmedLine.startsWith('# ')) {
-        finalHtml += `<h1>${trimmedLine.substring(2)}</h1>`;
-      }
-    } else if (trimmedLine.startsWith('* ')) {
-      // Item de lista: fecha parágrafo
-      flushParagraph();
-      const listItem = trimmedLine.replace(/^\* (.*)/, '<li>$1</li>');
-      if (!inList) {
-        finalHtml += '<ul>';
-        inList = true;
-      }
-      finalHtml += listItem;
-    } else if (trimmedLine.startsWith('<div')) {
-      // CTA: fecha parágrafo e lista, adiciona div
-      flushParagraph();
-      if (inList) {
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      finalHtml += trimmedLine;
-    } else {
-      // Conteúdo de parágrafo: acumula
-      if (inList) {
-        // Se estiver em uma lista, mas a linha não for um item de lista, fecha a lista
-        finalHtml += '</ul>';
-        inList = false;
-      }
-      currentParagraph += (currentParagraph.length > 0 ? ' ' : '') + trimmedLine;
-    }
-  });
-  
-  // Flush final
-  flushParagraph();
-  if (inList) {
-    finalHtml += '</ul>';
-  }
-
-  // Remove parágrafos vazios duplicados que podem ter sido inseridos
-  finalHtml = finalHtml.replace(/<p><\/p>/g, '');
-
-  return <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: finalHtml }} />
-}
+import TipTapRenderer from '../components/TipTapRenderer' // NOVO IMPORT
+import { JSONContent } from '@tiptap/react' // CORREÇÃO: Importar JSONContent
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -221,9 +132,26 @@ const BlogDetail = () => {
     )
   }
   
-  // CORREÇÃO: Usar optional chaining e nullish coalescing para garantir que os links são arrays
   const externalLinks: LinkItem[] = (post.external_links as unknown as LinkItem[] || [])
   const internalLinks: LinkItem[] = (post.internal_links as unknown as LinkItem[] || [])
+  
+  // Tenta parsear o conteúdo JSON
+  let contentJson: JSONContent | null = null;
+  try {
+    if (post.content) {
+      contentJson = JSON.parse(post.content);
+    }
+  } catch (e) {
+    console.error("Failed to parse post content JSON:", e);
+    // Se falhar, criamos um JSON básico com o texto
+    contentJson = {
+        type: 'doc',
+        content: [{
+            type: 'paragraph',
+            content: [{ type: 'text', text: post.content || 'Erro ao carregar conteúdo.' }]
+        }]
+    };
+  }
 
   return (
     <>
@@ -279,8 +207,8 @@ const BlogDetail = () => {
             </div>
 
             <CardContent className="p-6">
-              {/* Conteúdo Renderizado */}
-              {post.content && renderMarkdown(post.content)}
+              {/* Conteúdo Renderizado pelo TipTapRenderer */}
+              {contentJson && <TipTapRenderer content={contentJson} />}
               
               {/* Links de Referência e Internos */}
               <div className="mt-10 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
