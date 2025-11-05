@@ -22,11 +22,13 @@ const TipTapToolbar: React.FC<TipTapToolbarProps> = ({ editor }) => {
     }
 
     if (url === '') {
-      editor.chain().focus().extendMark('link').unsetLink().run();
+      // Correção 1: Usar unsetLink() diretamente
+      editor.chain().focus().unsetLink().run(); 
       return;
     }
 
-    editor.chain().focus().extendMark('link').setLink({ href: url }).run();
+    // Correção 2: Usar setLink() diretamente
+    editor.chain().focus().setLink({ href: url }).run();
   };
 
   const addImage = () => {

@@ -224,7 +224,7 @@ serve(async (req) => {
           .insert({
             user_id: userId,
             keyword: keyword,
-            model: model || 'gpt-4o',
+            model: model || 'gpt-4o', // INSERINDO O MODELO
             status: 'draft',
             title: generatedContent.title,
             slug: generatedContent.slug,

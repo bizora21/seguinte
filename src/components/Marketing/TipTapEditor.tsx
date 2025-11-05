@@ -39,7 +39,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ initialContent, onChange, o
         types: ['heading', 'paragraph'],
       }),
       CharacterCount.configure({
-        mode: 'words',
+        // Correção 3: Removendo a propriedade 'mode'
         onUpdate: (props) => {
             onWordCountChange(props.words());
         }
