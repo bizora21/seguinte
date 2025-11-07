@@ -16,7 +16,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import CharacterCount from '@tiptap/extension-character-count'
 
 // Subcomponentes
-import TipTapToolbar from './editor/TipTapToolbar' // Usando a Toolbar real
+import TipTapToolbar from './editor/TipTapToolbar'
 import EditorCanvas from './editor/EditorCanvas'
 import Sidebar from './editor/Sidebar'
 import Statusbar from './editor/Statusbar'
@@ -26,6 +26,7 @@ import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import OptimizedImageUpload from './OptimizedImageUpload'
+import TipTapRenderer from '../TipTapRenderer' // Importando o Renderer
 
 interface AdvancedEditorProps {
   draft: ContentDraft
@@ -35,19 +36,29 @@ interface AdvancedEditorProps {
   onCancel: () => void
 }
 
+// Função auxiliar para converter string JSON para JSONContent
+const parseContent = (content: string | null): JSONContent | undefined => {
+    if (!content) return undefined;
+    try {
+        return JSON.parse(content);
+    } catch {
+        return undefined;
+    }
+}
+
 const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSave, onPublish, onCancel }) => {
-  const [localDraft, setLocalDraft] = useState(draft)
+  // O estado local agora armazena o conteúdo como JSONContent
+  const [localDraft, setLocalDraft] = useState<ContentDraft>({
+    ...draft,
+    content: draft.content ? JSON.parse(draft.content) : null // Parse inicial
+  });
+  
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [wordCount, setWordCount] = useState(0)
-
-  // Função para atualizar o conteúdo do rascunho local
-  const handleContentChange = useCallback((newContent: string) => {
-    setLocalDraft(prev => ({ ...prev, content: newContent }))
-  }, [])
 
   // 1. Inicializa o TipTap Editor
   const editor = useEditor({
@@ -76,10 +87,10 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
         limit: 10000,
       }),
     ],
-    content: localDraft.content || '', // Conteúdo inicial em HTML
+    content: localDraft.content || '', // Conteúdo inicial em JSON
     onUpdate: ({ editor }) => {
-      // Atualiza o estado local com o novo HTML
-      handleContentChange(editor.getHTML())
+      // Atualiza o estado local com o novo JSON
+      setLocalDraft(prev => ({ ...prev, content: editor.getJSON() as any }))
       // Atualiza a contagem de palavras
       setWordCount(editor.storage.characterCount.words())
     },
@@ -92,18 +103,22 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
   
   // Sincroniza o rascunho externo (ex: ao selecionar um novo rascunho)
   useEffect(() => {
-    setLocalDraft(draft)
-    if (editor && draft.content !== editor.getHTML()) {
-        // Corrigido: Removendo o argumento 'false'
-        editor.commands.setContent(draft.content || '')
+    const parsedContent = draft.content ? JSON.parse(draft.content) : null;
+    setLocalDraft({ ...draft, content: parsedContent });
+    
+    if (editor && parsedContent) {
+        // Usamos setContent com o JSON
+        editor.commands.setContent(parsedContent, false);
     }
   }, [draft, editor])
 
   // Função para salvar o rascunho
   const handleSave = useCallback(async () => {
     setSaving(true)
-    // Garante que o conteúdo mais recente do editor está no localDraft
-    const draftToSave = { ...localDraft, content: editor?.getHTML() || localDraft.content }
+    
+    // Converte o JSONContent de volta para string JSON para salvar no banco
+    const contentString = JSON.stringify(localDraft.content);
+    const draftToSave = { ...localDraft, content: contentString } as ContentDraft;
     
     const toastId = showLoading('Salvando rascunho...')
     try {
@@ -116,7 +131,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       setSaving(false)
       dismissToast(toastId)
     }
-  }, [localDraft, onSave, editor])
+  }, [localDraft, onSave])
 
   // Função para publicar o rascunho
   const handlePublish = useCallback(async () => {
@@ -133,8 +148,10 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       return
     }
     setPublishing(true)
-    // Garante que o conteúdo mais recente do editor está no localDraft
-    const draftToPublish = { ...localDraft, content: editor?.getHTML() || localDraft.content }
+    
+    // Converte o JSONContent de volta para string JSON para publicar
+    const contentString = JSON.stringify(localDraft.content);
+    const draftToPublish = { ...localDraft, content: contentString } as ContentDraft;
     
     const toastId = showLoading('Publicando artigo...')
     try {
@@ -147,12 +164,12 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       setPublishing(false)
       dismissToast(toastId)
     }
-  }, [localDraft, onPublish, editor])
+  }, [localDraft, onPublish])
   
-  // Função para atualizar o conteúdo do editor com o novo HTML gerado pela IA
-  const handleContentGenerated = useCallback((newContentHtml: string) => {
+  // Função para atualizar o conteúdo do editor com o novo JSON gerado pela IA
+  const handleContentGenerated = useCallback((newContentJson: JSONContent) => {
     if (editor) {
-        editor.commands.setContent(newContentHtml)
+        editor.commands.setContent(newContentJson)
     }
     setIsAIPanelOpen(false)
   }, [editor])
@@ -275,10 +292,14 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               {/* Editor de Conteúdo */}
               <h2 className="text-xl font-bold text-gray-900 pt-4">Conteúdo do Artigo</h2>
               {isPreviewMode ? (
-                <div className="prose prose-lg max-w-none p-4 border rounded-lg bg-gray-50">
-                  {/* Renderizador de Pré-visualização (usando dangerouslySetInnerHTML para HTML do TipTap) */}
-                  <div dangerouslySetInnerHTML={{ __html: localDraft.content || '<h1>Nenhum Conteúdo para Pré-visualizar</h1>' }} />
-                </div>
+                <Card className="p-4 border rounded-lg bg-gray-50">
+                  {/* Pré-visualização usando o TipTapRenderer */}
+                  {localDraft.content ? (
+                    <TipTapRenderer content={localDraft.content as JSONContent} />
+                  ) : (
+                    <p className="text-gray-500">Nenhum conteúdo para pré-visualizar.</p>
+                  )}
+                </Card>
               ) : (
                 <EditorCanvas
                   editor={editor} // Passa a instância do editor
@@ -294,7 +315,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
             draft={localDraft}
             onSave={handleSave}
             onPublish={handlePublish}
-            wordCount={wordCount} // Adicionado
+            wordCount={wordCount}
           />
         </div>
         
@@ -305,7 +326,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
           draft={localDraft}
           categories={categories}
           onGenerateWithAI={() => setIsAIPanelOpen(true)}
-          wordCount={wordCount} // Adicionado
+          wordCount={wordCount}
         />
       </div>
 

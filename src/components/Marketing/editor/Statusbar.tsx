@@ -9,7 +9,7 @@ interface StatusbarProps {
   draft: ContentDraft
   onSave: () => void
   onPublish: () => void
-  wordCount: number // Adicionado
+  wordCount: number
 }
 
 const Statusbar: React.FC<StatusbarProps> = ({ draft, onSave, onPublish, wordCount }) => {

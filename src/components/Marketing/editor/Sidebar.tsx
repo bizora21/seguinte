@@ -11,6 +11,23 @@ import {
   Plus, Trash2, X
 } from 'lucide-react'
 import { ContentDraft, BlogCategory } from '../../../types/blog'
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import TextAlign from '@tiptap/extension-text-align'
+
+// Configurações de extensão para análise de HTML
+const extensions = [
+  StarterKit.configure({
+    heading: {
+      levels: [1, 2, 3, 4],
+    },
+  }),
+  Link,
+  Image,
+  TextAlign,
+];
 
 interface SidebarProps {
   isOpen: boolean
@@ -18,7 +35,7 @@ interface SidebarProps {
   draft: ContentDraft
   categories: BlogCategory[]
   onGenerateWithAI: (prompt: string) => void
-  wordCount: number // Adicionado
+  wordCount: number
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onGenerateWithAI, wordCount }) => {
@@ -26,13 +43,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState<'toc' | 'seo'>('seo')
 
-  // Gerar TOC (Table of Contents) a partir do conteúdo
+  // Gerar TOC (Table of Contents) a partir do conteúdo JSON
   const toc = useMemo(() => {
     if (!draft.content) return []
 
+    // Converte JSON para HTML para análise de títulos
+    const htmlContent = generateHTML(draft.content as any, extensions);
+    
     const parser = new DOMParser()
-    // Usamos o conteúdo HTML (string) para simular a análise do TipTap
-    const doc = parser.parseFromString(draft.content, 'text/html')
+    const doc = parser.parseFromString(htmlContent, 'text/html')
     const headings = doc.querySelectorAll('h1, h2, h3, h4')
     
     return Array.from(headings).map((heading, index) => ({
@@ -44,9 +63,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
 
   // Analisar SEO
   const seoAnalysis = useMemo(() => {
-    // Usamos a contagem de palavras passada como prop
-    
-    const contentText = draft.content?.replace(/<[^>]*>/g, ' ') || '' // Remove HTML tags
+    // Converte JSON para HTML para análise de texto
+    const htmlContent = draft.content ? generateHTML(draft.content as any, extensions) : '';
+    const contentText = htmlContent.replace(/<[^>]*>/g, ' ') || '' // Remove HTML tags
     
     const keyword = draft.keyword || ''
     const keywordCount = keyword 

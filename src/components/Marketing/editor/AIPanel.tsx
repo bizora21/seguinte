@@ -7,12 +7,13 @@ import { Label } from '../../ui/label'
 import { Zap, X, Loader2, Send } from 'lucide-react'
 import { ContentDraft } from '../../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast'
+import { JSONContent } from '@tiptap/react'
 
 interface AIPanelProps {
   isOpen: boolean
   onClose: () => void
   draft: ContentDraft
-  onContentGenerated: (content: string) => void
+  onContentGenerated: (content: JSONContent) => void
 }
 
 const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose, draft, onContentGenerated }) => {
@@ -29,21 +30,37 @@ const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose, draft, onContentGene
     setLoading(true)
     const toastId = showLoading('Gerando conteúdo com IA...')
     
-    // Simulação de geração de conteúdo TipTap JSON (retornando HTML para simplificar a integração inicial)
-    const simulatedContent = `
-      <h2>Seção Gerada por IA: ${prompt}</h2>
-      <p>Este parágrafo foi gerado pela inteligência artificial para expandir o seu artigo. A IA focou em fornecer detalhes ricos e relevantes para o contexto de ${draft.context} e o público-alvo de ${draft.audience}.</p>
-      <ul>
-        <li>Ponto chave 1</li>
-        <li>Ponto chave 2</li>
-      </ul>
-    `
+    // Simulação de geração de conteúdo TipTap JSON
+    const simulatedContent: JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: `Seção Gerada por IA: ${prompt}` }]
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: `Este parágrafo foi gerado pela inteligência artificial para expandir o seu artigo. A IA focou em fornecer detalhes ricos e relevantes para o contexto de ${draft.context} e o público-alvo de ${draft.audience}.` }]
+        },
+        {
+          type: 'bulletList',
+          content: [
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ponto chave 1' }] }] },
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Ponto chave 2' }] }] }
+          ]
+        }
+      ]
+    }
     
     setTimeout(() => {
       dismissToast(toastId)
-      // O AdvancedEditor espera o HTML completo, então concatenamos o conteúdo existente
-      const existingContent = draft.content || ''
-      onContentGenerated(existingContent + simulatedContent) 
+      
+      // O TipTap tem um comando para inserir conteúdo no final do documento.
+      // Para simplificar a simulação, vamos apenas retornar o novo bloco.
+      // O AdvancedEditor fará o merge ou substituição.
+      onContentGenerated(simulatedContent) 
+      
       showSuccess('Conteúdo gerado e adicionado ao editor!')
       setLoading(false)
       setPrompt('')
