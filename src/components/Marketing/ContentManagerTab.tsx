@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase'
 import LoadingSpinner from '../LoadingSpinner'
 import { useAuth } from '../../contexts/AuthContext'
 import { ContentDraft, BlogCategory } from '../../types/blog'
-import DraftEditor from './DraftEditor'
+import AdvancedEditor from './AdvancedEditor' // NOVO IMPORT
 import ContentGenerationControls from './ContentGenerationControls'
 import DraftsList from './DraftsList'
 import PublishedList from './PublishedList'
@@ -318,7 +318,7 @@ const ContentManagerTab: React.FC = () => {
         {/* Tab: Editor */}
         <TabsContent value="editor">
           {currentDraft ? (
-            <DraftEditor 
+            <AdvancedEditor // Usando o novo AdvancedEditor
               draft={currentDraft}
               categories={categories}
               onSave={handleSaveDraft}
