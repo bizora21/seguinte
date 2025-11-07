@@ -65,7 +65,9 @@ const EditorCanvas: React.FC<EditorCanvasProps> = ({
   // Sincroniza o conteúdo externo (do histórico) com o editor
   useEffect(() => {
     if (editor && initialContent !== editor.getHTML()) {
-        editor.commands.setContent(initialContent, false)
+        // Removendo o segundo argumento 'false' para resolver o erro de tipagem.
+        // Isso fará com que o comando emita um update, mas o `if` externo deve prevenir o loop infinito.
+        editor.commands.setContent(initialContent)
     }
   }, [editor, initialContent])
   

@@ -1,6 +1,6 @@
 import React from 'react'
-import { Button } from '../../../ui/button'
-import { Separator } from '../../../ui/separator'
+import { Button } from '../../ui/button'
+import { Separator } from '../../ui/separator'
 import { 
   Bold, Italic, Underline, Strikethrough,
   Heading1, Heading2, Heading3,
@@ -10,7 +10,7 @@ import {
   Eye, Edit3, Save, Send,
   Plus, Trash2, MoreHorizontal
 } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../../ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../../ui/dropdown-menu'
 
 interface ToolbarProps {
   onSave: () => void

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react'
-import { Card, CardContent } from '../../../ui/card'
-import { Button } from '../../../ui/button'
-import { Separator } from '../../../ui/separator'
+import { Card, CardContent } from '../../ui/card'
+import { Button } from '../../ui/button'
+import { Separator } from '../../ui/separator'
 import { Clock, Save, Send, CheckCircle, AlertTriangle, FileText } from 'lucide-react'
-import { ContentDraft } from '../../../../types/blog'
+import { ContentDraft } from '../../../types/blog'
 
 interface StatusbarProps {
   draft: ContentDraft
