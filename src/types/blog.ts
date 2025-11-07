@@ -1,3 +1,5 @@
+import { JSONContent } from '@tiptap/react'
+
 export interface BlogCategory {
   id: string
   name: string
@@ -73,4 +75,9 @@ export interface ContentDraft {
   created_at: string
   updated_at: string
   published_at: string | null
+}
+
+// Interface auxiliar para o estado local do editor (content é JSONContent)
+export interface LocalDraftState extends Omit<ContentDraft, 'content'> {
+    content: JSONContent | null;
 }

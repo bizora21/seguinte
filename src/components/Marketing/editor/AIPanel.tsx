@@ -5,14 +5,14 @@ import { Textarea } from '../../ui/textarea'
 import { Input } from '../../ui/input'
 import { Label } from '../../ui/label'
 import { Zap, X, Loader2, Send } from 'lucide-react'
-import { ContentDraft } from '../../../types/blog'
+import { ContentDraft, LocalDraftState } from '../../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast'
 import { JSONContent } from '@tiptap/react'
 
 interface AIPanelProps {
   isOpen: boolean
   onClose: () => void
-  draft: ContentDraft
+  draft: LocalDraftState
   onContentGenerated: (content: JSONContent) => void
 }
 
@@ -77,7 +77,7 @@ const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose, draft, onContentGene
           Assistente de IA
         </CardTitle>
         <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-4 h-4 text-purple-800" />
+          <X className="w-4 h-4" />
         </Button>
       </CardHeader>
       

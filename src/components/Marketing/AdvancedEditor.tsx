@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge'
 import { 
   Save, Send, X, Loader2
 } from 'lucide-react'
-import { ContentDraft, BlogCategory } from '../../types/blog'
+import { ContentDraft, BlogCategory, LocalDraftState } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { useEditor, JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -34,11 +34,6 @@ interface AdvancedEditorProps {
   onSave: (draft: ContentDraft) => Promise<void>
   onPublish: (draft: ContentDraft) => Promise<void>
   onCancel: () => void
-}
-
-// Interface auxiliar para o estado local, onde 'content' é JSONContent
-interface LocalDraftState extends Omit<ContentDraft, 'content'> {
-    content: JSONContent | null;
 }
 
 // Conteúdo padrão para inicialização
@@ -108,7 +103,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
     setLocalDraft({ ...draft, content: parsedContent });
     
     if (editor && parsedContent) {
-        // CORREÇÃO 2: Removendo o argumento 'false'
         editor.commands.setContent(parsedContent);
     }
   }, [draft, editor])
@@ -294,7 +288,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               <h2 className="text-xl font-bold text-gray-900 pt-4">Conteúdo do Artigo</h2>
               {isPreviewMode ? (
                 <Card className="p-4 border rounded-lg bg-gray-50">
-                  {/* CORREÇÃO 3: O cast é seguro agora que localDraft é LocalDraftState */}
                   {localDraft.content ? (
                     <TipTapRenderer content={localDraft.content} />
                   ) : (

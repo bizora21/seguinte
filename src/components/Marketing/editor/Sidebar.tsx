@@ -10,7 +10,7 @@ import {
   BarChart3, CheckCircle, AlertTriangle,
   Plus, Trash2, X
 } from 'lucide-react'
-import { ContentDraft, BlogCategory } from '../../../types/blog'
+import { ContentDraft, BlogCategory, LocalDraftState } from '../../../types/blog'
 import { generateHTML } from '@tiptap/html'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
@@ -32,7 +32,7 @@ const extensions = [
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
-  draft: ContentDraft
+  draft: LocalDraftState
   categories: BlogCategory[]
   onGenerateWithAI: (prompt: string) => void
   wordCount: number
