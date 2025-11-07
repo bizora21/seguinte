@@ -45,6 +45,7 @@
     "@tiptap/extension-image": "^3.10.2",
     "@tiptap/extension-link": "^3.10.2",
     "@tiptap/extension-text-align": "^3.10.2",
+    "@tiptap/html": "^3.10.3",
     "@tiptap/react": "^3.10.2",
     "@tiptap/starter-kit": "^3.10.2",
     "@types/react-dropzone": "^5.1.0",

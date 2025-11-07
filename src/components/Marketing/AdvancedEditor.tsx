@@ -36,14 +36,10 @@ interface AdvancedEditorProps {
   onCancel: () => void
 }
 
-// Função auxiliar para converter string JSON para JSONContent
-const parseContent = (content: string | null): JSONContent | undefined => {
-    if (!content) return undefined;
-    try {
-        return JSON.parse(content);
-    } catch {
-        return undefined;
-    }
+// Conteúdo padrão para inicialização
+const DEFAULT_CONTENT: JSONContent = { 
+    type: 'doc', 
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Comece a escrever aqui...' }] }] 
 }
 
 const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSave, onPublish, onCancel }) => {
@@ -87,7 +83,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
         limit: 10000,
       }),
     ],
-    content: localDraft.content || '', // Conteúdo inicial em JSON
+    content: localDraft.content || DEFAULT_CONTENT, // Conteúdo inicial em JSON
     onUpdate: ({ editor }) => {
       // Atualiza o estado local com o novo JSON
       setLocalDraft(prev => ({ ...prev, content: editor.getJSON() as any }))
@@ -107,8 +103,8 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
     setLocalDraft({ ...draft, content: parsedContent });
     
     if (editor && parsedContent) {
-        // Usamos setContent com o JSON
-        editor.commands.setContent(parsedContent, false);
+        // CORREÇÃO 2: Removendo o argumento 'false'
+        editor.commands.setContent(parsedContent);
     }
   }, [draft, editor])
 
@@ -293,7 +289,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               <h2 className="text-xl font-bold text-gray-900 pt-4">Conteúdo do Artigo</h2>
               {isPreviewMode ? (
                 <Card className="p-4 border rounded-lg bg-gray-50">
-                  {/* Pré-visualização usando o TipTapRenderer */}
+                  {/* CORREÇÃO 3: Garantindo que o conteúdo é JSONContent antes de passar para o Renderer */}
                   {localDraft.content ? (
                     <TipTapRenderer content={localDraft.content as JSONContent} />
                   ) : (
@@ -303,8 +299,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               ) : (
                 <EditorCanvas
                   editor={editor} // Passa a instância do editor
-                  initialContent={localDraft.content || ''}
-                  onChange={handleContentChange}
+                  // CORREÇÃO 4 & 5: Removendo initialContent e onChange, pois o editor já está conectado ao estado via useEditor
                 />
               )}
             </div>

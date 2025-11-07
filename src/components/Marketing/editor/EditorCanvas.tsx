@@ -4,7 +4,6 @@ import { Loader2 } from 'lucide-react'
 
 interface EditorCanvasProps {
   editor: Editor | null
-  initialContent: JSONContent | null
 }
 
 const EditorCanvas: React.FC<EditorCanvasProps> = ({
