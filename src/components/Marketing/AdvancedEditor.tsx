@@ -4,7 +4,7 @@ import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 import { Badge } from '../ui/badge'
 import { 
-  Save, Send, X, Loader2 // Adicionado Loader2
+  Save, Send, X, Loader2
 } from 'lucide-react'
 import { ContentDraft, BlogCategory } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
@@ -44,6 +44,11 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [wordCount, setWordCount] = useState(0)
 
+  // Função para atualizar o conteúdo do rascunho local
+  const handleContentChange = useCallback((newContent: string) => {
+    setLocalDraft(prev => ({ ...prev, content: newContent }))
+  }, [])
+
   // 1. Inicializa o TipTap Editor
   const editor = useEditor({
     extensions: [
@@ -74,7 +79,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
     content: localDraft.content || '', // Conteúdo inicial em HTML
     onUpdate: ({ editor }) => {
       // Atualiza o estado local com o novo HTML
-      setLocalDraft(prev => ({ ...prev, content: editor.getHTML() }))
+      handleContentChange(editor.getHTML())
       // Atualiza a contagem de palavras
       setWordCount(editor.storage.characterCount.words())
     },
@@ -171,7 +176,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
         editor={editor}
         onSave={handleSave}
         onPublish={handlePublish}
-        // onUndo e onRedo removidos, pois a toolbar usa os comandos internos do editor
         onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onGenerateWithAI={() => setIsAIPanelOpen(true)}
