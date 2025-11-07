@@ -58,10 +58,10 @@ const PublishedList: React.FC<PublishedListProps> = ({ published, loading, onEdi
                 <p className="text-sm text-gray-600">Publicado em: {formatDate(post.published_at)}</p>
               </div>
               <div className="flex space-x-2">
-                <Button on:click={() => onViewSerp(post)} size="sm" variant="outline">
+                <Button onClick={() => onViewSerp(post)} size="sm" variant="outline">
                   <Eye className="w-4 h-4 mr-1" /> Ver SERP
                 </Button>
-                <Button on:click={() => onEdit(post)} size="sm" variant="secondary">
+                <Button onClick={() => onEdit(post)} size="sm" variant="secondary">
                   <Edit className="w-4 h-4 mr-1" /> Editar
                 </Button>
                 
