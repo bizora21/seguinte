@@ -20,7 +20,7 @@ import TipTapToolbar from './editor/TipTapToolbar'
 import EditorCanvas from './editor/EditorCanvas'
 import Sidebar from './editor/Sidebar'
 import Statusbar from './editor/Statusbar'
-import AIPanel from './editor/AIPanel'
+import SEOSuggestionsPanel from './editor/SEOSuggestionsPanel' // NOVO IMPORT
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Textarea } from '../ui/textarea'
@@ -168,6 +168,15 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
     }
     setIsAIPanelOpen(false)
   }, [editor])
+  
+  // Função para atualizar as métricas de SEO após a reanálise
+  const handleUpdateMetrics = useCallback((seoScore: number, readabilityScore: string) => {
+    setLocalDraft(prev => ({
+        ...prev,
+        seo_score: seoScore,
+        readability_score: readabilityScore
+    }))
+  }, [])
   
   const handleInputChange = (name: keyof ContentDraft, value: any) => {
     setLocalDraft(prev => ({ ...prev, [name]: value }))
@@ -323,11 +332,12 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       </div>
 
       {/* Painel Lateral de IA (se aberto) */}
-      <AIPanel
+      <SEOSuggestionsPanel
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
         draft={localDraft}
-        onContentGenerated={handleContentGenerated}
+        wordCount={wordCount}
+        onUpdateMetrics={handleUpdateMetrics}
       />
     </div>
   )

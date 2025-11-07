@@ -8,7 +8,7 @@ import { Badge } from '../../ui/badge'
 import { 
   FileText, Lightbulb, Search, 
   BarChart3, CheckCircle, AlertTriangle,
-  Plus, Trash2, X
+  Plus, Trash2, X, RefreshCw
 } from 'lucide-react'
 import { ContentDraft, BlogCategory, LocalDraftState } from '../../../types/blog'
 import { generateHTML } from '@tiptap/html'
@@ -34,13 +34,11 @@ interface SidebarProps {
   onClose: () => void
   draft: LocalDraftState
   categories: BlogCategory[]
-  onGenerateWithAI: (prompt: string) => void
+  onGenerateWithAI: () => void // Agora apenas abre o painel
   wordCount: number
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onGenerateWithAI, wordCount }) => {
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [isGenerating, setIsGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState<'toc' | 'seo'>('seo')
 
   // Gerar TOC (Table of Contents) a partir do conteúdo JSON
@@ -185,16 +183,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
             
             <h3 className="text-sm font-semibold mb-2">Sugestões de IA</h3>
             <p className="text-xs text-gray-600">
-              Use a IA para gerar parágrafos, títulos ou expandir seções.
+              Use o assistente de IA para reanalisar e obter sugestões de melhoria.
             </p>
             <Button 
-              onClick={() => onGenerateWithAI('expandir')} 
+              onClick={onGenerateWithAI} 
               variant="outline" 
               className="w-full text-purple-600 border-purple-600 hover:bg-purple-50"
-              disabled={isGenerating}
             >
-              <Plus className="w-4 h-4 mr-1" />
-              {isGenerating ? 'Gerando...' : 'Gerar Próxima Seção'}
+              <RefreshCw className="w-4 h-4 mr-1" />
+              Reanalisar com IA
             </Button>
           </div>
         )}

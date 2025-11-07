@@ -96,7 +96,7 @@ Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
 
 // Função para gerar o prompt de reanálise (usando OpenAI)
 // @ts-ignore
-const createReanalyzePrompt = (draft: any) => {
+const createReanalyzePrompt = (draft: any, wordCount: number) => {
     // Converte o conteúdo JSON do TipTap para texto simples para análise de SEO
     const contentText = JSON.stringify(draft.content).replace(/\{"type":"text","text":"(.*?)"\}/g, '$1').replace(/[^a-zA-Z0-9\s]/g, ' ');
 
@@ -104,15 +104,20 @@ const createReanalyzePrompt = (draft: any) => {
 Você é um especialista em SEO e Growth Hacking. Sua tarefa é analisar o conteúdo de texto fornecido abaixo e fornecer uma reavaliação do SEO Score e Readability Score.
 
 **Palavra-chave Principal:** ${draft.keyword}
+**Público-Alvo:** ${draft.audience}
+**Contexto Local:** ${draft.context}
+**Contagem de Palavras:** ${wordCount}
+
 **Conteúdo Atual (Texto Simples):**
 ---
 ${contentText.substring(0, 4000)}
 ---
 
 **REGRAS ESTRITAS DE REANÁLISE:**
-1.  **Foco:** Avalie a densidade da palavra-chave, a estrutura de títulos (H2, H3), a profundidade do conteúdo e a clareza da escrita.
+1.  **Foco:** Avalie a densidade da palavra-chave, a estrutura de títulos (H2, H3, H4), a profundidade do conteúdo (deve ser > 1200 palavras) e a clareza da escrita.
 2.  **MÉTRICAS:** Gere um novo \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom", "Mediano").
-3.  **SAÍDA:** Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
+3.  **SUGESTÕES:** Forneça 3 a 5 sugestões acionáveis para melhorar o SEO e a legibilidade, focando em como o conteúdo pode ser mais relevante para o público moçambicano.
+4.  **SAÍDA:** Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
 
 **FORMATO DE SAÍDA OBRIGATÓRIO:**
 \`\`\`json
@@ -121,7 +126,8 @@ ${contentText.substring(0, 4000)}
   "readability_score": "Excelente",
   "suggestions": [
     "Aumentar a densidade da palavra-chave principal em 0.5%.",
-    "Adicionar um link interno para a página de Lojas."
+    "Adicionar um link interno para a página de Lojas.",
+    "Expandir a seção sobre 'Logística em Maputo' para atingir o mínimo de 1200 palavras."
   ]
 }
 \`\`\`
@@ -170,7 +176,7 @@ serve(async (req) => {
   try {
     if (req.method === 'POST') {
       const body = await req.json()
-      const { action, keyword, model, context, audience, type, serpAnalysis, draftId } = body
+      const { action, keyword, model, context, audience, type, serpAnalysis, draftId, draft, wordCount } = body
 
       // @ts-ignore
       const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
@@ -266,13 +272,12 @@ serve(async (req) => {
 
       // --- AÇÃO: REANÁLISE DE SEO (USANDO GLM-4.6) ---
       if (action === 'reanalyze') {
-        const { draft } = body;
         
-        if (!draft || !draft.content || !draft.keyword) {
+        if (!draft || !draft.content || !draft.keyword || wordCount === undefined) {
             return new Response(JSON.stringify({ error: 'Bad Request: Dados do rascunho incompletos para reanálise.' }), { status: 400, headers: corsHeaders })
         }
         
-        const reanalyzePrompt = createReanalyzePrompt(draft);
+        const reanalyzePrompt = createReanalyzePrompt(draft, wordCount);
         
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -313,6 +318,12 @@ serve(async (req) => {
           headers: corsHeaders,
           status: 200, 
         })
+      }
+      
+      // --- AÇÃO: PUBLICAR (MOVIDA PARA O CLIENTE) ---
+      if (action === 'publish') {
+          // Esta lógica foi movida para o cliente (ContentManagerTab) para simplificar a Edge Function
+          return new Response(JSON.stringify({ error: 'Ação de publicação movida para o cliente.' }), { status: 400, headers: corsHeaders })
       }
 
       // Se a ação não for reconhecida
