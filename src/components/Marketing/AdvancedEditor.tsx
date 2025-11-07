@@ -36,6 +36,11 @@ interface AdvancedEditorProps {
   onCancel: () => void
 }
 
+// Interface auxiliar para o estado local, onde 'content' é JSONContent
+interface LocalDraftState extends Omit<ContentDraft, 'content'> {
+    content: JSONContent | null;
+}
+
 // Conteúdo padrão para inicialização
 const DEFAULT_CONTENT: JSONContent = { 
     type: 'doc', 
@@ -44,7 +49,7 @@ const DEFAULT_CONTENT: JSONContent = {
 
 const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSave, onPublish, onCancel }) => {
   // O estado local agora armazena o conteúdo como JSONContent
-  const [localDraft, setLocalDraft] = useState<ContentDraft>({
+  const [localDraft, setLocalDraft] = useState<LocalDraftState>({
     ...draft,
     content: draft.content ? JSON.parse(draft.content) : null // Parse inicial
   });
@@ -289,9 +294,9 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               <h2 className="text-xl font-bold text-gray-900 pt-4">Conteúdo do Artigo</h2>
               {isPreviewMode ? (
                 <Card className="p-4 border rounded-lg bg-gray-50">
-                  {/* CORREÇÃO 3: Garantindo que o conteúdo é JSONContent antes de passar para o Renderer */}
+                  {/* CORREÇÃO 3: O cast é seguro agora que localDraft é LocalDraftState */}
                   {localDraft.content ? (
-                    <TipTapRenderer content={localDraft.content as JSONContent} />
+                    <TipTapRenderer content={localDraft.content} />
                   ) : (
                     <p className="text-gray-500">Nenhum conteúdo para pré-visualizar.</p>
                   )}
@@ -299,7 +304,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
               ) : (
                 <EditorCanvas
                   editor={editor} // Passa a instância do editor
-                  // CORREÇÃO 4 & 5: Removendo initialContent e onChange, pois o editor já está conectado ao estado via useEditor
                 />
               )}
             </div>
