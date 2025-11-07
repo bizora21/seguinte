@@ -14,4 +14,8 @@ import { Badge } from '../../ui/badge'
 
 interface SEOSuggestionsPanelProps {
   isOpen: boolean
-// ... restante do arquivo
+  onClose: () => void
+  draft: LocalDraftState
+  wordCount: number
+  onUpdateMetrics: (seoScore: number, readabilityScore: string) => void
+}
