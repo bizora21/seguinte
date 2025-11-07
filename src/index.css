@@ -10,7 +10,7 @@
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3,
-.ProseMirror h4 { /* Adicionado H4 */
+.ProseMirror h4 {
   font-weight: bold !important;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
@@ -31,13 +31,14 @@
   line-height: 1.4;
 }
 
-.ProseMirror h4 { /* Novo estilo para H4 */
+.ProseMirror h4 {
   font-size: 1.1em;
   line-height: 1.5;
 }
 
 .ProseMirror p {
   margin-bottom: 1em;
+  line-height: 1.6; /* Adicionado para melhor legibilidade */
 }
 
 .ProseMirror ul,

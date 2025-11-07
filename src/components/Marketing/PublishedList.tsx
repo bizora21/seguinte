@@ -1,18 +1,20 @@
 import React from 'react'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
-import { CheckCircle, Eye, Edit } from 'lucide-react'
+import { CheckCircle, Eye, Edit, Trash2, AlertTriangle } from 'lucide-react'
 import LoadingSpinner from '../LoadingSpinner'
 import { ContentDraft } from '../../types/blog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog'
 
 interface PublishedListProps {
   published: ContentDraft[]
   loading: boolean
   onEdit: (post: ContentDraft) => void
   onViewSerp: (post: ContentDraft) => void
+  onDelete: (postId: string) => void // Adicionado
 }
 
-const PublishedList: React.FC<PublishedListProps> = ({ published, loading, onEdit, onViewSerp }) => {
+const PublishedList: React.FC<PublishedListProps> = ({ published, loading, onEdit, onViewSerp, onDelete }) => {
   
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A'
@@ -56,12 +58,41 @@ const PublishedList: React.FC<PublishedListProps> = ({ published, loading, onEdi
                 <p className="text-sm text-gray-600">Publicado em: {formatDate(post.published_at)}</p>
               </div>
               <div className="flex space-x-2">
-                <Button onClick={() => onViewSerp(post)} size="sm" variant="outline">
+                <Button on:click={() => onViewSerp(post)} size="sm" variant="outline">
                   <Eye className="w-4 h-4 mr-1" /> Ver SERP
                 </Button>
-                <Button onClick={() => onEdit(post)} size="sm" variant="secondary">
+                <Button on:click={() => onEdit(post)} size="sm" variant="secondary">
                   <Edit className="w-4 h-4 mr-1" /> Editar
                 </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center text-red-600">
+                        <AlertTriangle className="w-6 h-6 mr-2" />
+                        Excluir Artigo Publicado?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir permanentemente o artigo <span className="font-semibold">{post.title}</span>? 
+                        Isso o removerá do blog e do gerenciador de rascunhos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => onDelete(post.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Excluir Permanentemente
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </CardContent>

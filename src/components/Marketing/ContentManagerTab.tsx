@@ -119,6 +119,34 @@ const ContentManagerTab = () => {
     }
   }
   
+  const handleDeletePublished = async (postId: string) => {
+    const toastId = showLoading('Excluindo artigo publicado...')
+    try {
+      // 1. Excluir da tabela de artigos publicados
+      const { error: publishedError } = await supabase
+        .from('published_articles')
+        .delete()
+        .eq('id', postId)
+        
+      if (publishedError) throw publishedError
+      
+      // 2. Excluir da tabela de rascunhos (onde o status é 'published')
+      const { error: draftError } = await supabase
+        .from('content_drafts')
+        .delete()
+        .eq('id', postId)
+        
+      if (draftError) throw draftError
+
+      dismissToast(toastId)
+      showSuccess('Artigo excluído permanentemente com sucesso!')
+      fetchContent()
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro ao excluir artigo: ' + error.message)
+    }
+  }
+  
   const handleViewSerp = (post: ContentDraft) => {
     const serpUrl = `https://www.google.com/search?q=${encodeURIComponent(post.title || post.keyword)}`;
     window.open(serpUrl, '_blank');
@@ -183,6 +211,7 @@ const ContentManagerTab = () => {
             loading={loading}
             onEdit={handleEditDraft}
             onViewSerp={handleViewSerp}
+            onDelete={handleDeletePublished} // Adicionado
           />
         </TabsContent>
 
