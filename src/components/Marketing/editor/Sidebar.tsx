@@ -18,9 +18,10 @@ interface SidebarProps {
   draft: ContentDraft
   categories: BlogCategory[]
   onGenerateWithAI: (prompt: string) => void
+  wordCount: number // Adicionado
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onGenerateWithAI }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onGenerateWithAI, wordCount }) => {
   const [aiPrompt, setAiPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState<'toc' | 'seo'>('seo')
@@ -43,10 +44,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
 
   // Analisar SEO
   const seoAnalysis = useMemo(() => {
-    if (!draft.content) return null
-
-    const contentText = draft.content.replace(/<[^>]*>/g, ' ') // Remove HTML tags
-    const wordCount = contentText.split(/\s+/).filter(w => w.length > 0).length
+    // Usamos a contagem de palavras passada como prop
+    
+    const contentText = draft.content?.replace(/<[^>]*>/g, ' ') || '' // Remove HTML tags
     
     const keyword = draft.keyword || ''
     const keywordCount = keyword 
@@ -70,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
       seoScore: draft.seo_score || 0,
       issues
     }
-  }, [draft])
+  }, [draft, wordCount])
   
   const getSeoColor = (score: number) => {
     if (score >= 90) return 'text-green-600';

@@ -9,17 +9,11 @@ interface StatusbarProps {
   draft: ContentDraft
   onSave: () => void
   onPublish: () => void
+  wordCount: number // Adicionado
 }
 
-const Statusbar: React.FC<StatusbarProps> = ({ draft, onSave, onPublish }) => {
+const Statusbar: React.FC<StatusbarProps> = ({ draft, onSave, onPublish, wordCount }) => {
   
-  // Simulação de contagem de palavras (em um editor TipTap real, isso viria do hook)
-  const wordCount = useMemo(() => {
-    if (!draft.content) return 0
-    const contentText = draft.content.replace(/<[^>]*>/g, ' ') // Remove HTML tags
-    return contentText.split(/\s+/).filter(w => w.length > 0).length
-  }, [draft.content])
-
   const status = useMemo(() => {
     // Simulação de status de salvamento
     return 'Salvo recentemente'

@@ -41,7 +41,9 @@ const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose, draft, onContentGene
     
     setTimeout(() => {
       dismissToast(toastId)
-      onContentGenerated(draft.content + simulatedContent) // Anexa o novo conteúdo
+      // O AdvancedEditor espera o HTML completo, então concatenamos o conteúdo existente
+      const existingContent = draft.content || ''
+      onContentGenerated(existingContent + simulatedContent) 
       showSuccess('Conteúdo gerado e adicionado ao editor!')
       setLoading(false)
       setPrompt('')

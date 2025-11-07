@@ -4,25 +4,28 @@ import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 import { Badge } from '../ui/badge'
 import { 
-  Bold, Italic, Underline, Strikethrough, 
-  Heading1, Heading2, Heading3, 
-  List, ListOrdered, 
-  Link, Image, Table, Quote, Code,
-  Undo, Redo, 
-  Eye, Edit3, Save, Send, X, Plus, Trash2,
-  FileText, Lightbulb, BarChart3, CheckCircle, AlertTriangle, Loader2
+  Save, Send, X, Loader2 // Adicionado Loader2
 } from 'lucide-react'
 import { ContentDraft, BlogCategory } from '../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
-import { supabase } from '../../lib/supabase'
-import { CONTENT_GENERATOR_BASE_URL } from '../../utils/admin'
+import { useEditor, JSONContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import TextAlign from '@tiptap/extension-text-align'
+import CharacterCount from '@tiptap/extension-character-count'
 
 // Subcomponentes
-import Toolbar from './editor/Toolbar'
+import TipTapToolbar from './editor/TipTapToolbar' // Usando a Toolbar real
 import EditorCanvas from './editor/EditorCanvas'
 import Sidebar from './editor/Sidebar'
 import Statusbar from './editor/Statusbar'
 import AIPanel from './editor/AIPanel'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Textarea } from '../ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import OptimizedImageUpload from './OptimizedImageUpload'
 
 interface AdvancedEditorProps {
   draft: ContentDraft
@@ -39,23 +42,67 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [history, setHistory] = useState<{ content: string; timestamp: number }[]>([])
-  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [wordCount, setWordCount] = useState(0)
 
-  // Sincroniza o estado local quando o rascunho externo mudar
+  // 1. Inicializa o TipTap Editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4],
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 hover:underline',
+        },
+      }),
+      Image.configure({
+        inline: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg my-4',
+        },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      CharacterCount.configure({
+        limit: 10000,
+      }),
+    ],
+    content: localDraft.content || '', // Conteúdo inicial em HTML
+    onUpdate: ({ editor }) => {
+      // Atualiza o estado local com o novo HTML
+      setLocalDraft(prev => ({ ...prev, content: editor.getHTML() }))
+      // Atualiza a contagem de palavras
+      setWordCount(editor.storage.characterCount.words())
+    },
+    editorProps: {
+        attributes: {
+            class: 'ProseMirror max-w-none min-h-[400px] focus:outline-none p-4',
+        },
+    },
+  })
+  
+  // Sincroniza o rascunho externo (ex: ao selecionar um novo rascunho)
   useEffect(() => {
     setLocalDraft(draft)
-    // Inicializa o histórico com o conteúdo atual
-    setHistory([{ content: draft.content || '', timestamp: Date.now() }])
-    setHistoryIndex(0)
-  }, [draft])
+    if (editor && draft.content !== editor.getHTML()) {
+        // Corrigido: Removendo o argumento 'false'
+        editor.commands.setContent(draft.content || '')
+    }
+  }, [draft, editor])
 
   // Função para salvar o rascunho
   const handleSave = useCallback(async () => {
     setSaving(true)
+    // Garante que o conteúdo mais recente do editor está no localDraft
+    const draftToSave = { ...localDraft, content: editor?.getHTML() || localDraft.content }
+    
     const toastId = showLoading('Salvando rascunho...')
     try {
-      await onSave(localDraft)
+      await onSave(draftToSave)
       showSuccess('Rascunho salvo com sucesso!')
     } catch (error) {
       console.error('Error saving draft:', error)
@@ -64,7 +111,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       setSaving(false)
       dismissToast(toastId)
     }
-  }, [localDraft, onSave])
+  }, [localDraft, onSave, editor])
 
   // Função para publicar o rascunho
   const handlePublish = useCallback(async () => {
@@ -81,9 +128,12 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       return
     }
     setPublishing(true)
+    // Garante que o conteúdo mais recente do editor está no localDraft
+    const draftToPublish = { ...localDraft, content: editor?.getHTML() || localDraft.content }
+    
     const toastId = showLoading('Publicando artigo...')
     try {
-      await onPublish(localDraft)
+      await onPublish(draftToPublish)
       showSuccess('Artigo publicado com sucesso!')
     } catch (error) {
       console.error('Error publishing draft:', error)
@@ -92,56 +142,42 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
       setPublishing(false)
       dismissToast(toastId)
     }
-  }, [localDraft, onPublish])
-
-  // Função para desfazer a última ação
-  const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      setHistoryIndex(prev => prev - 1)
-      setLocalDraft(prev => ({ ...prev, content: history[historyIndex - 1].content }))
+  }, [localDraft, onPublish, editor])
+  
+  // Função para atualizar o conteúdo do editor com o novo HTML gerado pela IA
+  const handleContentGenerated = useCallback((newContentHtml: string) => {
+    if (editor) {
+        editor.commands.setContent(newContentHtml)
     }
-  }, [history, historyIndex])
+    setIsAIPanelOpen(false)
+  }, [editor])
+  
+  const handleInputChange = (name: keyof ContentDraft, value: any) => {
+    setLocalDraft(prev => ({ ...prev, [name]: value }))
+  }
+  
+  const availableCategories = useMemo(() => {
+    return categories.map(cat => ({ value: cat.id, label: cat.name }))
+  }, [categories])
 
-  // Função para refazer a última ação
-  const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(prev => prev + 1)
-      setLocalDraft(prev => ({ ...prev, content: history[historyIndex + 1].content }))
-    }
-  }, [history, historyIndex])
+  if (!editor) {
+    return <div className="flex justify-center h-32"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+  }
 
-  // Função para atualizar o conteúdo
-  const handleContentChange = useCallback((newContent: string) => {
-    setLocalDraft(prev => ({ ...prev, content: newContent }))
-    
-    // Adiciona ao histórico (limita a 50 estados)
-    const newHistory = [...history.slice(0, historyIndex + 1), { content: newContent, timestamp: Date.now() }]
-    setHistory(newHistory.slice(-50))
-    setHistoryIndex(newHistory.length - 1)
-  }, [history, historyIndex])
-
-  // Função para gerar conteúdo com IA
-  const handleGenerateWithAI = useCallback((prompt: string) => {
-    setIsAIPanelOpen(true)
-    // O prompt pode ser usado para pré-preencher o campo no AIPanel
-  }, [])
-
-  // Renderiza o editor
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Barra de Ferramentas Superior */}
-      <Toolbar
+      <TipTapToolbar
+        editor={editor}
         onSave={handleSave}
         onPublish={handlePublish}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
+        // onUndo e onRedo removidos, pois a toolbar usa os comandos internos do editor
         onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         onGenerateWithAI={() => setIsAIPanelOpen(true)}
         isPreviewMode={isPreviewMode}
         isSaving={saving}
         isPublishing={publishing}
-        draft={localDraft}
       />
 
       <div className="flex flex-1 overflow-hidden relative">
@@ -149,20 +185,101 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Canvas do Editor ou Pré-visualização */}
           <div className="flex-1 overflow-auto p-8">
-            <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg min-h-full">
+            <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-lg min-h-full space-y-6">
+              
+              {/* Metadados */}
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Metadados e SEO</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Título (H1) *</Label>
+                      <Input 
+                        id="title"
+                        value={localDraft.title || ''}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
+                        placeholder="Título principal do artigo"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="slug">Slug (URL) *</Label>
+                      <Input 
+                        id="slug"
+                        value={localDraft.slug || ''}
+                        onChange={(e) => handleInputChange('slug', e.target.value)}
+                        placeholder="slug-do-artigo"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="meta_description">Meta Descrição *</Label>
+                    <Textarea 
+                      id="meta_description"
+                      value={localDraft.meta_description || ''}
+                      onChange={(e) => handleInputChange('meta_description', e.target.value)}
+                      placeholder="Descrição curta para SEO (máx 160 caracteres)"
+                      maxLength={160}
+                    />
+                    <p className="text-xs text-gray-500 text-right">
+                      {localDraft.meta_description?.length || 0} / 160
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria *</Label>
+                      <Select 
+                        value={localDraft.category_id || ''} 
+                        onValueChange={(value) => handleInputChange('category_id', value)}
+                      >
+                        <SelectTrigger id="category">
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="keywords">Palavras-chave Secundárias (Separadas por vírgula)</Label>
+                      <Input 
+                        id="keywords"
+                        value={(localDraft.secondary_keywords || []).join(', ')}
+                        onChange={(e) => handleInputChange('secondary_keywords', e.target.value.split(',').map(k => k.trim()).filter(k => k.length > 0))}
+                        placeholder="ex: frete grátis, e-commerce moçambique"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Imagem de Destaque */}
+              <OptimizedImageUpload
+                value={localDraft.featured_image_url || ''}
+                altText={localDraft.image_alt_text || ''}
+                imagePrompt={localDraft.image_prompt || ''}
+                onImageChange={(url) => handleInputChange('featured_image_url', url)}
+                onAltTextChange={(alt) => handleInputChange('image_alt_text', alt)}
+                onPromptChange={(prompt) => handleInputChange('image_prompt', prompt)}
+              />
+
+              {/* Editor de Conteúdo */}
+              <h2 className="text-xl font-bold text-gray-900 pt-4">Conteúdo do Artigo</h2>
               {isPreviewMode ? (
-                <div className="prose prose-lg max-w-none">
+                <div className="prose prose-lg max-w-none p-4 border rounded-lg bg-gray-50">
                   {/* Renderizador de Pré-visualização (usando dangerouslySetInnerHTML para HTML do TipTap) */}
                   <div dangerouslySetInnerHTML={{ __html: localDraft.content || '<h1>Nenhum Conteúdo para Pré-visualizar</h1>' }} />
                 </div>
               ) : (
                 <EditorCanvas
+                  editor={editor} // Passa a instância do editor
                   initialContent={localDraft.content || ''}
                   onChange={handleContentChange}
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  history={history}
-                  historyIndex={historyIndex}
                 />
               )}
             </div>
@@ -173,6 +290,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
             draft={localDraft}
             onSave={handleSave}
             onPublish={handlePublish}
+            wordCount={wordCount} // Adicionado
           />
         </div>
         
@@ -182,7 +300,8 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
           onClose={() => setIsSidebarOpen(false)}
           draft={localDraft}
           categories={categories}
-          onGenerateWithAI={handleGenerateWithAI}
+          onGenerateWithAI={() => setIsAIPanelOpen(true)}
+          wordCount={wordCount} // Adicionado
         />
       </div>
 
@@ -191,11 +310,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ draft, categories, onSa
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
         draft={localDraft}
-        onContentGenerated={(newContent) => {
-          // Atualiza o rascunho e adiciona ao histórico
-          handleContentChange(newContent)
-          setIsAIPanelOpen(false)
-        }}
+        onContentGenerated={handleContentGenerated}
       />
     </div>
   )
