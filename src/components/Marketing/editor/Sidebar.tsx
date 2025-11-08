@@ -29,14 +29,11 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onUpdateDraft, onGenerateWithAI, wordCount }) => {
   
   const seoAnalysis = useMemo(() => {
-    // CORREÇÃO: draft.content já é HTML. Apenas removemos as tags para análise de texto.
     const contentText = (draft.content || '').replace(/<[^>]*>/g, ' ') || ''
-    
     const keyword = draft.keyword || ''
     const keywordCount = keyword 
       ? (contentText.toLowerCase().match(new RegExp(keyword.toLowerCase(), 'g')) || []).length
       : 0
-      
     const keywordDensity = wordCount > 0 ? (keywordCount / wordCount * 100).toFixed(2) : '0.00'
     
     const issues: string[] = []
@@ -65,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
   if (!isOpen) return null
 
   return (
-    <div className="w-96 bg-gray-50 border-l flex flex-col flex-shrink-0">
+    <div className="w-full lg:w-96 bg-gray-50 border-l flex flex-col lg:flex-shrink-0">
       <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
         <CardTitle className="text-lg flex items-center">
           <Settings className="w-5 h-5 mr-2" />

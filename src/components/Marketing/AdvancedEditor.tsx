@@ -33,9 +33,9 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
-    link: false, // Desativar a extensão Link do StarterKit
+    link: false,
   }),
-  Link.configure({ // Adicionar a extensão Link separadamente
+  Link.configure({
     openOnClick: false,
     HTMLAttributes: {
       class: 'text-blue-600 hover:underline',
@@ -51,7 +51,7 @@ const editorExtensions = [
     types: ['heading', 'paragraph'],
   }),
   CharacterCount.configure({
-    limit: 100000, // Limite alto
+    limit: 100000,
   }),
 ];
 
@@ -86,7 +86,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
 
   const editor = useEditor({
     extensions: editorExtensions,
-    content: draft?.content || '', // Passando HTML diretamente
+    content: draft?.content || '',
     onUpdate: ({ editor }) => {
       if (draft) {
         setDraft(prev => prev ? { ...prev, content: editor.getHTML() } : null)
@@ -124,7 +124,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
           title: draft.title,
           slug: draft.slug,
           meta_description: draft.meta_description,
-          content: contentHtml, // Salvando HTML
+          content: contentHtml,
           featured_image_url: draft.featured_image_url,
           image_alt_text: draft.image_alt_text,
           secondary_keywords: draft.secondary_keywords,
@@ -170,7 +170,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         title: draft.title,
         slug: draft.slug,
         meta_description: draft.meta_description,
-        content: contentHtml, // Salvando HTML
+        content: contentHtml,
         status: 'published',
         featured_image_url: draft.featured_image_url,
         image_alt_text: draft.image_alt_text,
@@ -240,7 +240,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         isPublishing={isPublishing}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
         <div className="flex-1 overflow-y-auto bg-white">
           {isPreviewMode ? (
             <div className="p-6">
