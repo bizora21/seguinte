@@ -36,11 +36,11 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
         blockquote: {},
         bulletList: {},
         orderedList: {},
-      }),
-      Link.configure({
-        openOnClick: true,
-        HTMLAttributes: {
-          class: 'text-blue-600 hover:underline',
+        link: {
+          openOnClick: true,
+          HTMLAttributes: {
+            class: 'text-blue-600 hover:underline',
+          },
         },
       }),
       Image.configure({

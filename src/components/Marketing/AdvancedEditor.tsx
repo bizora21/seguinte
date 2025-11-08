@@ -33,12 +33,11 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
-    // Propriedades 'link' e 'image' removidas para corrigir o erro de tipagem.
-  }),
-  Link.configure({
-    openOnClick: false,
-    HTMLAttributes: {
-      class: 'text-blue-600 hover:underline',
+    link: {
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-blue-600 hover:underline',
+      },
     },
   }),
   Image.configure({
