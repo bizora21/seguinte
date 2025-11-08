@@ -93,8 +93,9 @@ export const getUnreadNotificationsCount = async (): Promise<number> => {
 
     if (error) throw error
     return count || 0
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching unread notifications count:', error)
+    // Retorna 0 em caso de erro para não quebrar a UI
     return 0
   }
 }
@@ -109,7 +110,7 @@ export const getRecentNotifications = async (): Promise<AdminNotification[]> => 
 
     if (error) throw error
     return data as AdminNotification[]
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching recent notifications:', error)
     return []
   }
@@ -124,7 +125,7 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
 
     if (error) throw error
     return true
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error marking notification as read:', error)
     return false
   }
@@ -148,7 +149,7 @@ export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
 
     if (error) throw error
     return data as PaymentProof[]
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching pending payment proofs:', error)
     return []
   }
