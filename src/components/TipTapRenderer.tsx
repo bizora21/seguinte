@@ -36,11 +36,12 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
         blockquote: {},
         bulletList: {},
         orderedList: {},
-        link: {
-          openOnClick: true,
-          HTMLAttributes: {
-            class: 'text-blue-600 hover:underline',
-          },
+        link: false, // Desativar a extensão Link do StarterKit
+      }),
+      Link.configure({ // Adicionar a extensão Link separadamente
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'text-blue-600 hover:underline',
         },
       }),
       Image.configure({

@@ -33,11 +33,12 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
-    link: {
-      openOnClick: false,
-      HTMLAttributes: {
-        class: 'text-blue-600 hover:underline',
-      },
+    link: false, // Desativar a extensão Link do StarterKit
+  }),
+  Link.configure({ // Adicionar a extensão Link separadamente
+    openOnClick: false,
+    HTMLAttributes: {
+      class: 'text-blue-600 hover:underline',
     },
   }),
   Image.configure({
