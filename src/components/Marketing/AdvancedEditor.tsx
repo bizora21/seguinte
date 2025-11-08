@@ -35,6 +35,9 @@ const editorExtensions = [
     heading: {
       levels: [1, 2, 3, 4],
     },
+    blockquote: {},
+    bulletList: {},
+    orderedList: {},
   }),
   Link.configure({
     openOnClick: false,
