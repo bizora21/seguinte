@@ -106,6 +106,11 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
     }
   }
 
+  const handleSuggestionSelect = (suggestion: { keyword: string }) => {
+    setKeyword(suggestion.keyword);
+    setStep(2);
+  };
+
   const stepVariants = {
     hidden: { opacity: 0, x: 50 },
     visible: { opacity: 1, x: 0 },
@@ -134,9 +139,13 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
               <KeywordSuggester 
                 value={keyword} 
                 onChange={setKeyword}
-                onSuggestionSelect={() => setStep(2)}
+                onSuggestionSelect={handleSuggestionSelect}
               />
-              <Button onClick={() => setStep(2)} disabled={!keyword.trim()} className="w-full">
+              <Button 
+                onClick={() => setStep(2)} 
+                disabled={!keyword.trim()} 
+                className={`w-full transition-colors ${keyword.trim() ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+              >
                 Avançar <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </motion.div>
