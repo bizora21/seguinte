@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { Textarea } from '../../ui/textarea'
@@ -7,7 +7,6 @@ import { Label } from '../../ui/label'
 import { Zap, X, Loader2, Send, RefreshCw, BarChart3, CheckCircle, AlertTriangle, Lightbulb } from 'lucide-react'
 import { LocalDraftState } from '../../../types/blog'
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast'
-import { JSONContent } from '@tiptap/react'
 import { CONTENT_GENERATOR_BASE_URL } from '../../../utils/admin'
 import { supabase } from '../../../lib/supabase'
 import { Badge } from '../../ui/badge'
@@ -29,6 +28,34 @@ const SEOSuggestionsPanel: React.FC<SEOSuggestionsPanelProps> = ({
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  const seoAnalysis = useMemo(() => {
+    // CORREÇÃO: draft.content já é HTML. Apenas removemos as tags para análise de texto.
+    const contentText = (draft.content || '').replace(/<[^>]*>/g, ' ');
+    
+    const keyword = draft.keyword || '';
+    const keywordCount = keyword 
+      ? (contentText.toLowerCase().match(new RegExp(keyword.toLowerCase(), 'g')) || []).length
+      : 0;
+      
+    const keywordDensity = wordCount > 0 ? (keywordCount / wordCount * 100).toFixed(2) : '0.00';
+    
+    const issues: string[] = [];
+    if (wordCount < 1200) issues.push(`Comprimento: Mínimo 1200 palavras (Atual: ${wordCount}).`);
+    if (parseFloat(keywordDensity) < 0.5 || parseFloat(keywordDensity) > 2.0) issues.push(`Densidade da Palavra-chave: Ideal 0.5%-2.0% (Atual: ${keywordDensity}%).`);
+    if (!draft.meta_description || draft.meta_description.length < 50) issues.push('Meta Descrição curta ou ausente.');
+    if (!draft.slug) issues.push('Slug (URL) não definido.');
+    if (!draft.featured_image_url) issues.push('Imagem de Destaque ausente.');
+    if (!draft.category_id) issues.push('Categoria ausente.');
+
+    return {
+      wordCount,
+      keywordDensity,
+      readabilityScore: draft.readability_score || 'N/A',
+      seoScore: draft.seo_score || 0,
+      issues
+    };
+  }, [draft, wordCount]);
   
   const getSeoColor = (score: number) => {
     if (score >= 90) return 'text-green-600';
