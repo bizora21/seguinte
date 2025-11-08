@@ -158,18 +158,38 @@ serve(async (req) => {
       log(`Reanalyzing SEO for draft ID: ${draft.id}`);
 
       const reanalyzePrompt = `
-        Você é um analista de SEO. Analise o seguinte artigo HTML e forneça um feedback.
-        Tópico Principal: "${draft.keyword}"
-        Contagem de Palavras: ${wordCount}
+        **INSTRUÇÃO CRÍTICA: VOCÊ É UM ESTRATEGA DE SEO DE CLASSE MUNDIAL**
 
-        Artigo:
+        Sua especialidade é o mercado de Moçambique. Analise o seguinte rascunho de artigo com um olhar crítico e profissional.
+
+        **Tópico Principal (Palavra-chave):** "${draft.keyword}"
+        **Contagem de Palavras Atual:** ${wordCount}
+
+        **Texto do Artigo (parcial):**
         ${draft.content.replace(/<[^>]*>/g, ' ').substring(0, 4000)}
 
-        Com base na análise, retorne um objeto JSON com a seguinte estrutura:
+        **SUA TAREFA:**
+
+        1.  **Calcule um SEO Score (0-100):** Baseie-se na otimização on-page, uso de palavras-chave, estrutura e potencial de E-E-A-T.
+        2.  **Avalie a Legibilidade:** Classifique como "Excelente", "Bom", "Razoável" ou "Precisa Melhorar".
+        3.  **Forneça 3 SUGESTÕES ACIONÁVEIS E ESPECÍFICAS:** As sugestões devem ser concretas e ir além do óbvio ("adicione mais palavras-chave"). Dê exemplos.
+
+            *   **Exemplo de sugestão RUIM:** "Adicione mais links."
+            *   **Exemplo de sugestão BOA:** "Na seção sobre 'métodos de pagamento', adicione um link interno para um possível artigo futuro sobre 'como usar M-Pesa em Moçambique' para aumentar a profundidade do tópico."
+            *   **Exemplo de sugestão BOA:** "Para aumentar a autoridade (E-E-A-T), cite dados do Instituto Nacional de Estatística (INE) de Moçambique sobre o crescimento do e-commerce no país."
+
+        **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
+
+        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional.
+
         {
-          "seo_score": um número de 0 a 100,
-          "readability_score": uma string como "Bom" ou "Precisa Melhorar",
-          "suggestions": ["uma", "lista", "de", "3", "sugestões práticas para melhorar o SEO e a legibilidade"]
+          "seo_score": um número inteiro de 0 a 100,
+          "readability_score": uma string ("Excelente", "Bom", "Razoável", "Precisa Melhorar"),
+          "suggestions": [
+            "Primeira sugestão específica e acionável.",
+            "Segunda sugestão específica e acionável.",
+            "Terceira sugestão específica e acionável."
+          ]
         }
       `
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
