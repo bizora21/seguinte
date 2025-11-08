@@ -26,6 +26,7 @@ import TipTapRenderer from '../TipTapRenderer'
 
 // Configurações de extensão para o TipTap
 const editorExtensions = [
+  // @ts-ignore
   StarterKit.configure({
     heading: {
       levels: [1, 2, 3, 4],
@@ -33,13 +34,9 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
-    // Usar 'extensions' para desabilitar módulos internos de forma segura
-    extensions: [
-      // Excluir Link e Image do StarterKit para que possamos configurá-los separadamente
-      // Mantendo as outras extensões padrão do StarterKit
-      'bold', 'code', 'codeBlock', 'document', 'dropcursor', 'gapcursor', 'hardBreak', 
-      'history', 'horizontalRule', 'italic', 'paragraph', 'strike', 'text',
-    ],
+    // Desabilitar extensões que serão adicionadas separadamente para evitar duplicatas
+    link: false, 
+    image: false,
   }),
   Link.configure({
     openOnClick: false,
