@@ -47,7 +47,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
     }
 
     setGenerating(true)
-    const toastId = showLoading('Gerando conteúdo com IA...')
+    const toastId = showLoading('Orquestrando IA... Isso pode levar até 60 segundos.')
     
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -64,33 +64,25 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          topico: keyword.trim(), // CORREÇÃO: Enviando 'topico' em vez de 'keyword'
+          keyword: keyword.trim(),
           context,
           audience,
           type: contentType
         })
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const errorText = await response.text()
-        dismissToast(toastId)
-        try {
-            const errorJson = JSON.parse(errorText);
-            throw new Error(errorJson.error || `Falha na requisição (Status ${response.status})`);
-        } catch {
-            throw new Error(`Falha na requisição (Status ${response.status}): ${errorText.substring(0, 100)}...`);
-        }
+        throw new Error(result.error || `Falha na requisição (Status ${response.status})`);
       }
       
-      const result = await response.json()
-      
-      if (result.success && result.data && result.data.id) {
+      if (result.success && result.draftId) {
         dismissToast(toastId)
-        showSuccess(`Conteúdo gerado! Revise no editor.`)
+        showSuccess(`Conteúdo gerado! Revise o novo rascunho no editor.`)
         setKeyword('')
-        onContentGenerated(result.data.id)
+        onContentGenerated(result.draftId)
       } else {
-        dismissToast(toastId)
         throw new Error(result.error || 'Erro desconhecido na Edge Function.')
       }
     } catch (error: any) {
