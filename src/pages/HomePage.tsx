@@ -232,7 +232,7 @@ const HomePage: React.FC = () => {
                   className="bg-white hover:bg-gray-100 text-green-700 font-semibold px-8 py-4 text-lg border-0"
                 >
                   <Users className="w-5 h-5 mr-2" />
-                  Cadastrar como Vendedor
+                  Começar a Vender
                 </Button>
               </motion.div>
             </motion.div>
@@ -493,7 +493,7 @@ const HomePage: React.FC = () => {
                   size="lg"
                 >
                   <Users className="w-5 h-5 mr-2" />
-                  Cadastrar como Vendedor
+                  Começar a Vender
                 </Button>
               </div>
             </motion.div>
