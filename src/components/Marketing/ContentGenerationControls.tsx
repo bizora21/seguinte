@@ -64,6 +64,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
+          action: 'generate', // 🔥 CORREÇÃO: Adicionando a ação que estava em falta
           keyword: keyword.trim(),
           context,
           audience,
