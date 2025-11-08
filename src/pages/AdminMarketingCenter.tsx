@@ -20,26 +20,28 @@ const AdminMarketingCenter = () => {
   const defaultTab = searchParams.get('tab') || 'content'
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/dashboard/admin')}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para Admin Dashboard
-          </Button>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Zap className="w-8 h-8 mr-3 text-yellow-600" />
-            Centro de Marketing
-          </h1>
-          <p className="text-gray-600 mt-2">Gerencie SEO, automações e campanhas de aquisição.</p>
+    <div className="min-h-screen bg-gray-100">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div>
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/dashboard/admin')}
+              className="mb-2 -ml-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar para Admin Dashboard
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Zap className="w-8 h-8 mr-3 text-yellow-600" />
+              Centro de Marketing
+            </h1>
+            <p className="text-gray-600 mt-1">Gerencie SEO, automações e campanhas de aquisição.</p>
+          </div>
         </div>
 
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto p-1">
             <TabsTrigger value="content" className="py-2 text-xs sm:text-sm flex items-center">
               <FileText className="w-4 h-4 mr-1" /> Conteúdo & SEO
             </TabsTrigger>
@@ -83,7 +85,7 @@ const AdminMarketingCenter = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   )
 }

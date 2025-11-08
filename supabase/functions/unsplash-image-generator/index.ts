@@ -73,19 +73,18 @@ serve(async (req) => {
     const rawAlt = imageResult.alt_description || prompt;
     const translatedAlt = await translateToPortuguese(rawAlt);
 
-    // **ETAPA CRÍTICA: BAIXAR A IMAGEM DIRETAMENTE**
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) throw new Error(`Falha ao baixar a imagem do Unsplash: ${imageResponse.statusText}`);
     const imageBuffer = await imageResponse.arrayBuffer();
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    // **ETAPA CRÍTICA: FAZER UPLOAD PARA O SUPABASE STORAGE**
     const fileExt = contentType.split('/')[1] || 'jpg';
     const fileName = `blog-${Date.now()}.${fileExt}`;
     const filePath = `blog-images/${fileName}`;
+    const bucket = 'product-images';
     
     const { error: uploadError } = await supabaseServiceRole.storage
-        .from('product-images')
+        .from(bucket)
         .upload(filePath, imageBuffer, {
             contentType: contentType,
             upsert: true,
@@ -93,12 +92,15 @@ serve(async (req) => {
 
     if (uploadError) throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
 
-    // Obter a URL pública da imagem recém-carregada
-    const { data: publicUrlData } = supabaseServiceRole.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-        
-    const finalImageUrl = publicUrlData.publicUrl;
+    // **CORREÇÃO DEFINITIVA: Chamar a nova função para obter uma URL assinada e permanente**
+    const signedUrlResponse = await supabaseServiceRole.functions.invoke('get-signed-url', {
+        method: 'POST',
+        body: { bucket, filePath }
+    });
+
+    if (signedUrlResponse.error) throw new Error(`Falha ao obter URL assinada: ${signedUrlResponse.error.message}`);
+    
+    const finalImageUrl = signedUrlResponse.data.signedUrl;
     
     return new Response(JSON.stringify({ 
         success: true, 
