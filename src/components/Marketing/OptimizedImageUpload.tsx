@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Image as ImageIcon, Zap, Download, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -8,6 +8,7 @@ import { Label } from '../ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { supabase } from '../../lib/supabase'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
+import { Skeleton } from '../ui/skeleton'
 
 interface OptimizedImageUploadProps {
   value: string
@@ -28,7 +29,16 @@ const OptimizedImageUpload = ({
 }: OptimizedImageUploadProps) => {
   const [uploading, setUploading] = useState(false)
   const [generating, setGenerating] = useState(false)
-  const [activeTab, setActiveTab] = useState<'upload' | 'ai'>('ai')
+  const [activeTab, setActiveTab] = useState<'ai' | 'upload'>('ai')
+  const [imageStatus, setImageStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+
+  useEffect(() => {
+    if (value) {
+      setImageStatus('loading');
+    } else {
+      setImageStatus('idle');
+    }
+  }, [value]);
 
   // Função para otimizar imagem (simulação - em produção usaria Canvas API ou serviço externo)
   const optimizeImage = async (file: File): Promise<File> => {
@@ -161,10 +171,6 @@ const OptimizedImageUpload = ({
       const result = response.data as { success: boolean, imageUrl: string, imageAlt: string }
       
       if (!result.success || !result.imageUrl) {
-        // Se success for false, a Edge Function deve ter retornado um erro no corpo,
-        // mas como o invoke não lança exceção para erros 4xx/5xx do corpo, tratamos aqui.
-        // No entanto, a Edge Function está configurada para lançar exceção em caso de falha na API do Unsplash.
-        // Se chegarmos aqui com success: false, é um erro interno da Edge Function que não foi capturado.
         throw new Error('Nenhuma imagem relevante encontrada no Unsplash.')
       }
       
@@ -271,22 +277,36 @@ const OptimizedImageUpload = ({
         {/* Preview da Imagem */}
         {value && (
           <div className="space-y-4">
-            <div className="relative">
+            <div className="relative aspect-video w-full">
+              {imageStatus === 'loading' && <Skeleton className="absolute inset-0 w-full h-full rounded-lg" />}
+              {imageStatus === 'error' && (
+                <div className="absolute inset-0 w-full h-full rounded-lg border-2 border-dashed border-red-400 bg-red-50 flex flex-col items-center justify-center text-red-600">
+                  <AlertTriangle className="w-8 h-8 mb-2" />
+                  <p className="font-semibold">Falha ao carregar imagem</p>
+                  <p className="text-xs">Verifique a URL ou tente novamente.</p>
+                </div>
+              )}
               <img
                 src={value}
                 alt={altText || 'Preview da imagem'}
-                className="w-full h-48 object-cover rounded-lg border"
+                className={`w-full h-full object-cover rounded-lg border ${imageStatus === 'loaded' ? 'block' : 'hidden'}`}
+                onLoad={() => setImageStatus('loaded')}
+                onError={() => {
+                  console.error("Falha ao carregar a imagem:", value);
+                  showError("A imagem foi carregada, mas não pode ser exibida. Verifique o console para a URL.");
+                  setImageStatus('error');
+                }}
               />
               <Button
                 variant="destructive"
                 size="sm"
-                className="absolute top-2 right-2"
+                className="absolute top-2 right-2 h-8 w-8 p-0 z-10"
                 onClick={() => {
                   onImageChange('')
                   onAltTextChange('')
                 }}
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
             
@@ -300,17 +320,6 @@ const OptimizedImageUpload = ({
                 placeholder="Descreva a imagem para leitores de tela e SEO"
                 disabled={uploading || generating}
               />
-            </div>
-
-            {/* Informações de Otimização */}
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center text-green-800 text-sm">
-                <Download className="w-4 h-4 mr-2" />
-                <span className="font-medium">Imagem carregada/buscada com sucesso!</span>
-              </div>
-              <p className="text-xs text-green-700 mt-1">
-                Se for upload manual, a imagem foi redimensionada para 1200x675px.
-              </p>
             </div>
           </div>
         )}
