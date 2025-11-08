@@ -33,6 +33,9 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
         heading: {
           levels: [1, 2, 3, 4],
         },
+        blockquote: {},
+        bulletList: {},
+        orderedList: {},
       }),
       Link.configure({
         openOnClick: true,
