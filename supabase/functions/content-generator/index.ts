@@ -35,7 +35,6 @@ serve(async (req) => {
     if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured.')
 
     if (action === 'generate') {
-      // --- LÓGICA DE GERAÇÃO COMPLETA ---
       const { keyword, context, audience, type } = payload
       if (!keyword) throw new Error('Keyword is required.')
       log(`Starting full generation for: "${keyword}"`);
@@ -96,9 +95,21 @@ serve(async (req) => {
 
       const imageResponse = await fetch(imageUrl)
       const imageBlob = await imageResponse.blob()
-      const imagePath = `${Date.now()}-${keyword.replace(/\s+/g, '-')}.jpg`
+      
+      // 🔥 CORREÇÃO DEFINITIVA: Sanitização robusta do nome do ficheiro
+      const sanitizedTitle = (generated.title || keyword)
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
+        .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres não alfanuméricos
+        .replace(/\s+/g, '-') // Substitui espaços por hífens
+        .replace(/-+/g, '-') // Remove hífens duplicados
+        .substring(0, 50); // Limita o comprimento
+
+      const imagePath = `${Date.now()}-${sanitizedTitle}.jpg`
+      
       const { error: uploadError } = await supabaseServiceRole.storage.from('blog-images').upload(imagePath, imageBlob, { contentType: 'image/jpeg' })
       if (uploadError) throw new Error(`Storage Upload Error: ${uploadError.message}`)
+      
       const { data: publicUrlData } = supabaseServiceRole.storage.from('blog-images').getPublicUrl(imagePath)
       const finalImageUrl = publicUrlData.publicUrl
       log(`Imagem salva: ${finalImageUrl}`);
@@ -129,7 +140,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, draftId: newRecord.id }), { headers: corsHeaders, status: 200 })
 
     } else if (action === 'reanalyze') {
-      // --- LÓGICA DE REANÁLISE DE SEO ---
       const { draft, wordCount } = payload
       if (!draft || !draft.content) throw new Error('Draft content is required for reanalysis.')
       log(`Reanalyzing SEO for draft ID: ${draft.id}`);
