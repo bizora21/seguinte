@@ -8,7 +8,7 @@ import { Badge } from '../../ui/badge'
 import { 
   FileText, Lightbulb, Search, 
   BarChart3, CheckCircle, AlertTriangle,
-  Plus, Trash2, X, RefreshCw
+  Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag
 } from 'lucide-react'
 import { ContentDraft, BlogCategory, LocalDraftState } from '../../../types/blog'
 import { generateHTML } from '@tiptap/html'
@@ -16,8 +16,11 @@ import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import TextAlign from '@tiptap/extension-text-align'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion'
+import { Textarea } from '../../ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
+import OptimizedImageUpload from '../OptimizedImageUpload'
 
-// Configurações de extensão para análise de HTML
 const extensions = [
   StarterKit.configure({
     heading: {
@@ -34,36 +37,16 @@ interface SidebarProps {
   onClose: () => void
   draft: LocalDraftState
   categories: BlogCategory[]
-  onGenerateWithAI: () => void // Agora apenas abre o painel
+  onUpdateDraft: (draft: LocalDraftState) => void
+  onGenerateWithAI: () => void
   wordCount: number
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onGenerateWithAI, wordCount }) => {
-  const [activeTab, setActiveTab] = useState<'toc' | 'seo'>('seo')
-
-  // Gerar TOC (Table of Contents) a partir do conteúdo JSON
-  const toc = useMemo(() => {
-    if (!draft.content) return []
-
-    // Converte JSON para HTML para análise de títulos
-    const htmlContent = generateHTML(draft.content as any, extensions);
-    
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(htmlContent, 'text/html')
-    const headings = doc.querySelectorAll('h1, h2, h3, h4')
-    
-    return Array.from(headings).map((heading, index) => ({
-      id: heading.id || `heading-${index}`,
-      text: heading.textContent || '',
-      level: parseInt(heading.tagName.substring(1)),
-    }))
-  }, [draft.content])
-
-  // Analisar SEO
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onUpdateDraft, onGenerateWithAI, wordCount }) => {
+  
   const seoAnalysis = useMemo(() => {
-    // Converte JSON para HTML para análise de texto
     const htmlContent = draft.content ? generateHTML(draft.content as any, extensions) : '';
-    const contentText = htmlContent.replace(/<[^>]*>/g, ' ') || '' // Remove HTML tags
+    const contentText = htmlContent.replace(/<[^>]*>/g, ' ') || ''
     
     const keyword = draft.keyword || ''
     const keywordCount = keyword 
@@ -73,12 +56,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
     const keywordDensity = wordCount > 0 ? (keywordCount / wordCount * 100).toFixed(2) : '0.00'
     
     const issues: string[] = []
-    if (wordCount < 1200) issues.push(`Comprimento: O artigo deve ter no mínimo 1200 palavras (Atual: ${wordCount}).`)
-    if (parseFloat(keywordDensity) < 0.5 || parseFloat(keywordDensity) > 2.0) issues.push(`Densidade da Palavra-chave: Ideal entre 0.5% e 2.0% (Atual: ${keywordDensity}%).`)
-    if (!draft.meta_description || draft.meta_description.length < 50) issues.push('Meta Descrição: Muito curta ou ausente.')
-    if (!draft.slug) issues.push('Slug: O slug (URL) não está definido.')
-    if (!draft.featured_image_url) issues.push('Imagem de Destaque: Ausente.')
-    if (!draft.category_id) issues.push('Categoria: Ausente.')
+    if (wordCount < 1200) issues.push(`Comprimento: Mínimo 1200 palavras (Atual: ${wordCount}).`)
+    if (parseFloat(keywordDensity) < 0.5 || parseFloat(keywordDensity) > 2.0) issues.push(`Densidade da Palavra-chave: Ideal 0.5%-2.0% (Atual: ${keywordDensity}%).`)
+    if (!draft.meta_description || draft.meta_description.length < 50) issues.push('Meta Descrição curta ou ausente.')
+    if (!draft.slug) issues.push('Slug (URL) não definido.')
+    if (!draft.featured_image_url) issues.push('Imagem de Destaque ausente.')
+    if (!draft.category_id) issues.push('Categoria ausente.')
 
     return {
       wordCount,
@@ -98,11 +81,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
   if (!isOpen) return null
 
   return (
-    <div className="w-80 bg-white border-l flex flex-col flex-shrink-0">
+    <div className="w-96 bg-gray-50 border-l flex flex-col flex-shrink-0">
       <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
         <CardTitle className="text-lg flex items-center">
-          <Lightbulb className="w-5 h-5 mr-2 text-yellow-600" />
-          Ferramentas
+          <Settings className="w-5 h-5 mr-2" />
+          Configurações
         </CardTitle>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -110,120 +93,93 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
       </CardHeader>
       
       <div className="flex-1 overflow-y-auto p-4">
-        {/* Tabs de Navegação */}
-        <div className="flex space-x-2 mb-4 border-b pb-2">
-          <Button 
-            variant={activeTab === 'seo' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setActiveTab('seo')}
-            className="flex-1"
-          >
-            <BarChart3 className="w-4 h-4 mr-1" /> SEO
-          </Button>
-          <Button 
-            variant={activeTab === 'toc' ? 'default' : 'outline'} 
-            size="sm"
-            onClick={() => setActiveTab('toc')}
-            className="flex-1"
-          >
-            <FileText className="w-4 h-4 mr-1" /> Estrutura
-          </Button>
-        </div>
+        <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3', 'item-4']} className="w-full">
+          
+          {/* Metadados & SEO */}
+          <AccordionItem value="item-1">
+            <AccordionTrigger className="font-semibold">Metadados & SEO</AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="title">Título (H1) *</Label>
+                <Input id="title" value={draft.title || ''} onChange={(e) => onUpdateDraft({ ...draft, title: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (URL) *</Label>
+                <Input id="slug" value={draft.slug || ''} onChange={(e) => onUpdateDraft({ ...draft, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="meta_description">Meta Descrição *</Label>
+                <Textarea id="meta_description" value={draft.meta_description || ''} onChange={(e) => onUpdateDraft({ ...draft, meta_description: e.target.value.substring(0, 160) })} rows={3} />
+                <p className="text-xs text-gray-500 text-right">{draft.meta_description?.length || 0} / 160</p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {/* Conteúdo da Aba SEO */}
-        {activeTab === 'seo' && seoAnalysis && (
-          <div className="space-y-4">
-            <Card className="bg-gray-50">
-              <CardContent className="p-4 space-y-2">
+          {/* Organização */}
+          <AccordionItem value="item-2">
+            <AccordionTrigger className="font-semibold">Organização</AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="category">Categoria *</Label>
+                <Select value={draft.category_id || ''} onValueChange={(value) => onUpdateDraft({ ...draft, category_id: value })}>
+                  <SelectTrigger id="category"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="keywords">Palavras-chave Secundárias</Label>
+                <Input id="keywords" value={(draft.secondary_keywords || []).join(', ')} onChange={(e) => onUpdateDraft({ ...draft, secondary_keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) })} />
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Imagem de Destaque */}
+          <AccordionItem value="item-3">
+            <AccordionTrigger className="font-semibold">Imagem de Destaque</AccordionTrigger>
+            <AccordionContent className="pt-2">
+              <OptimizedImageUpload
+                value={draft.featured_image_url || ''}
+                altText={draft.image_alt_text || ''}
+                imagePrompt={draft.image_prompt || ''}
+                onImageChange={(url) => onUpdateDraft({ ...draft, featured_image_url: url })}
+                onAltTextChange={(alt) => onUpdateDraft({ ...draft, image_alt_text: alt })}
+                onPromptChange={(prompt) => onUpdateDraft({ ...draft, image_prompt: prompt })}
+              />
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Análise de SEO */}
+          <AccordionItem value="item-4">
+            <AccordionTrigger className="font-semibold">Análise de SEO</AccordionTrigger>
+            <AccordionContent className="space-y-4 pt-2">
+              <div className="p-4 bg-white rounded-lg border space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">SEO Score:</span>
-                  <span className={`text-xl font-bold ${getSeoColor(seoAnalysis.seoScore)}`}>
-                    {seoAnalysis.seoScore}%
-                  </span>
+                  <span className={`text-xl font-bold ${getSeoColor(seoAnalysis.seoScore)}`}>{seoAnalysis.seoScore}%</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Palavras:</span>
-                  <span>{seoAnalysis.wordCount}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Densidade ({draft.keyword || 'N/A'}):</span>
-                  <span>{seoAnalysis.keywordDensity}%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">Legibilidade:</span>
-                  <span>{seoAnalysis.readabilityScore}</span>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-red-200 bg-red-50">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-base flex items-center text-red-800">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Problemas ({seoAnalysis.issues.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
+                <div className="flex justify-between text-sm"><span className="font-medium">Palavras:</span><span>{seoAnalysis.wordCount}</span></div>
+                <div className="flex justify-between text-sm"><span className="font-medium">Densidade:</span><span>{seoAnalysis.keywordDensity}%</span></div>
+                <div className="flex justify-between text-sm"><span className="font-medium">Legibilidade:</span><span>{seoAnalysis.readabilityScore}</span></div>
+              </div>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="text-base font-semibold text-red-800 mb-2">Problemas ({seoAnalysis.issues.length})</h4>
                 {seoAnalysis.issues.length > 0 ? (
                   <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-                    {seoAnalysis.issues.map((issue, index) => (
-                      <li key={index}>{issue}</li>
-                    ))}
+                    {seoAnalysis.issues.map((issue, index) => <li key={index}>{issue}</li>)}
                   </ul>
                 ) : (
-                  <p className="text-sm text-green-700 flex items-center">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Nenhum problema crítico encontrado.
-                  </p>
+                  <p className="text-sm text-green-700 flex items-center"><CheckCircle className="w-4 h-4 mr-1" />Nenhum problema crítico.</p>
                 )}
-              </CardContent>
-            </Card>
-            
-            <Separator />
-            
-            <h3 className="text-sm font-semibold mb-2">Sugestões de IA</h3>
-            <p className="text-xs text-gray-600">
-              Use o assistente de IA para reanalisar e obter sugestões de melhoria.
-            </p>
-            <Button 
-              onClick={onGenerateWithAI} 
-              variant="outline" 
-              className="w-full text-purple-600 border-purple-600 hover:bg-purple-50"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              Reanalisar com IA
-            </Button>
-          </div>
-        )}
-
-        {/* Conteúdo da Aba Estrutura (TOC) */}
-        {activeTab === 'toc' && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold mb-2">Navegação de Estrutura</h3>
-            {toc.length === 0 ? (
-              <p className="text-sm text-gray-500">Comece a adicionar títulos (H1, H2, H3) para ver a estrutura.</p>
-            ) : (
-              <div className="space-y-1">
-                {toc.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      // Lógica para rolar até o elemento (requer IDs no editor)
-                      document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' })
-                    }}
-                    className={`cursor-pointer p-2 rounded hover:bg-gray-100 transition-colors text-sm truncate ${
-                      item.level === 1 ? 'font-bold text-lg' : 
-                      item.level === 2 ? 'ml-2 font-semibold' : 
-                      'ml-4 text-gray-600'
-                    }`}
-                  >
-                    {item.text}
-                  </div>
-                ))}
               </div>
-            )}
-          </div>
-        )}
+              <Button onClick={onGenerateWithAI} variant="outline" className="w-full text-purple-600 border-purple-600 hover:bg-purple-50">
+                <RefreshCw className="w-4 h-4 mr-1" /> Reanalisar com IA
+              </Button>
+            </AccordionContent>
+          </AccordionItem>
+
+        </Accordion>
       </div>
     </div>
   )

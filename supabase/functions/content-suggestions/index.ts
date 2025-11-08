@@ -1,5 +1,7 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+// @ts-ignore
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,6 +13,27 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+
+  // 1. Autenticação do Usuário
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
+  }
+  
+  const token = authHeader.replace('Bearer ', '')
+  // @ts-ignore
+  const supabaseAnon = createClient(
+    // @ts-ignore
+    Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  )
+  const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token)
+
+  if (authError || !user) {
+    console.error('Authentication failed:', authError?.message)
+    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), { status: 401, headers: corsHeaders })
   }
 
   try {
@@ -29,8 +52,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured as secret.')
     }
 
-    // Prompt otimizado para sugestões
-    const prompt = `Forneça 5 sugestões de palavras-chave LSI (Latent Semantic Indexing) para o artigo sobre "${keyword}" no contexto de "${contentType || 'blog'}". As sugestões devem ser curtas e relevantes. Retorne APENAS uma lista JSON de strings.`
+    const prompt = `Forneça 5 sugestões de palavras-chave LSI (Latent Semantic Indexing) para o artigo sobre "${keyword}" no contexto de "${contentType || 'blog'}". As sugestões devem ser curtas e relevantes. Retorne APENAS um objeto JSON com uma chave "suggestions" contendo uma lista de strings.`
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -41,7 +63,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-            { role: "system", content: "Você é um assistente de SEO. Sua saída deve ser APENAS um array JSON de strings, sem texto adicional." },
+            { role: "system", content: "Você é um assistente de SEO. Sua saída deve ser APENAS um objeto JSON válido com uma chave 'suggestions', sem texto adicional." },
             { role: 'user', content: prompt }
         ],
         response_format: { type: "json_object" },
@@ -61,13 +83,13 @@ serve(async (req) => {
     try {
         const rawContent = data.choices[0].message.content
         const parsed = JSON.parse(rawContent)
-        if (Array.isArray(parsed)) {
-            suggestions = parsed.filter(s => typeof s === 'string')
+        // CORREÇÃO: Acessar a chave 'suggestions' dentro do objeto JSON
+        if (parsed && Array.isArray(parsed.suggestions)) {
+            suggestions = parsed.suggestions.filter((s: any) => typeof s === 'string')
         }
     } catch (e) {
         console.error("Failed to parse AI JSON output:", e)
-        // Fallback para tentar extrair linhas se o JSON falhar
-        suggestions = data.choices[0].message.content.split('\n').map(s => s.trim()).filter(s => s.length > 0)
+        suggestions = []
     }
 
     return new Response(JSON.stringify({ suggestions }), { 

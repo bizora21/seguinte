@@ -22,11 +22,6 @@ import EditorCanvas from './editor/EditorCanvas'
 import Sidebar from './editor/Sidebar'
 import Statusbar from './editor/Statusbar'
 import SEOSuggestionsPanel from './editor/SEOSuggestionsPanel'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { Textarea } from '../ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import OptimizedImageUpload from './OptimizedImageUpload'
 import TipTapRenderer from '../TipTapRenderer'
 
 // Configurações de extensão para o TipTap
@@ -75,7 +70,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAISuggestionsOpen, setIsAISuggestionsOpen] = useState(false)
 
-  // Inicializa o estado local do rascunho
   useEffect(() => {
     if (initialDraft) {
       let contentJson: JSONContent | null = null
@@ -95,10 +89,9 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     }
   }, [initialDraft])
 
-  // Inicializa o TipTap Editor
   const editor = useEditor({
     extensions: editorExtensions,
-    content: draft?.content || { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Comece a escrever aqui...' }] }] },
+    content: draft?.content || '',
     onUpdate: ({ editor }) => {
       if (draft) {
         setDraft(prev => prev ? { ...prev, content: editor.getJSON() } : null)
@@ -110,19 +103,16 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     },
     editorProps: {
         attributes: {
-            class: 'max-w-none min-h-[400px] focus:outline-none p-4',
+            class: 'prose max-w-none min-h-[calc(100vh-300px)] focus:outline-none p-4',
         },
     },
-  }, [draft?.id]) // Recria o editor quando o rascunho muda
+  }, [draft?.id])
 
-  // Sincroniza o conteúdo do editor quando o draft.content muda (ex: após geração da IA)
   useEffect(() => {
     if (editor && draft?.content && JSON.stringify(editor.getJSON()) !== JSON.stringify(draft.content)) {
         editor.commands.setContent(draft.content);
     }
   }, [editor, draft?.content]);
-
-  // --- Handlers de Salvamento e Publicação ---
 
   const handleSave = useCallback(async () => {
     if (!draft || !draft.id || !editor) return
@@ -158,7 +148,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
 
       dismissToast(toastId)
       showSuccess('Rascunho salvo com sucesso!')
-      onDraftUpdated() // Notifica o pai para recarregar a lista
+      onDraftUpdated()
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao salvar rascunho: ' + error.message)
@@ -178,10 +168,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     const toastId = showLoading('Publicando artigo...')
 
     try {
-      // 1. Salvar o rascunho final
       await handleSave()
-
-      // 2. Mover o conteúdo para a tabela published_articles
       const contentString = JSON.stringify(editor.getJSON())
       
       const publishedData = {
@@ -204,30 +191,26 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         published_at: new Date().toISOString(),
       }
 
-      // Tenta inserir na tabela de publicados
       const { error: insertError } = await supabase
         .from('published_articles')
         .insert(publishedData)
 
       if (insertError) {
-        // Se falhar, pode ser por slug duplicado.
         throw new Error('Falha ao inserir artigo publicado: ' + insertError.message)
       }
       
-      // 3. Atualizar o status do rascunho para 'published'
       const { error: updateDraftError } = await supabase
         .from('content_drafts')
         .update({ status: 'published', published_at: new Date().toISOString() })
         .eq('id', draft.id)
         
       if (updateDraftError) {
-        // Isso é menos crítico, mas deve ser registrado
         console.error('Erro ao marcar rascunho como publicado:', updateDraftError)
       }
 
       dismissToast(toastId)
-      showSuccess('Artigo publicado com sucesso! Ele está agora visível no blog.')
-      onCloseEditor() // Fecha o editor e volta para a lista
+      showSuccess('Artigo publicado com sucesso!')
+      onCloseEditor()
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao publicar artigo: ' + error.message)
@@ -247,12 +230,9 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
       </div>
     )
   }
-  
-  const currentCategory = categories.find(c => c.id === draft.category_id)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] bg-white border rounded-lg overflow-hidden">
-      {/* Toolbar */}
+    <div className="flex flex-col h-[calc(100vh-220px)] bg-white border rounded-lg overflow-hidden">
       <TipTapToolbar 
         editor={editor}
         onSave={handleSave}
@@ -265,126 +245,30 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         isPublishing={isPublishing}
       />
 
-      {/* Editor / Preview e Sidebar */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Editor Principal / Preview */}
-        <div className={`flex-1 overflow-y-auto ${isSidebarOpen ? 'max-w-[calc(100%-320px)]' : 'max-w-full'}`}>
-          <div className="p-6">
-            {/* Metadados */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-xl">Metadados e SEO</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Título (H1) *</Label>
-                    <Input
-                      id="title"
-                      value={draft.title || ''}
-                      onChange={(e) => setDraft(prev => prev ? { ...prev, title: e.target.value } : null)}
-                      placeholder="Título principal do artigo"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="slug">Slug (URL) *</Label>
-                    <Input
-                      id="slug"
-                      value={draft.slug || ''}
-                      onChange={(e) => setDraft(prev => prev ? { ...prev, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') } : null)}
-                      placeholder="slug-do-artigo"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="meta_description">Meta Descrição * (Max 160 chars)</Label>
-                  <Textarea
-                    id="meta_description"
-                    value={draft.meta_description || ''}
-                    onChange={(e) => setDraft(prev => prev ? { ...prev, meta_description: e.target.value.substring(0, 160) } : null)}
-                    placeholder="Descrição curta para SEO"
-                    rows={2}
-                  />
-                  <p className="text-xs text-gray-500 text-right">
-                    {draft.meta_description?.length || 0} / 160
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Categoria *</Label>
-                    <Select 
-                      value={draft.category_id || ''} 
-                      onValueChange={(value) => setDraft(prev => prev ? { ...prev, category_id: value } : null)}
-                    >
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Selecione a categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="keywords">Palavras-chave Secundárias</Label>
-                    <Input
-                      id="keywords"
-                      value={(draft.secondary_keywords || []).join(', ')}
-                      onChange={(e) => setDraft(prev => prev ? { ...prev, secondary_keywords: e.target.value.split(',').map(k => k.trim()).filter(k => k.length > 0) } : null)}
-                      placeholder="separar por vírgula"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Imagem de Destaque */}
-            <OptimizedImageUpload
-              value={draft.featured_image_url || ''}
-              altText={draft.image_alt_text || ''}
-              imagePrompt={draft.image_prompt || ''}
-              onImageChange={(url) => setDraft(prev => prev ? { ...prev, featured_image_url: url } : null)}
-              onAltTextChange={(alt) => setDraft(prev => prev ? { ...prev, image_alt_text: alt } : null)}
-              onPromptChange={(prompt) => setDraft(prev => prev ? { ...prev, image_prompt: prompt } : null)}
-            />
-
-            {/* Editor de Conteúdo */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-xl">Conteúdo do Artigo</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                {isPreviewMode ? (
-                  <div className="p-6 bg-gray-50 min-h-[400px]">
-                    <TipTapRenderer content={editor.getJSON()} />
-                  </div>
-                ) : (
-                  <EditorCanvas editor={editor} />
-                )}
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex-1 overflow-y-auto bg-white">
+          {isPreviewMode ? (
+            <div className="p-6">
+              <TipTapRenderer content={editor.getJSON()} />
+            </div>
+          ) : (
+            <EditorCanvas editor={editor} />
+          )}
         </div>
 
-        {/* Sidebar de Ferramentas */}
         {isSidebarOpen && (
           <Sidebar
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             draft={draft}
             categories={categories}
+            onUpdateDraft={setDraft}
             onGenerateWithAI={() => setIsAISuggestionsOpen(true)}
             wordCount={wordCount}
           />
         )}
       </div>
 
-      {/* Statusbar */}
       <Statusbar 
         draft={draft}
         onSave={handleSave}
@@ -392,7 +276,6 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         wordCount={wordCount}
       />
       
-      {/* Painel de Sugestões de IA (Modal) */}
       <SEOSuggestionsPanel
         isOpen={isAISuggestionsOpen}
         onClose={() => setIsAISuggestionsOpen(false)}
