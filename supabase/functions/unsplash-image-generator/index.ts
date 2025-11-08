@@ -9,6 +9,15 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// @ts-ignore
+const supabaseServiceRole = createClient(
+  // @ts-ignore
+  Deno.env.get('SUPABASE_URL') ?? '',
+  // @ts-ignore
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  { auth: { persistSession: false } }
+)
+
 // Função auxiliar para traduzir texto usando OpenAI
 // @ts-ignore
 async function translateToPortuguese(text: string): Promise<string> {
@@ -109,8 +118,6 @@ serve(async (req) => {
     }
     
     const imageResult = unsplashData.results[0];
-    
-    // Usar a URL de tamanho regular diretamente
     const imageUrl = imageResult.urls.regular;
     const rawAlt = imageResult.alt_description || prompt;
     
@@ -120,11 +127,28 @@ serve(async (req) => {
     const translatedAlt = await translateToPortuguese(rawAlt);
     console.log(`DEBUG: Alt Text traduzido: ${translatedAlt}`);
     
-    // 5. Retornar a URL do Unsplash e o alt text traduzido DIRETAMENTE
+    // 5. Invocar a função 'image-optimizer' para baixar, salvar e retornar uma URL segura
+    const { data: optimizerData, error: optimizerError } = await supabaseServiceRole.functions.invoke('image-optimizer', {
+        method: 'POST',
+        body: {
+            imageUrl: imageUrl,
+            altText: translatedAlt,
+        }
+    });
+
+    if (optimizerError) {
+        throw new Error(`Falha na função de otimização de imagem: ${optimizerError.message}`);
+    }
+
+    if (!optimizerData.success) {
+        throw new Error(`Erro na otimização da imagem: ${optimizerData.error}`);
+    }
+    
+    // 6. Retornar a URL otimizada e segura do nosso próprio armazenamento
     return new Response(JSON.stringify({ 
         success: true, 
-        imageUrl: imageUrl, // URL direta do Unsplash
-        imageAlt: translatedAlt 
+        imageUrl: optimizerData.optimizedUrl,
+        imageAlt: optimizerData.altText 
     }), {
       headers: corsHeaders,
       status: 200,
