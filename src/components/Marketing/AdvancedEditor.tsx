@@ -33,9 +33,13 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
-    // Desabilitar extensões que serão adicionadas separadamente para evitar duplicatas
-    // Esta é a sintaxe correta para desabilitar módulos internos do StarterKit
-    link: false, 
+    // Usar 'extensions' para desabilitar módulos internos de forma segura
+    extensions: [
+      // Excluir Link e Image do StarterKit para que possamos configurá-los separadamente
+      // Mantendo as outras extensões padrão do StarterKit
+      'bold', 'code', 'codeBlock', 'document', 'dropcursor', 'gapcursor', 'hardBreak', 
+      'history', 'horizontalRule', 'italic', 'paragraph', 'strike', 'text',
+    ],
   }),
   Link.configure({
     openOnClick: false,
@@ -100,7 +104,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     },
     editorProps: {
         attributes: {
-            class: 'prose max-w-none min-h-[calc(100vh-220px)] focus:outline-none p-4',
+            class: 'prose max-w-none min-h-[calc(100vh-300px)] focus:outline-none p-4',
         },
     },
   }, [draft?.id])
