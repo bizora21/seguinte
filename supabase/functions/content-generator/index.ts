@@ -33,26 +33,32 @@ Você é um jornalista moçambicano de elite, especialista em SEO e Growth Hacki
 **PÚBLICO-ALVO:** "${audience}"
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
-1.  **FORMATO DE SAÍDA:** A sua saída DEVE ser um objeto JSON contendo APENAS as seguintes chaves: "title", "slug", "meta_description", "html_content", "image_prompt", "secondary_keywords", "seo_score", "readability_score".
-2.  **CONTEÚDO HTML (\`html_content\`):**
+1.  **FORMATO DE SAÍDA:** A sua saída DEVE ser um objeto JSON contendo APENAS as seguintes chaves: "title", "slug", "meta_description", "html_content", "image_prompt", "secondary_keywords", "external_links", "internal_links", "seo_score", "readability_score".
+2.  **TÍTULO (\`title\`):** Crie um título amigável, otimizado para SEO e cliques. **NUNCA** use termos como 'SEO', 'CTA' ou frases que pareçam geradas por máquina.
+3.  **CONTEÚDO HTML (\`html_content\`):**
     *   O conteúdo DEVE ser um código HTML bem-formado.
     *   **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):** Use as tags \`<h2>\`, \`<h3>\`, e \`<h4>\` corretamente para estruturar o artigo. NUNCA pule um nível de título.
     *   **QUALIDADE E COMPRIMENTO:** O artigo DEVE ter entre 1200 e 1500 palavras. Escreva parágrafos longos e detalhados usando a tag \`<p>\`. Use a tag \`<strong>\` para negrito em pontos importantes.
     *   **LISTAS:** Use as tags \`<ul>\` e \`<li>\` para listas com marcadores.
-    *   **CTA FINAL (OBRIGATÓRIO):** No final do artigo, inclua uma seção de Call-to-Action clara, incentivando o leitor a visitar o site da LojaRápida ou a se cadastrar como vendedor.
-3.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-4.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+    *   **CTA NATURAL (OBRIGATÓRIO):** No final do artigo, integre de forma natural uma seção de Call-to-Action, incentivando o leitor a visitar o site da LojaRápida ou a se cadastrar como vendedor. **NÃO use 'CTA' como título.**
+4.  **LINKS (OBRIGATÓRIO):**
+    *   **\`external_links\`:** Gere 2-3 links externos para sites de alta autoridade (notícias, estudos, fontes confiáveis) que sejam relevantes para o conteúdo. O formato deve ser uma lista de objetos: \`[{ "title": "Nome do Link", "url": "https://..." }]\`.
+    *   **\`internal_links\`:** Gere 2-3 links internos para páginas da LojaRápida (ex: /produtos, /lojas, /sobre-nos). O formato deve ser o mesmo dos links externos.
+5.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+6.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
 **EXEMPLO DE SAÍDA JSON OBRIGATÓRIA:**
 \`\`\`json
 {
-  "title": "O Título Principal do Artigo",
-  "slug": "o-slug-do-artigo",
-  "meta_description": "A meta descrição otimizada aqui.",
-  "html_content": "<h1>O Título Principal do Artigo</h1><p>Parágrafo de introdução longo e detalhado...</p><h2>Primeira Seção Principal</h2><p>Conteúdo da primeira seção...</p><h3>Subseção Importante</h3><p>Conteúdo da subseção...</p><h2>Conclusão e CTA</h2><p>Pronto para começar a vender? <a href='https://lojarapidamz.com/register'>Cadastre-se agora na LojaRápida!</a></p>",
-  "image_prompt": "A detailed prompt in English...",
-  "secondary_keywords": ["keyword1", "keyword2"],
-  "seo_score": 92,
+  "title": "Guia Completo para Vender Online em Maputo em 2025",
+  "slug": "guia-vender-online-maputo-2025",
+  "meta_description": "Descubra as melhores estratégias e plataformas para começar a vender online em Maputo. Dicas práticas para empreendedores locais.",
+  "html_content": "<h1>Guia Completo para Vender Online em Maputo em 2025</h1><p>O comércio eletrónico em Maputo está a crescer exponencialmente...</p><h2>Entendendo o Mercado Digital de Maputo</h2><p>...</p><h3>Desafios e Oportunidades</h3><p>...</p><h2>Conclusão: Seu Próximo Passo no E-commerce</h2><p>Agora que você tem as ferramentas, está pronto para transformar sua ideia em um negócio de sucesso. A LojaRápida oferece a plataforma ideal para começar. <a href='https://lojarapidamz.com/register'>Cadastre-se como vendedor hoje mesmo e alcance clientes em todo Moçambique!</a></p>",
+  "image_prompt": "A professional photograph of a small business owner in Maputo, Mozambique, smiling while packing an order. The background shows a vibrant local market scene, aspect ratio 16:9.",
+  "secondary_keywords": ["e-commerce moçambique", "negócios digitais maputo", "plataforma de vendas online"],
+  "external_links": [{ "title": "Relatório de E-commerce na África Austral - FMI", "url": "https://www.imf.org/..." }],
+  "internal_links": [{ "title": "Conheça as Lojas em Destaque", "url": "/lojas" }],
+  "seo_score": 95,
   "readability_score": "Excelente"
 }
 \`\`\`
@@ -134,6 +140,8 @@ serve(async (req) => {
             image_prompt: generatedContent.image_prompt,
             secondary_keywords: generatedContent.secondary_keywords,
             readability_score: generatedContent.readability_score,
+            external_links: generatedContent.external_links,
+            internal_links: generatedContent.internal_links,
           })
           .select('id')
           .single()
