@@ -95,7 +95,7 @@ export const getUnreadNotificationsCount = async (): Promise<number> => {
     return count || 0
   } catch (error: any) {
     console.error('Error fetching unread notifications count:', error)
-    // Retorna 0 em caso de erro para não quebrar a UI
+    showError('Falha ao buscar contagem de notificações.')
     return 0
   }
 }
@@ -112,6 +112,7 @@ export const getRecentNotifications = async (): Promise<AdminNotification[]> => 
     return data as AdminNotification[]
   } catch (error: any) {
     console.error('Error fetching recent notifications:', error)
+    showError('Falha ao buscar notificações recentes.')
     return []
   }
 }
@@ -127,6 +128,7 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
     return true
   } catch (error: any) {
     console.error('Error marking notification as read:', error)
+    showError('Falha ao marcar notificação como lida.')
     return false
   }
 }
