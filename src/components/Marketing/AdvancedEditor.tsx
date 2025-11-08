@@ -26,7 +26,6 @@ import TipTapRenderer from '../TipTapRenderer'
 
 // Configurações de extensão para o TipTap
 const editorExtensions = [
-  // @ts-ignore
   StarterKit.configure({
     heading: {
       levels: [1, 2, 3, 4],
@@ -35,8 +34,9 @@ const editorExtensions = [
     bulletList: {},
     orderedList: {},
     // Desabilitar extensões que serão adicionadas separadamente para evitar duplicatas
-    link: false, 
-    image: false,
+    // Esta é a sintaxe correta para desabilitar módulos internos do StarterKit
+    // link: false, 
+    // image: false, 
   }),
   Link.configure({
     openOnClick: false,
@@ -101,7 +101,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     },
     editorProps: {
         attributes: {
-            class: 'prose max-w-none min-h-[calc(100vh-300px)] focus:outline-none p-4',
+            class: 'prose max-w-none min-h-[calc(100vh-220px)] focus:outline-none p-4',
         },
     },
   }, [draft?.id])
@@ -285,4 +285,4 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
   )
 }
 
-export default AdvancedEditor
+export default AdvancedEditor;
