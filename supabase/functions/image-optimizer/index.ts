@@ -15,85 +15,53 @@ const supabaseServiceRole = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   // @ts-ignore
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
+  { auth: { persistSession: false } }
 )
 
 // @ts-ignore
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    console.error('Optimizer: Unauthorized call.');
-    return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
-  }
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
   
   try {
-    const { imageUrl, altText } = await req.json()
+    const { imageBuffer, contentType, altText } = await req.json();
     
-    if (!imageUrl) {
-        return new Response(JSON.stringify({ error: 'Bad Request: URL da imagem ausente.' }), { status: 400, headers: corsHeaders })
+    if (!imageBuffer || !contentType) {
+        return new Response(JSON.stringify({ error: 'Bad Request: Dados da imagem ausentes.' }), { status: 400, headers: corsHeaders });
     }
 
-    // 1. Baixar a imagem e obter seu tipo de conteúdo real
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-        throw new Error(`Falha ao baixar imagem: ${imageResponse.statusText}`);
-    }
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    
-    // 2. Obter o ArrayBuffer da imagem
-    const imageBuffer = await imageResponse.arrayBuffer();
-    
-    // 3. Gerar um nome de arquivo com a extensão correta
+    // **LÓGICA SIMPLIFICADA: APENAS UPLOAD**
+    const buffer = new Uint8Array(imageBuffer);
     const fileExt = contentType.split('/')[1] || 'jpg';
     const fileName = `blog-${Date.now()}.${fileExt}`;
     const filePath = `blog-images/${fileName}`;
     
-    // 4. Upload para o Supabase Storage com o tipo de conteúdo correto
     const { error: uploadError } = await supabaseServiceRole.storage
         .from('product-images')
-        .upload(filePath, imageBuffer, {
-            contentType: contentType, // Usar o tipo de conteúdo real
+        .upload(filePath, buffer, {
+            contentType: contentType,
             upsert: true,
         });
 
-    if (uploadError) {
-        throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
-    }
+    if (uploadError) throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
 
-    // 5. Gerar um link seguro (Signed URL) com longa duração (10 anos)
-    const tenYearsInSeconds = 10 * 365 * 24 * 60 * 60;
-    const { data, error: signedUrlError } = await supabaseServiceRole.storage
+    // Gerar um link público (já que a política foi definida como pública)
+    const { data } = supabaseServiceRole.storage
       .from('product-images')
-      .createSignedUrl(filePath, tenYearsInSeconds);
-
-    if (signedUrlError) {
-      throw new Error(`Falha ao criar URL assinada: ${signedUrlError.message}`);
-    }
+      .getPublicUrl(filePath);
         
-    const optimizedUrl = data.signedUrl;
+    const publicUrl = data.publicUrl;
 
     return new Response(JSON.stringify({ 
         success: true, 
-        optimizedUrl: optimizedUrl,
+        optimizedUrl: publicUrl,
         altText: altText
-    }), {
-      headers: corsHeaders,
-      status: 200,
-    });
+    }), { headers: corsHeaders, status: 200 });
 
   } catch (error) {
-    console.error('Edge Function Error (Catch Block):', error)
-    return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), {
-      headers: corsHeaders,
-      status: 500,
-    })
+    console.error('Edge Function Error (Catch Block):', error);
+    return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), { headers: corsHeaders, status: 500 });
   }
-})
+});

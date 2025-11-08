@@ -2,6 +2,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+// @ts-ignore
+import { toByteArray } from 'https://deno.land/std@0.190.0/encoding/base64.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,23 +20,15 @@ const supabaseServiceRole = createClient(
   { auth: { persistSession: false } }
 )
 
-// Função auxiliar para traduzir texto usando OpenAI
 // @ts-ignore
 async function translateToPortuguese(text: string): Promise<string> {
     // @ts-ignore
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-        console.warn('OPENAI_API_KEY não configurada. Retornando texto original.');
-        return text;
-    }
-    
+    if (!OPENAI_API_KEY) return text;
     try {
         const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 messages: [
@@ -44,18 +38,9 @@ async function translateToPortuguese(text: string): Promise<string> {
                 temperature: 0.1,
             }),
         });
-
-        if (!aiResponse.ok) {
-            console.error("OpenAI Translation API Error:", aiResponse.statusText);
-            const errorBody = await aiResponse.json();
-            console.error("OpenAI Translation Error Body:", errorBody);
-            return text;
-        }
-        
+        if (!aiResponse.ok) return text;
         const aiData = await aiResponse.json();
-        const translatedText = aiData.choices[0].message.content.trim().replace(/^"|"$/g, ''); // Remove aspas
-        return translatedText;
-        
+        return aiData.choices[0].message.content.trim().replace(/^"|"$/g, '');
     } catch (e) {
         console.error("Translation failed:", e);
         return text;
@@ -64,101 +49,59 @@ async function translateToPortuguese(text: string): Promise<string> {
 
 // @ts-ignore
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   
   try {
-    const { method } = req
+    if (req.method !== 'POST') return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: corsHeaders });
     
-    if (method !== 'POST') {
-        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: corsHeaders })
-    }
-    
-    const { prompt } = await req.json()
-    
-    if (!prompt) {
-        return new Response(JSON.stringify({ success: false, error: 'Prompt de busca ausente.' }), { status: 400, headers: corsHeaders })
-    }
+    const { prompt } = await req.json();
+    if (!prompt) return new Response(JSON.stringify({ success: false, error: 'Prompt de busca ausente.' }), { status: 400, headers: corsHeaders });
 
-    // 1. Obter a chave de acesso do Unsplash
     // @ts-ignore
     const UNSPLASH_ACCESS_KEY = Deno.env.get('UNSPLASH_ACCESS_KEY');
-    if (!UNSPLASH_ACCESS_KEY) {
-        console.error('ERRO CRÍTICO: UNSPLASH_ACCESS_KEY não configurada.');
-        throw new Error('UNSPLASH_ACCESS_KEY não configurada como secret.');
-    }
+    if (!UNSPLASH_ACCESS_KEY) throw new Error('UNSPLASH_ACCESS_KEY não configurada como secret.');
     
-    // 2. Construir a URL de busca do Unsplash
-    const query = encodeURIComponent(`${prompt} moçambique e-commerce`); // Adicionando contexto local
+    const query = encodeURIComponent(`${prompt} moçambique e-commerce`);
     const unsplashUrl = `https://api.unsplash.com/search/photos?query=${query}&per_page=1&orientation=landscape`;
-    console.log(`DEBUG: Buscando no Unsplash com query: ${query}`);
 
-    // 3. Fazer a requisição
-    const unsplashResponse = await fetch(unsplashUrl, {
-        headers: {
-            'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}`,
-        },
-    });
-
-    if (!unsplashResponse.ok) {
-        const errorBody = await unsplashResponse.json();
-        console.error("Unsplash API Error:", errorBody);
-        throw new Error(`Falha na API do Unsplash: ${unsplashResponse.statusText}`);
-    }
+    const unsplashResponse = await fetch(unsplashUrl, { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } });
+    if (!unsplashResponse.ok) throw new Error(`Falha na API do Unsplash: ${unsplashResponse.statusText}`);
     
     const unsplashData = await unsplashResponse.json();
-    
-    if (unsplashData.results.length === 0) {
-        console.warn('Nenhuma imagem encontrada para o prompt.');
-        return new Response(JSON.stringify({ success: false, error: 'Nenhuma imagem encontrada para o prompt.' }), {
-            headers: corsHeaders,
-            status: 404,
-        });
-    }
+    if (unsplashData.results.length === 0) return new Response(JSON.stringify({ success: false, error: 'Nenhuma imagem encontrada para o prompt.' }), { status: 404, headers: corsHeaders });
     
     const imageResult = unsplashData.results[0];
     const imageUrl = imageResult.urls.regular;
     const rawAlt = imageResult.alt_description || prompt;
-    
-    console.log(`DEBUG: Imagem encontrada. URL: ${imageUrl}`);
-
-    // 4. Traduzir o Alt Text para o português
     const translatedAlt = await translateToPortuguese(rawAlt);
-    console.log(`DEBUG: Alt Text traduzido: ${translatedAlt}`);
-    
-    // 5. Invocar a função 'image-optimizer' para baixar, salvar e retornar uma URL segura
+
+    // **NOVA ETAPA: BAIXAR A IMAGEM AQUI**
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) throw new Error(`Falha ao baixar a imagem do Unsplash: ${imageResponse.statusText}`);
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+    // Invocar a função 'image-optimizer' com os dados da imagem, não a URL
     const { data: optimizerData, error: optimizerError } = await supabaseServiceRole.functions.invoke('image-optimizer', {
         method: 'POST',
         body: {
-            imageUrl: imageUrl,
+            imageBuffer: Array.from(new Uint8Array(imageBuffer)), // Enviar como array de bytes
+            contentType: contentType,
             altText: translatedAlt,
         }
     });
 
-    if (optimizerError) {
-        throw new Error(`Falha na função de otimização de imagem: ${optimizerError.message}`);
-    }
-
-    if (!optimizerData.success) {
-        throw new Error(`Erro na otimização da imagem: ${optimizerData.error}`);
-    }
+    if (optimizerError) throw new Error(`Falha na função de otimização de imagem: ${optimizerError.message}`);
+    if (!optimizerData.success) throw new Error(`Erro na otimização da imagem: ${optimizerData.error}`);
     
-    // 6. Retornar a URL otimizada e segura do nosso próprio armazenamento
     return new Response(JSON.stringify({ 
         success: true, 
         imageUrl: optimizerData.optimizedUrl,
         imageAlt: optimizerData.altText 
-    }), {
-      headers: corsHeaders,
-      status: 200,
-    });
+    }), { headers: corsHeaders, status: 200 });
 
   } catch (error) {
-    console.error('Edge Function Error (Catch Block):', error)
-    return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), {
-      headers: corsHeaders,
-      status: 500,
-    })
+    console.error('Edge Function Error (Catch Block):', error);
+    return new Response(JSON.stringify({ success: false, error: error.message || 'Internal Server Error' }), { headers: corsHeaders, status: 500 });
   }
-})
+});
