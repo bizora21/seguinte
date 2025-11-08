@@ -40,27 +40,41 @@ serve(async (req) => {
       log(`Starting full generation for: "${keyword}"`);
 
       const prompt = `
-        Você é um especialista de classe mundial em SEO e marketing de conteúdo para o mercado de Moçambique, focado em criar artigos que se classificam no Google e são otimizados para o Google Discover.
-        Sua tarefa é gerar um artigo completo, humanizado e de alta qualidade sobre o tópico "${keyword}".
-        - Público-alvo: "${audience}"
-        - Contexto local: "${context}"
-        - Formato: "${type}"
+        **INSTRUÇÃO CRÍTICA E INEGOCIÁVEL**
 
-        REQUISITOS OBRIGATÓRIOS:
-        1.  **Qualidade do Conteúdo**: O texto deve ser 100% humanizado, envolvente, prático e demonstrar E-E-A-T (Experiência, Especialização, Autoridade, Confiança). Mínimo de 1500 palavras.
-        2.  **Formato HTML**: O conteúdo principal deve estar em HTML, usando tags <h2>, <h3>, <p>, <ul>, <li>, e <strong>.
-        3.  **SEO Completo**: Todos os campos do JSON devem ser preenchidos de forma otimizada.
+        Você é um copywriter sênior e estratega de SEO para o mercado de Moçambique. Sua missão é produzir um artigo de classe mundial, 100% humanizado, e otimizado para SEO sobre o tópico: "${keyword}".
 
-        Sua resposta DEVE ser um único objeto JSON com a seguinte estrutura:
+        **Público-Alvo:** "${audience}"
+        **Contexto Local:** "${context}"
+        **Formato do Artigo:** "${type}"
+
+        **REGRAS ABSOLUTAS QUE NÃO PODEM SER IGNORADAS:**
+
+        1.  **NÃO REPITA O TÍTULO NA INTRODUÇÃO:** O campo \`content_html\` **NÃO DEVE** começar com uma tag \`<h1>\`. O artigo deve começar diretamente com o primeiro parágrafo da introdução. O título pertence apenas ao campo \`title\`.
+
+        2.  **CONTEÚDO PROFUNDO E HUMANIZADO (MÍNIMO 1200 PALAVRAS):**
+            *   Escreva como um especialista humano para outro humano. Use um tom conversacional e envolvente.
+            *   Forneça insights práticos, exemplos locais de Moçambique e conselhos acionáveis.
+            *   Estruture o artigo de forma lógica: introdução cativante, desenvolvimento com subtítulos (<h2>, <h3>), e uma conclusão forte.
+            *   A profundidade e a qualidade são mais importantes que a contagem de palavras, mas o mínimo absoluto é 1200 palavras.
+
+        3.  **FORMATO HTML PERFEITO:** O campo \`content_html\` deve ser um HTML válido, usando apenas as tags <p>, <h2>, <h3>, <ul>, <li>, e <strong>.
+
+        4.  **SEO COMPLETO E OTIMIZADO:** Todos os campos do JSON de saída devem ser preenchidos com qualidade profissional.
+
+        **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
+
+        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional antes ou depois.
+
         {
-          "title": "Um título H1 otimizado para SEO (60-70 caracteres).",
-          "meta_description": "Uma meta descrição otimizada e persuasiva (150-160 caracteres).",
-          "content_html": "O artigo completo em HTML (mínimo 1500 palavras).",
-          "image_prompt": "Um prompt curto e descritivo em INGLÊS para buscar uma imagem de alta qualidade no Unsplash. Ex: 'entrepreneur in Maputo working on a laptop'.",
-          "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, otimizado para SEO.",
-          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes"],
-          "internal_links": [{ "title": "Sugestão de Título de Artigo Interno", "url": "/blog/slug-sugerido" }],
-          "external_links": [{ "title": "Nome do Site de Referência", "url": "https://exemplo.com" }],
+          "title": "Um título H1 otimizado para SEO (60-70 caracteres), magnético e que gere cliques.",
+          "meta_description": "Uma meta descrição otimizada e persuasiva (150-160 caracteres) que incentive o clique no SERP.",
+          "content_html": "O artigo completo em HTML (mínimo 1200 palavras), começando com um parágrafo, não com um título.",
+          "image_prompt": "Um prompt curto e descritivo em INGLÊS para o Unsplash. Ex: 'young mozambican entrepreneur working on a laptop in a modern Maputo office'.",
+          "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, descritivo e otimizado para SEO.",
+          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes e semânticas"],
+          "internal_links": [{ "title": "Sugestão de Título de Artigo Interno Relevante", "url": "/blog/slug-sugerido" }],
+          "external_links": [{ "title": "Nome de um Site de Referência de Alta Autoridade", "url": "https://exemplo.com" }],
           "structured_data": {
             "@context": "https://schema.org",
             "@type": "BlogPosting",
@@ -96,14 +110,13 @@ serve(async (req) => {
       const imageResponse = await fetch(imageUrl)
       const imageBlob = await imageResponse.blob()
       
-      // 🔥 CORREÇÃO DEFINITIVA: Sanitização robusta do nome do ficheiro
       const sanitizedTitle = (generated.title || keyword)
         .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
-        .replace(/[^a-z0-9\s-]/g, '') // Remove caracteres não alfanuméricos
-        .replace(/\s+/g, '-') // Substitui espaços por hífens
-        .replace(/-+/g, '-') // Remove hífens duplicados
-        .substring(0, 50); // Limita o comprimento
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .substring(0, 50);
 
       const imagePath = `${Date.now()}-${sanitizedTitle}.jpg`
       
