@@ -11,26 +11,10 @@ import {
   Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag
 } from 'lucide-react'
 import { ContentDraft, BlogCategory, LocalDraftState } from '../../../types/blog'
-import { generateHTML } from '@tiptap/html'
-import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
-import Image from '@tiptap/extension-image'
-import TextAlign from '@tiptap/extension-text-align'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion'
 import { Textarea } from '../../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
 import OptimizedImageUpload from '../OptimizedImageUpload'
-
-const extensions = [
-  StarterKit.configure({
-    heading: {
-      levels: [1, 2, 3, 4],
-    },
-  }),
-  Link,
-  Image,
-  TextAlign,
-];
 
 interface SidebarProps {
   isOpen: boolean
@@ -45,8 +29,8 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onUpdateDraft, onGenerateWithAI, wordCount }) => {
   
   const seoAnalysis = useMemo(() => {
-    const htmlContent = draft.content ? generateHTML(draft.content as any, extensions) : '';
-    const contentText = htmlContent.replace(/<[^>]*>/g, ' ') || ''
+    // CORREÇÃO: draft.content já é HTML. Apenas removemos as tags para análise de texto.
+    const contentText = (draft.content || '').replace(/<[^>]*>/g, ' ') || ''
     
     const keyword = draft.keyword || ''
     const keywordCount = keyword 
