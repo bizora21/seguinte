@@ -75,33 +75,41 @@ const OptimizedImageUpload = ({
 
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      // Otimizar imagem antes do upload
-      const optimizedFile = await optimizeImage(file)
+      const optimizedFile = await optimizeImage(file);
       
-      const fileExt = 'jpg' // Sempre JPG após otimização
-      const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
-      const filePath = `blog-images/${fileName}`
+      const fileExt = 'jpg';
+      const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `blog-images/${fileName}`;
+      const bucket = 'product-images';
 
-      // Nota: O bucket 'product-images' é usado para blog-images também.
+      // 1. Upload the file
       const { error: uploadError } = await supabase.storage
-        .from('product-images') 
-        .upload(filePath, optimizedFile)
+        .from(bucket)
+        .upload(filePath, optimizedFile);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError)
-        return null
+        console.error('Upload error:', uploadError);
+        throw new Error('Falha no upload do arquivo.');
       }
 
-      const { data } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath)
+      // 2. Call the edge function to get a signed URL
+      const { data, error: functionError } = await supabase.functions.invoke('get-signed-url', {
+        method: 'POST',
+        body: { bucket, filePath }
+      });
 
-      return data.publicUrl
+      if (functionError) {
+        console.error('Function error:', functionError);
+        throw new Error('Falha ao obter URL segura da imagem.');
+      }
+
+      return data.signedUrl;
+
     } catch (error) {
-      console.error('Image optimization error:', error)
-      return null
+      console.error('Upload process error:', error);
+      return null;
     }
-  }
+  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
