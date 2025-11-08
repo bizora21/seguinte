@@ -3,57 +3,63 @@ import { useDropzone } from 'react-dropzone'
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
-import { showSuccess, showError } from '../utils/toast'
+import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
-interface CloudinaryImageUploadProps {
+interface SupabaseImageUploadProps {
   value: string[]
   onChange: (urls: string[]) => void
+  bucket: string
+  folder?: string
   maxImages?: number
   maxSizeMB?: number
-  folder?: string
 }
 
-const CloudinaryImageUpload = ({ 
+const SupabaseImageUpload = ({ 
   value = [], 
   onChange, 
+  bucket,
+  folder = '',
   maxImages = 2, 
   maxSizeMB = 2,
-  folder = 'products'
-}: CloudinaryImageUploadProps) => {
+}: SupabaseImageUploadProps) => {
+  const { user } = useAuth()
   const [uploading, setUploading] = useState(false)
   const defaultImage = '/placeholder.svg'
 
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
   const uploadImage = async (file: File): Promise<string | null> => {
-    if (!cloudName || !uploadPreset) {
-      console.error("Cloudinary Cloud Name ou Upload Preset não estão configurados.")
-      showError("Configuração do Cloudinary incompleta.")
+    if (!user) {
+      showError("Você precisa estar logado para fazer upload.")
       return null
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', uploadPreset)
-    formData.append('folder', folder)
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}_${Date.now()}.${fileExt}`
+    const filePath = folder ? `${folder}/${fileName}` : fileName
+
+    const toastId = showLoading('Enviando imagem...')
+    setUploading(true)
 
     try {
-      setUploading(true)
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      })
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file)
 
-      if (!response.ok) {
-        throw new Error('Falha no upload da imagem.')
+      if (uploadError) {
+        throw uploadError
       }
 
-      const data = await response.json()
-      return data.secure_url
-    } catch (error) {
-      console.error('Erro no upload para o Cloudinary:', error)
-      showError('Erro ao fazer upload da imagem.')
+      const { data } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath)
+      
+      dismissToast(toastId)
+      return data.publicUrl
+    } catch (error: any) {
+      dismissToast(toastId)
+      console.error('Erro no upload para o Supabase:', error)
+      showError('Erro ao fazer upload da imagem: ' + error.message)
       return null
     } finally {
       setUploading(false)
@@ -74,7 +80,7 @@ const CloudinaryImageUpload = ({
       onChange([...value, url])
       showSuccess('Imagem adicionada com sucesso!')
     }
-  }, [value, onChange, maxImages])
+  }, [value, onChange, maxImages, bucket, folder])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -150,4 +156,4 @@ const CloudinaryImageUpload = ({
   )
 }
 
-export default CloudinaryImageUpload
+export default SupabaseImageUpload

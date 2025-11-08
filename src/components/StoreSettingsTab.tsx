@@ -10,7 +10,7 @@ import { Checkbox } from './ui/checkbox'
 import { Settings, Save, Store, AlertTriangle, MapPin, Truck } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import CloudinaryImageUpload from './CloudinaryImageUpload' // ATUALIZADO
+import SupabaseImageUpload from './SupabaseImageUpload' // ATUALIZADO
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -176,12 +176,13 @@ const StoreSettingsTab = () => {
               </div>
               <div className="space-y-2">
                 <Label>Logo da Loja</Label>
-                <CloudinaryImageUpload
+                <SupabaseImageUpload
                   value={storeLogo}
                   onChange={setStoreLogo}
+                  bucket="product-images"
+                  folder="logos"
                   maxImages={1}
                   maxSizeMB={1}
-                  folder="logos"
                 />
               </div>
             </div>

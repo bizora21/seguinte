@@ -32,9 +32,6 @@ const OptimizedImageUpload = ({
   const [activeTab, setActiveTab] = useState<'ai' | 'upload'>('ai')
   const [imageStatus, setImageStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
 
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
   useEffect(() => {
     if (value) {
       setImageStatus('loading');
@@ -44,75 +41,51 @@ const OptimizedImageUpload = ({
   }, [value]);
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    if (!cloudName || !uploadPreset) {
-      console.error("Cloudinary Cloud Name ou Upload Preset não estão configurados.")
-      showError("Configuração do Cloudinary incompleta.")
-      return null
-    }
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', uploadPreset)
-    formData.append('folder', 'blog-images') // Pasta específica para o blog
-
+    setUploading(true)
+    const toastId = showLoading('Enviando imagem...')
+    
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      })
+      const fileExt = file.name.split('.').pop()
+      const fileName = `blog-manual-${Date.now()}.${fileExt}`
+      const filePath = `blog-images/${fileName}`
+      const bucket = 'product-images'
 
-      if (!response.ok) {
-        throw new Error('Falha no upload da imagem.')
-      }
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file)
 
-      const data = await response.json()
-      return data.secure_url
-    } catch (error) {
-      console.error('Erro no upload para o Cloudinary:', error)
-      showError('Erro ao fazer upload da imagem.')
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath)
+      
+      dismissToast(toastId)
+      return data.publicUrl
+    } catch (error: any) {
+      dismissToast(toastId)
+      showError('Erro ao fazer upload: ' + error.message)
       return null
+    } finally {
+      setUploading(false)
     }
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
-
     const file = acceptedFiles[0]
-    
-    if (!file.type.startsWith('image/')) {
-      showError('Apenas imagens são aceitas')
-      return
-    }
-
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      showError('Imagem muito grande. Máximo 10MB.')
-      return
-    }
-
-    setUploading(true)
-    const toastId = showLoading('Fazendo upload da imagem...')
-
     const url = await uploadImage(file)
-    
-    dismissToast(toastId)
-    
     if (url) {
       onImageChange(url)
       const suggestedAlt = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
       onAltTextChange(suggestedAlt)
       showSuccess('Imagem carregada com sucesso!')
-    } else {
-      showError('Erro ao fazer upload da imagem')
     }
-
-    setUploading(false)
   }, [onImageChange, onAltTextChange])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
-    },
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     maxSize: 10 * 1024 * 1024,
     maxFiles: 1,
     disabled: uploading
@@ -125,10 +98,10 @@ const OptimizedImageUpload = ({
     }
 
     setGenerating(true)
-    const toastId = showLoading('Buscando imagem no Unsplash...')
+    const toastId = showLoading('Gerando imagem com Google Gemini...')
 
     try {
-      const response = await supabase.functions.invoke('unsplash-image-generator', {
+      const response = await supabase.functions.invoke('gemini-image-generator', {
         method: 'POST',
         body: { prompt: imagePrompt.trim() }
       })
@@ -138,19 +111,19 @@ const OptimizedImageUpload = ({
       const result = response.data as { success: boolean, imageUrl: string, imageAlt: string }
       
       if (!result.success || !result.imageUrl) {
-        throw new Error('Nenhuma imagem relevante encontrada no Unsplash.')
+        throw new Error('Nenhuma imagem relevante foi gerada.')
       }
       
       onImageChange(result.imageUrl)
       onAltTextChange(result.imageAlt)
       
       dismissToast(toastId)
-      showSuccess('Imagem do Unsplash carregada com sucesso!')
+      showSuccess('Imagem gerada com Gemini e salva com sucesso!')
       
     } catch (error: any) {
       dismissToast(toastId)
       console.error('Error generating image:', error)
-      showError(`Falha ao buscar imagem: ${error.message || 'Erro de conexão.'}`)
+      showError(`Falha ao gerar imagem: ${error.message || 'Erro de conexão.'}`)
     } finally {
       setGenerating(false)
     }
@@ -169,7 +142,7 @@ const OptimizedImageUpload = ({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="ai" className="flex items-center">
               <Zap className="w-4 h-4 mr-2" />
-              Buscar no Unsplash
+              Gerar com Gemini
             </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center">
               <Upload className="w-4 h-4 mr-2" />
@@ -179,7 +152,7 @@ const OptimizedImageUpload = ({
 
           <TabsContent value="ai" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="imagePrompt">Prompt de Busca (Ex: "vendedor moçambicano", "e-commerce")</Label>
+              <Label htmlFor="imagePrompt">Prompt para Gemini (Ex: "vendedor moçambicano", "e-commerce")</Label>
               <Input
                 id="imagePrompt"
                 value={imagePrompt}
@@ -194,9 +167,9 @@ const OptimizedImageUpload = ({
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               {generating ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Buscando...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Gerando...</>
               ) : (
-                <><Zap className="w-4 h-4 mr-2" /> Buscar Imagem</>
+                <><Zap className="w-4 h-4 mr-2" /> Gerar Imagem</>
               )}
             </Button>
           </TabsContent>

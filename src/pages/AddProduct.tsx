@@ -9,7 +9,7 @@ import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 import { showSuccess, showError } from '../utils/toast'
 import { ArrowLeft } from 'lucide-react'
-import CloudinaryImageUpload from '../components/CloudinaryImageUpload'
+import SupabaseImageUpload from '../components/SupabaseImageUpload'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const CATEGORIES = [
@@ -284,12 +284,13 @@ const AddProduct = () => {
 
               <div className="space-y-2">
                 <Label>Imagens do Produto *</Label>
-                <CloudinaryImageUpload
+                <SupabaseImageUpload
                   value={formData.images}
                   onChange={handleImagesChange}
+                  bucket="product-images"
+                  folder="public"
                   maxImages={2}
                   maxSizeMB={1}
-                  folder="products"
                 />
                 <p className="text-sm text-gray-500">
                   Envie até 2 imagens. A primeira imagem será a principal.
