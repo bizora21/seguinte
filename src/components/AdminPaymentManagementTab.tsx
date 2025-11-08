@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
@@ -7,22 +7,46 @@ import { getPendingPaymentProofs, approvePaymentProof, rejectPaymentProof, Payme
 import LoadingSpinner from './LoadingSpinner'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog'
+import { supabase } from '../lib/supabase' // Importar supabase
 
 const AdminPaymentManagementTab = () => {
   const [pendingProofs, setPendingProofs] = useState<PaymentProof[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchProofs()
-  }, [])
-
-  const fetchProofs = async () => {
+  const fetchProofs = useCallback(async () => {
     setLoading(true)
     const proofs = await getPendingPaymentProofs()
     setPendingProofs(proofs)
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchProofs()
+
+    // 🔥 NOVO: Configurar subscrição em tempo real
+    const channel = supabase
+      .channel('admin_payment_proofs')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'admin_notifications',
+          filter: 'type=eq.payment_proof_submitted'
+        },
+        (payload) => {
+          console.log('Realtime: Novo comprovativo de pagamento recebido!', payload)
+          showSuccess('Novo comprovativo de pagamento recebido!')
+          fetchProofs() // Recarrega a lista
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchProofs])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {

@@ -6,7 +6,7 @@ import { Message, MessageWithSender, ChatWithDetails } from '../types/chat'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { ArrowLeft, Send, User, Store } from 'lucide-react'
+import { ArrowLeft, Send, User, Store, Wifi, WifiOff, Loader2 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const Chat = () => {
@@ -18,6 +18,7 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error'>('connecting')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -30,7 +31,9 @@ const Chat = () => {
     const subscription = setupRealtimeSubscription()
 
     return () => {
-      subscription.unsubscribe()
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [chatId, user])
 
@@ -79,7 +82,8 @@ const Chat = () => {
   }
 
   const setupRealtimeSubscription = () => {
-    console.log(`🔧 Setting up realtime subscription for chat ${chatId} as user ${user?.id}`)
+    console.log(`[Chat Realtime] 🔧 Configurando subscrição para chat ${chatId}`)
+    setRealtimeStatus('connecting')
     
     const channel = supabase
       .channel(`chat-${chatId}`)
@@ -92,13 +96,11 @@ const Chat = () => {
           filter: `chat_id=eq.${chatId}`
         },
         async (payload) => {
-          console.log('📨 New message received via realtime:', payload)
+          console.log('[Chat Realtime] 📨 Nova mensagem recebida:', payload)
           
           const newMessage = payload.new as Message
           
           if (newMessage.sender_id !== user?.id) {
-            console.log(`📬 Message from another user: ${newMessage.sender_id}`)
-            
             const { data: senderData } = await supabase
               .from('profiles')
               .select('email, store_name')
@@ -110,35 +112,25 @@ const Chat = () => {
               sender: senderData || { email: 'Desconhecido' }
             }
 
-            console.log('✅ Adding message to state:', messageWithSender)
-            setMessages(prev => {
-              const updated = [...prev, messageWithSender]
-              console.log('📝 Updated messages list:', updated)
-              return updated
-            })
-          } else {
-            console.log('📤 This is my own message, not adding to realtime')
+            setMessages(prev => [...prev, messageWithSender])
           }
         }
       )
       .subscribe((status) => {
-        console.log(`📡 Subscription status: ${status}`)
+        console.log(`[Chat Realtime] 📡 Status da subscrição: ${status}`)
         if (status === 'SUBSCRIBED') {
-          console.log(`✅ Realtime subscription active for chat ${chatId}`)
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Realtime subscription error')
+          setRealtimeStatus('connected')
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setRealtimeStatus('error')
         }
       })
 
-    console.log('🔗 Channel created:', channel)
     return channel
   }
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !chatId) return
     setSending(true)
-
-    console.log(`📤 Sending message: "${newMessage.trim()}" from user ${user.id}`)
 
     const optimisticMessage: MessageWithSender = {
       id: Date.now().toString(),
@@ -152,11 +144,7 @@ const Chat = () => {
       }
     }
     
-    setMessages(prev => {
-      const updated = [...prev, optimisticMessage]
-      console.log('📝 Added optimistic message:', updated)
-      return updated
-    })
+    setMessages(prev => [...prev, optimisticMessage])
     setNewMessage('')
 
     try {
@@ -169,10 +157,8 @@ const Chat = () => {
         })
 
       if (error) {
-        console.error('❌ Error sending message:', error)
+        console.error('❌ Erro ao enviar mensagem:', error)
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id))
-      } else {
-        console.log('✅ Message sent successfully')
       }
     } finally {
       setSending(false)
@@ -206,14 +192,20 @@ const Chat = () => {
                 <div>
                   <CardTitle className="text-lg flex items-center">
                     {otherUserType === 'seller' ? <Store className="w-5 h-5 mr-2" /> : <User className="w-5 h-5 mr-2" />}
-                    {/* 🔥 CORREÇÃO: Verificação defensiva com optional chaining */}
                     {otherUser?.store_name || otherUser?.email?.split('@')[0] || 'Usuário'}
                   </CardTitle>
                   <p className="text-sm text-gray-600">
-                    {/* 🔥 CORREÇÃO: Verificação defensiva */}
                     Sobre: {chat.product?.name || 'Produto'}
                   </p>
                 </div>
+              </div>
+              <div className="flex items-center text-xs space-x-1">
+                {realtimeStatus === 'connected' && <Wifi className="w-4 h-4 text-green-600" />}
+                {realtimeStatus === 'error' && <WifiOff className="w-4 h-4 text-red-600" />}
+                {realtimeStatus === 'connecting' && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span className={realtimeStatus === 'error' ? 'text-red-600' : 'text-gray-500'}>
+                  {realtimeStatus === 'connected' ? 'Online' : realtimeStatus === 'error' ? 'Erro' : 'Conectando...'}
+                </span>
               </div>
             </div>
           </CardHeader>

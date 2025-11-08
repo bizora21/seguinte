@@ -8,7 +8,6 @@ import { DollarSign, Phone, CheckCheck, Upload, FileText, X, TrendingUp } from '
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { useDropzone } from 'react-dropzone'
 
 interface Commission {
@@ -31,12 +30,10 @@ const SellerFinanceTab = () => {
   const [totalOwed, setTotalOwed] = useState(0)
   const [loading, setLoading] = useState(true)
   
-  // New state for payment proof submission
   const [file, setFile] = useState<File | null>(null)
   const [amountPaid, setAmountPaid] = useState('')
   const [submittingPayment, setSubmittingPayment] = useState(false)
 
-  // Número de telefone para pagamento M-Pesa/eMola
   const PAYMENT_PHONE = '846843135'
 
   useEffect(() => {
@@ -64,7 +61,6 @@ const SellerFinanceTab = () => {
 
       setCommissions(data || [])
       
-      // Calcular saldo devedor
       const owed = data?.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0) || 0
       setTotalOwed(owed)
 
@@ -81,18 +77,15 @@ const SellerFinanceTab = () => {
 
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}_${Date.now()}.${fileExt}`
-    const filePath = `proofs/${fileName}`
+    // O caminho agora inclui o ID do usuário como uma pasta para corresponder à política de RLS
+    const filePath = `${user.id}/${fileName}`
     
     const toastId = showLoading('Fazendo upload do comprovante...')
 
     try {
-      // 1. Upload file to Supabase Storage (Bucket: payment-proofs)
       const { error: uploadError } = await supabase.storage
         .from('payment-proofs')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        })
+        .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
@@ -102,8 +95,7 @@ const SellerFinanceTab = () => {
         
       const proofUrl = publicUrlData.publicUrl
 
-      // 2. Insert record into seller_payment_proofs
-      const { error: insertError } = await supabase
+      const { data: proofRecord, error: insertError } = await supabase
         .from('seller_payment_proofs')
         .insert({
           seller_id: user.id,
@@ -111,13 +103,21 @@ const SellerFinanceTab = () => {
           amount_paid: parseFloat(amountPaid),
           status: 'pending'
         })
+        .select('id')
+        .single()
 
       if (insertError) throw insertError
+
+      // 🔥 NOVO: Gerar notificação para o admin
+      await supabase.from('admin_notifications').insert({
+        message: `O vendedor ${user.profile?.store_name || user.email} enviou um comprovativo de ${formatPrice(parseFloat(amountPaid))}.`,
+        type: 'payment_proof_submitted',
+        related_id: proofRecord.id
+      })
 
       dismissToast(toastId)
       showSuccess('Comprovante enviado! O administrador irá verificar e aprovar o pagamento.')
       
-      // Clear form and refresh
       setFile(null)
       setAmountPaid('')
       fetchCommissions()
@@ -187,7 +187,6 @@ const SellerFinanceTab = () => {
 
   return (
     <div className="space-y-6">
-      {/* Resumo Financeiro */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -213,7 +212,6 @@ const SellerFinanceTab = () => {
         </CardContent>
       </Card>
 
-      {/* Pagamento de Comissões */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -248,7 +246,6 @@ const SellerFinanceTab = () => {
                 />
               </div>
 
-              {/* Dropzone para Comprovante */}
               <div className="space-y-2">
                 <Label>Anexar Comprovante (Imagem ou PDF) *</Label>
                 <div
@@ -293,7 +290,6 @@ const SellerFinanceTab = () => {
         </CardContent>
       </Card>
 
-      {/* Histórico de Comissões */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
