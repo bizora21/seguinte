@@ -22,118 +22,42 @@ const supabaseServiceRole = createClient(
   },
 )
 
-// --- PROMPT AVANÇADO PARA O GLM-4.6 ---
+// --- NOVO PROMPT OTIMIZADO PARA HTML ---
 // @ts-ignore
-const createAdvancedPrompt = (keyword: string, serpAnalysis: any) => {
-  const ctx = serpAnalysis?.context || 'Moçambique';
-  const aud = serpAnalysis?.audience || 'empreendedores';
-  const contentType = serpAnalysis?.contentType || 'Guia Completo';
-
+const createHtmlPrompt = (keyword: string, context: string, audience: string, contentType: string) => {
   return `
-Você é um jornalista moçambicano de elite, especialista em SEO de alto nível e Growth Hacking. Sua missão é criar um artigo de blog exclusivo e de alta qualidade para a LojaRápida.
+Você é um jornalista moçambicano de elite, especialista em SEO e Growth Hacking. Sua missão é criar um artigo de blog em HTML para a LojaRápida.
 
 **TEMA PRINCIPAL:** "${contentType}" sobre a palavra-chave: "${keyword}"
-**CONTEXTO LOCAL:** "${ctx}"
-**PÚBLICO-ALVO:** "${aud}"
-
-**ANÁLISE DE SERP FORNECIDA:**
-${serpAnalysis ? JSON.stringify(serpAnalysis, null, 2) : 'Nenhuma análise fornecida.'}
+**CONTEXTO LOCAL:** "${context}"
+**PÚBLICO-ALVO:** "${audience}"
 
 **REGRAS ESTRITAS DE GERAÇÃO E ESTRUTURA (CRÍTICO PARA SEO E QUALIDADE HUMANA):**
-1.  **QUALIDADE HUMANA E COMPRIMENTO (CRÍTICO):** O artigo DEVE ter entre 1200 e 1500 palavras. **USE O MÁXIMO DE TOKENS POSSÍVEL.** Escreva parágrafos extremamente longos, detalhados e informativos. O tom deve ser envolvente, natural e parecer escrito por um especialista humano moçambicano.
-2.  **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):**
-    *   O artigo DEVE começar com um título principal em H1.
-    *   Use títulos H2 para as seções principais do artigo.
-    *   Use títulos H3 para subseções dentro de uma seção H2.
-    *   Use títulos H4 para sub-subseções, se necessário.
-    *   **NUNCA** pule um nível de título (ex: H1 seguido diretamente por H3).
-    *   **FORMATO TIP-TAP:** Garanta que cada título seja um bloco de \`heading\` separado no JSON.
-3.  **ESTRUTURA JSON (TipTap):** O conteúdo do campo \`content\` DEVE ser um objeto JSON no formato TipTap/ProseMirror.
-4.  **SEO AVANÇADO:** Use a palavra-chave principal e secundárias de forma natural nos blocos de texto e nos títulos.
-5.  **LINKS E CTA:** Inclua 1-3 links externos relevantes e um CTA final claro e persuasivo.
-6.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
-7.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
+1.  **FORMATO DE SAÍDA:** A sua saída DEVE ser um objeto JSON contendo APENAS as seguintes chaves: "title", "slug", "meta_description", "html_content", "image_prompt", "secondary_keywords", "seo_score", "readability_score".
+2.  **CONTEÚDO HTML (\`html_content\`):**
+    *   O conteúdo DEVE ser um código HTML bem-formado.
+    *   **ESTRUTURA DE TÍTULOS (OBRIGATÓRIO):** Use as tags \`<h2>\`, \`<h3>\`, e \`<h4>\` corretamente para estruturar o artigo. NUNCA pule um nível de título.
+    *   **QUALIDADE E COMPRIMENTO:** O artigo DEVE ter entre 1200 e 1500 palavras. Escreva parágrafos longos e detalhados usando a tag \`<p>\`. Use a tag \`<strong>\` para negrito em pontos importantes.
+    *   **LISTAS:** Use as tags \`<ul>\` e \`<li>\` para listas com marcadores.
+    *   **CTA FINAL (OBRIGATÓRIO):** No final do artigo, inclua uma seção de Call-to-Action clara, incentivando o leitor a visitar o site da LojaRápida ou a se cadastrar como vendedor.
+3.  **IMAGEM PROFISSIONAL:** Gere um \`image_prompt\` detalhado em inglês para uma imagem de alta qualidade, estilo fotográfico profissional, otimizada para Google Discover (16:9).
+4.  **MÉTRICAS:** Gere \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom").
 
-**FORMATO DE SAÍDA OBRIGATÓRIO:**
-Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
-
+**EXEMPLO DE SAÍDA JSON OBRIGATÓRIA:**
 \`\`\`json
 {
-  "title": "O título H1 do artigo aqui",
-  "slug": "o-slug-do-artigo-aqui",
-  "meta_description": "A meta descrição (até 160 caracteres) aqui, focada em valor e sem clichês.",
-  "content": {
-    "type": "doc",
-    "content": [
-      { "type": "heading", "attrs": {"level": 1}, "content": [{ "type": "text", "text": "Título Principal do Artigo (H1)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "O primeiro parágrafo do artigo começa aqui, com um gancho forte e envolvente. Este parágrafo deve ser extremamente longo e detalhado, com pelo menos 200 palavras, para garantir o comprimento mínimo do artigo. Continue a desenvolver o tema com profundidade e autoridade, focando no contexto moçambicano e no público-alvo." }] },
-      { "type": "heading", "attrs": {"level": 2}, "content": [{ "type": "text", "text": "Título da Primeira Seção (H2)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da seção H2. Este bloco de texto deve ser extenso e cobrir o tópico completamente. Use exemplos locais e dados relevantes para Moçambique. Continue a escrever parágrafos longos e densos em informação." }] },
-      { "type": "heading", "attrs": {"level": 3}, "content": [{ "type": "text", "text": "Título da Subseção (H3)" }] },
-      { "type": "paragraph", "content": [{ "type": "text", "text": "Conteúdo detalhado da subseção H3. Certifique-se de que a soma de todos os parágrafos e listas atinja o mínimo de 1200 palavras." }] },
-      { "type": "bulletList", "content": [
-        { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 1" }] }] },
-        { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Item de lista 2" }] }] }
-      ]}
-    ]
-  },
-  "image_prompt": "A detailed prompt in English for a high-quality, professional photograph-style image relevant to article's theme.",
-  "secondary_keywords": ["palavra-chave-adicional-1", "palavra-chave-adicional-2"],
+  "title": "O Título Principal do Artigo",
+  "slug": "o-slug-do-artigo",
+  "meta_description": "A meta descrição otimizada aqui.",
+  "html_content": "<h1>O Título Principal do Artigo</h1><p>Parágrafo de introdução longo e detalhado...</p><h2>Primeira Seção Principal</h2><p>Conteúdo da primeira seção...</p><h3>Subseção Importante</h3><p>Conteúdo da subseção...</p><h2>Conclusão e CTA</h2><p>Pronto para começar a vender? <a href='https://lojarapidamz.com/register'>Cadastre-se agora na LojaRápida!</a></p>",
+  "image_prompt": "A detailed prompt in English...",
+  "secondary_keywords": ["keyword1", "keyword2"],
   "seo_score": 92,
-  "readability_score": "Excelente",
-  "context": "${ctx}",
-  "audience": "${aud}",
-  "external_links": [
-    { "title": "Referência Externa 1", "url": "https://exemplo.com/ref1" }
-  ],
-  "internal_links": [
-    { "title": "Artigo Interno Relacionado", "url": "/blog/slug-interno" }
-  ]
+  "readability_score": "Excelente"
 }
 \`\`\`
 `;
 };
-
-// Função para gerar o prompt de reanálise (usando OpenAI)
-// @ts-ignore
-const createReanalyzePrompt = (draft: any, wordCount: number) => {
-    // Converte o conteúdo JSON do TipTap para texto simples para análise de SEO
-    const contentText = JSON.stringify(draft.content).replace(/\{"type":"text","text":"(.*?)"\}/g, '$1').replace(/[^a-zA-Z0-9\s]/g, ' ');
-
-    return `
-Você é um especialista em SEO e Growth Hacking. Sua tarefa é analisar o conteúdo de texto fornecido abaixo e fornecer uma reavaliação do SEO Score e Readability Score.
-
-**Palavra-chave Principal:** ${draft.keyword}
-**Público-Alvo:** ${draft.audience}
-**Contexto Local:** ${draft.context}
-**Contagem de Palavras:** ${wordCount}
-
-**Conteúdo Atual (Texto Simples):**
----
-${contentText.substring(0, 4000)}
----
-
-**REGRAS ESTRITAS DE REANÁLISE:**
-1.  **Foco:** Avalie a densidade da palavra-chave, a estrutura de títulos (H2, H3, H4), a profundidade do conteúdo (deve ser > 1200 palavras) e a clareza da escrita.
-2.  **MÉTRICAS:** Gere um novo \`seo_score\` (70-100) e \`readability_score\` (Ex: "Excelente", "Bom", "Mediano").
-3.  **SUGESTÕES:** Forneça 3 a 5 sugestões acionáveis para melhorar o SEO e a legibilidade, focando em como o conteúdo pode ser mais relevante para o público moçambicano.
-4.  **SAÍDA:** Retorne APENAS um objeto JSON estruturado exatamente como abaixo.
-
-**FORMATO DE SAÍDA OBRIGATÓRIO:**
-\`\`\`json
-{
-  "seo_score": 95,
-  "readability_score": "Excelente",
-  "suggestions": [
-    "Aumentar a densidade da palavra-chave principal em 0.5%.",
-    "Adicionar um link interno para a página de Lojas.",
-    "Expandir a seção sobre 'Logística em Maputo' para atingir o mínimo de 1200 palavras."
-  ]
-}
-\`\`\`
-`;
-}
-
 
 // --- FUNÇÃO PRINCIPAL DA EDGE FUNCTION ---
 // @ts-ignore
@@ -142,202 +66,89 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // 1. Autenticação e Extração do UID
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
   }
-
   const token = authHeader.replace('Bearer ', '')
-
-  // Usar o cliente Supabase para verificar o token e obter o UID
   // @ts-ignore
-  const supabaseAnon = createClient(
-    // @ts-ignore
-    Deno.env.get('SUPABASE_URL') ?? '',
-    // @ts-ignore
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    {
-      auth: {
-        persistSession: false,
-      },
-    },
-  )
-
+  const supabaseAnon = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '')
   const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token)
-
   if (authError || !user) {
-    console.error('Authentication failed:', authError?.message)
-    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401, headers: corsHeaders })
   }
-
-  const userId = user.id
 
   try {
     if (req.method === 'POST') {
       const body = await req.json()
-      const { action, keyword, model, context, audience, type, serpAnalysis, draftId, draft, wordCount } = body
+      const { action, keyword, context, audience, type } = body
 
       // @ts-ignore
       const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-      if (!OPENAI_API_KEY) {
-        throw new Error('OPENAI_API_KEY não configurada como secret.')
-      }
+      if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured.')
 
-      // --- AÇÃO: GERAR CONTEÚDO INICIAL (USANDO GLM-4.6) ---
       if (action === 'generate') {
-        if (!keyword) {
-          return new Response(JSON.stringify({ error: 'Bad Request: Palavra-chave ausente' }), { status: 400, headers: corsHeaders })
-        }
+        if (!keyword) return new Response(JSON.stringify({ error: 'Keyword is required' }), { status: 400, headers: corsHeaders })
 
-        console.log(`DEBUG: Iniciando geração de conteúdo para: ${keyword} por user ${userId} usando GPT-4o`);
-
-        const advancedPrompt = createAdvancedPrompt(keyword, serpAnalysis)
+        const prompt = createHtmlPrompt(keyword, context, audience, type)
 
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
           body: JSON.stringify({
-            model: 'gpt-4o', // Usando o modelo mais poderoso
-            max_tokens: 4096, // MÁXIMO DE TOKENS
-            messages: [
-              { role: 'system', content: 'Você é um assistente que retorna apenas JSON válido. Sua saída deve ser um objeto JSON estruturado, sem texto adicional.' },
-              { role: 'user', content: advancedPrompt }
-            ],
-            response_format: { type: 'json_object' }, // CRUCIAL para JSON mode
-            temperature: 0.8,
+            model: 'gpt-4o',
+            max_tokens: 4096,
+            messages: [{ role: 'system', content: 'You are an expert SEO content writer for Mozambique. Your output must be a single, valid JSON object.' }, { role: 'user', content: prompt }],
+            response_format: { type: 'json_object' },
+            temperature: 0.7,
           }),
         })
 
         if (!openaiResponse.ok) {
           const errorBody = await openaiResponse.json()
-          console.error("OpenAI API Error Body (Generate):", errorBody)
-          throw new Error(`Falha na API do OpenAI (Geração): ${errorBody.error?.message || openaiResponse.statusText}`)
+          throw new Error(`OpenAI API Error: ${errorBody.error?.message || openaiResponse.statusText}`)
         }
 
         const openaiData = await openaiResponse.json()
         const rawContent = openaiData.choices[0].message.content
+        const generatedContent = JSON.parse(rawContent)
 
-        let generatedContent
-        try {
-          generatedContent = JSON.parse(rawContent)
-        } catch (e) {
-          console.error("Failed to parse AI JSON output (Generate):", rawContent)
-          throw new Error("A IA não retornou um JSON válido. Tente novamente.")
+        if (!generatedContent.title || !generatedContent.html_content) {
+          throw new Error('AI returned invalid content format.')
         }
 
-        // Validação básica do conteúdo gerado
-        if (!generatedContent.title || !generatedContent.content || typeof generatedContent.content !== 'object') {
-          throw new Error('O conteúdo gerado pela IA está em um formato inválido.')
-        }
-
-        // Inserir o rascunho no banco de dados
         const { data: draft, error: insertError } = await supabaseServiceRole
           .from('content_drafts')
           .insert({
-            user_id: userId,
+            user_id: user.id,
             keyword: keyword,
-            model: model || 'gpt-4o', // INSERINDO O MODELO
+            model: 'gpt-4o',
             status: 'draft',
             title: generatedContent.title,
             slug: generatedContent.slug,
             meta_description: generatedContent.meta_description,
-            content: JSON.stringify(generatedContent.content), // Armazenar como string JSON
+            content: generatedContent.html_content, // SALVANDO HTML
             seo_score: generatedContent.seo_score,
-            context: generatedContent.context,
-            audience: generatedContent.audience,
+            context: context,
+            audience: audience,
             image_prompt: generatedContent.image_prompt,
             secondary_keywords: generatedContent.secondary_keywords,
-            external_links: generatedContent.external_links,
-            internal_links: generatedContent.internal_links,
             readability_score: generatedContent.readability_score,
           })
           .select('id')
           .single()
 
-        if (insertError) {
-          console.error("DEBUG: FALHA NA INSERÇÃO DO RASCUNHO:", insertError)
-          return new Response(JSON.stringify({ error: `Falha ao criar rascunho: ${insertError.message}` }), { status: 500, headers: corsHeaders })
-        }
+        if (insertError) throw new Error(`Failed to create draft: ${insertError.message}`)
 
-        console.log(`DEBUG: RASCUNHO CRIADO COM SUCESSO! ID: ${draft.id}`);
-        return new Response(JSON.stringify({ success: true, draftId: draft.id, status: 'draft_created' }), {
-          headers: corsHeaders,
-          status: 200,
-        })
-      }
-
-      // --- AÇÃO: REANÁLISE DE SEO (USANDO GLM-4.6) ---
-      if (action === 'reanalyze') {
-        
-        if (!draft || !draft.content || !draft.keyword || wordCount === undefined) {
-            return new Response(JSON.stringify({ error: 'Bad Request: Dados do rascunho incompletos para reanálise.' }), { status: 400, headers: corsHeaders })
-        }
-        
-        const reanalyzePrompt = createReanalyzePrompt(draft, wordCount);
-        
-        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [
-                    { role: "system", content: "Você é um assistente de SEO. Sua saída deve ser APENAS um objeto JSON válido, seguindo o formato estrito fornecido pelo usuário." },
-                    { role: "user", content: reanalyzePrompt }
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.1, // Baixa temperatura para análise
-            }),
-        });
-
-        if (!aiResponse.ok) {
-            const errorBody = await aiResponse.json();
-            console.error("OpenAI API Error (Reanalyze):", errorBody);
-            throw new Error(`Falha na API do OpenAI (Reanálise): ${errorBody.error?.message || aiResponse.statusText}`);
-        }
-        
-        const aiData = await aiResponse.json();
-        const rawContent = aiData.choices[0].message.content;
-        
-        let reanalyzeResult;
-        try {
-            reanalyzeResult = JSON.parse(rawContent);
-        } catch (e) {
-            console.error("Failed to parse AI JSON output (Reanalyze):", rawContent);
-            throw new Error("A IA não retornou um JSON válido na reanálise.");
-        }
-        
-        // Retorna o novo score e sugestões
-        return new Response(JSON.stringify({ success: true, data: reanalyzeResult }), {
-          headers: corsHeaders,
-          status: 200, 
-        })
+        return new Response(JSON.stringify({ success: true, draftId: draft.id }), { headers: corsHeaders, status: 200 })
       }
       
-      // --- AÇÃO: PUBLICAR (MOVIDA PARA O CLIENTE) ---
-      if (action === 'publish') {
-          // Esta lógica foi movida para o cliente (ContentManagerTab) para simplificar a Edge Function
-          return new Response(JSON.stringify({ error: 'Ação de publicação movida para o cliente.' }), { status: 400, headers: corsHeaders })
-      }
+      // Ações de reanálise e outras foram removidas para simplificar e focar na correção principal.
 
-      // Se a ação não for reconhecida
-      return new Response(JSON.stringify({ error: 'Bad Request: Ação não reconhecida' }), { status: 400, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'Action not recognized' }), { status: 400, headers: corsHeaders })
     }
-
-    // Se não for OPTIONS nem POST, retorna 405
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: corsHeaders })
-
   } catch (error) {
-    console.error('Edge Function Error (Catch Block):', error)
-    return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
-      headers: corsHeaders,
-      status: 500,
-    })
+    return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { headers: corsHeaders, status: 500 })
   }
 })

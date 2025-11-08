@@ -7,8 +7,7 @@ import { ArrowLeft, Calendar, Tag, Link as LinkIcon, ExternalLink, Loader2, Stor
 import { BlogPostWithCategory, LinkItem } from '../types/blog'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { SEO, generateBreadcrumbSchema } from '../components/SEO'
-import TipTapRenderer from '../components/TipTapRenderer' // NOVO IMPORT
-import { JSONContent } from '@tiptap/react' // CORREÇÃO: Importar JSONContent
+import TipTapRenderer from '../components/TipTapRenderer'
 
 const BlogDetail = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -25,13 +24,13 @@ const BlogDetail = () => {
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('published_articles') // MUDANÇA AQUI
+        .from('published_articles')
         .select(`
           *,
           category:blog_categories ( name, slug )
         `)
         .eq('slug', slug)
-        .eq('status', 'published') // Apenas posts publicados
+        .eq('status', 'published')
         .single()
 
       if (error || !data) {
@@ -62,7 +61,6 @@ const BlogDetail = () => {
     }).format(new Date(dateString))
   }
   
-  // Gerar Schema.org BlogPosting
   const generateBlogPostingSchema = useMemo(() => {
     if (!post) return null
     
@@ -134,24 +132,6 @@ const BlogDetail = () => {
   
   const externalLinks: LinkItem[] = (post.external_links as unknown as LinkItem[] || [])
   const internalLinks: LinkItem[] = (post.internal_links as unknown as LinkItem[] || [])
-  
-  // Tenta parsear o conteúdo JSON
-  let contentJson: JSONContent | null = null;
-  try {
-    if (post.content) {
-      contentJson = JSON.parse(post.content);
-    }
-  } catch (e) {
-    console.error("Failed to parse post content JSON:", e);
-    // Se falhar, criamos um JSON básico com o texto
-    contentJson = {
-        type: 'doc',
-        content: [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: post.content || 'Erro ao carregar conteúdo.' }]
-        }]
-    };
-  }
 
   return (
     <>
@@ -208,7 +188,7 @@ const BlogDetail = () => {
 
             <CardContent className="p-6">
               {/* Conteúdo Renderizado pelo TipTapRenderer */}
-              {contentJson && <TipTapRenderer content={contentJson} />}
+              {post.content && <TipTapRenderer content={post.content} />}
               
               {/* Links de Referência e Internos */}
               <div className="mt-10 pt-6 border-t grid grid-cols-1 md:grid-cols-2 gap-6">

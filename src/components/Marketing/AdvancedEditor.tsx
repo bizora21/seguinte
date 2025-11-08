@@ -72,14 +72,8 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
 
   useEffect(() => {
     if (initialDraft) {
-      let contentJson: JSONContent | null = null
-      try {
-        contentJson = initialDraft.content ? JSON.parse(initialDraft.content) : null
-      } catch {}
-      
       setDraft({
         ...initialDraft,
-        content: contentJson,
         seo_score: initialDraft.seo_score || 0,
         readability_score: initialDraft.readability_score || 'N/A',
         secondary_keywords: initialDraft.secondary_keywords || [],
@@ -91,10 +85,10 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
 
   const editor = useEditor({
     extensions: editorExtensions,
-    content: draft?.content || '',
+    content: draft?.content || '', // Passando HTML diretamente
     onUpdate: ({ editor }) => {
       if (draft) {
-        setDraft(prev => prev ? { ...prev, content: editor.getJSON() } : null)
+        setDraft(prev => prev ? { ...prev, content: editor.getHTML() } : null)
       }
     },
     onTransaction: ({ editor }) => {
@@ -109,7 +103,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
   }, [draft?.id])
 
   useEffect(() => {
-    if (editor && draft?.content && JSON.stringify(editor.getJSON()) !== JSON.stringify(draft.content)) {
+    if (editor && draft?.content && editor.getHTML() !== draft.content) {
         editor.commands.setContent(draft.content);
     }
   }, [editor, draft?.content]);
@@ -121,7 +115,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     const toastId = showLoading('Salvando rascunho...')
 
     try {
-      const contentString = JSON.stringify(editor.getJSON())
+      const contentHtml = editor.getHTML()
       
       const { error } = await supabase
         .from('content_drafts')
@@ -129,7 +123,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
           title: draft.title,
           slug: draft.slug,
           meta_description: draft.meta_description,
-          content: contentString,
+          content: contentHtml, // Salvando HTML
           featured_image_url: draft.featured_image_url,
           image_alt_text: draft.image_alt_text,
           secondary_keywords: draft.secondary_keywords,
@@ -169,13 +163,13 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
 
     try {
       await handleSave()
-      const contentString = JSON.stringify(editor.getJSON())
+      const contentHtml = editor.getHTML()
       
       const publishedData = {
         title: draft.title,
         slug: draft.slug,
         meta_description: draft.meta_description,
-        content: contentString,
+        content: contentHtml, // Salvando HTML
         status: 'published',
         featured_image_url: draft.featured_image_url,
         image_alt_text: draft.image_alt_text,
@@ -249,7 +243,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         <div className="flex-1 overflow-y-auto bg-white">
           {isPreviewMode ? (
             <div className="p-6">
-              <TipTapRenderer content={editor.getJSON()} />
+              <TipTapRenderer content={editor.getHTML()} />
             </div>
           ) : (
             <EditorCanvas editor={editor} />

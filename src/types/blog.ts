@@ -17,7 +17,7 @@ export interface BlogPost {
   title: string
   slug: string
   meta_description: string
-  content: string
+  content: string // Alterado de JSON para string HTML
   status: 'draft' | 'published'
   featured_image_url: string | null
   image_alt_text: string | null
@@ -41,7 +41,7 @@ export interface AIGeneratedContent {
   title: string
   slug: string
   meta_description: string
-  content: string
+  content: string // Alterado para string HTML
   image_prompt: string
   secondary_keywords: string[]
   external_links: LinkItem[]
@@ -62,7 +62,7 @@ export interface ContentDraft {
   title: string
   slug: string | null
   meta_description: string | null
-  content: string | null
+  content: string | null // Alterado para string HTML
   featured_image_url: string | null
   image_alt_text: string | null
   external_links: LinkItem[] | null
@@ -77,7 +77,5 @@ export interface ContentDraft {
   published_at: string | null
 }
 
-// Interface auxiliar para o estado local do editor (content é JSONContent)
-export interface LocalDraftState extends Omit<ContentDraft, 'content'> {
-    content: JSONContent | null;
-}
+// Interface auxiliar para o estado local do editor (content é string HTML)
+export interface LocalDraftState extends ContentDraft {}

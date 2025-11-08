@@ -6,7 +6,7 @@ import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
 
 interface TipTapRendererProps {
-  content: JSONContent;
+  content: JSONContent | string; // Aceita JSON ou HTML
 }
 
 const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
@@ -14,7 +14,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3, 4], // Adicionado H4
+          levels: [1, 2, 3, 4],
         },
       }),
       Link.configure({
