@@ -32,6 +32,9 @@ const OptimizedImageUpload = ({
   const [activeTab, setActiveTab] = useState<'ai' | 'upload'>('ai')
   const [imageStatus, setImageStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
 
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
   useEffect(() => {
     if (value) {
       setImageStatus('loading');
@@ -41,30 +44,33 @@ const OptimizedImageUpload = ({
   }, [value]);
 
   const uploadImage = async (file: File): Promise<string | null> => {
+    if (!cloudName || !uploadPreset) {
+      console.error("Cloudinary Cloud Name ou Upload Preset não estão configurados.")
+      showError("Configuração do Cloudinary incompleta.")
+      return null
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', uploadPreset)
+    formData.append('folder', 'blog-images') // Pasta específica para o blog
+
     try {
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `blog-images/${fileName}`;
-      const bucket = 'product-images';
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData,
+      })
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error('Falha no upload do arquivo.');
+      if (!response.ok) {
+        throw new Error('Falha no upload da imagem.')
       }
 
-      const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      return data.publicUrl;
-
+      const data = await response.json()
+      return data.secure_url
     } catch (error) {
-      console.error('Upload process error:', error);
-      return null;
+      console.error('Erro no upload para o Cloudinary:', error)
+      showError('Erro ao fazer upload da imagem.')
+      return null
     }
   };
 
