@@ -33,6 +33,10 @@ const editorExtensions = [
     blockquote: {},
     bulletList: {},
     orderedList: {},
+    // Desabilitar extensões que serão adicionadas separadamente para evitar duplicatas
+    // Esta é a sintaxe correta para desabilitar módulos internos do StarterKit
+    link: false, 
+    image: false,
   }),
   Link.configure({
     openOnClick: false,
