@@ -54,7 +54,7 @@ serve(async (req) => {
     // 3. Gerar um nome de arquivo com a extensão correta
     const fileExt = contentType.split('/')[1] || 'jpg';
     const fileName = `blog-${Date.now()}.${fileExt}`;
-    const filePath = `blog/${fileName}`;
+    const filePath = `blog-images/${fileName}`;
     
     // 4. Upload para o Supabase Storage com o tipo de conteúdo correto
     const { error: uploadError } = await supabaseServiceRole.storage
@@ -68,11 +68,17 @@ serve(async (req) => {
         throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
     }
 
-    const { data: publicUrlData } = supabaseServiceRole.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
+    // 5. Gerar um link seguro (Signed URL) com longa duração (10 anos)
+    const tenYearsInSeconds = 10 * 365 * 24 * 60 * 60;
+    const { data, error: signedUrlError } = await supabaseServiceRole.storage
+      .from('product-images')
+      .createSignedUrl(filePath, tenYearsInSeconds);
+
+    if (signedUrlError) {
+      throw new Error(`Falha ao criar URL assinada: ${signedUrlError.message}`);
+    }
         
-    const optimizedUrl = publicUrlData.publicUrl;
+    const optimizedUrl = data.signedUrl;
 
     return new Response(JSON.stringify({ 
         success: true, 
