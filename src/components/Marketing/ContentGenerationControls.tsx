@@ -106,17 +106,17 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
   }
 
   return (
-    <Card className="border-green-200 bg-green-50">
+    <Card>
       <CardHeader>
-        <CardTitle className="flex items-center text-green-800">
-          <Target className="w-6 h-6 mr-2" />
-          Motor de Conteúdo Nível Profissional
+        <CardTitle className="flex items-center text-xl">
+          <Target className="w-6 h-6 mr-2 text-primary" />
+          Motor de Conteúdo Profissional
         </CardTitle>
-        <p className="text-sm text-green-700">Gere conteúdo otimizado para SEO local, Google Discover e o mercado moçambicano</p>
+        <p className="text-sm text-gray-600">Gere artigos otimizados para SEO local, Google Discover e o mercado moçambicano.</p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Tópico Principal ou Palavra-chave</label>
+          <label className="block text-sm font-medium text-gray-700">Tópico Principal ou Palavra-chave *</label>
           <KeywordSuggester 
             value={keyword} 
             onChange={setKeyword}
@@ -126,7 +126,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         
         <div>
           <h3 className="text-base font-medium text-gray-700 mb-2">Refinamentos (Opcional)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border bg-gray-50 rounded-lg">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 flex items-center"><Users className="w-4 h-4 mr-1" /> Público-Alvo</label>
               <Select value={audience} onValueChange={setAudience}>
@@ -160,7 +160,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
         <Button 
           onClick={generateContent} 
           disabled={generating || !keyword.trim()} 
-          className="w-full bg-green-600 hover:bg-green-700 text-white" 
+          className="w-full bg-primary hover:bg-green-700 text-white" 
           size="lg"
         >
           {generating ? (

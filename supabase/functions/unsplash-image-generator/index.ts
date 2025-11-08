@@ -92,15 +92,10 @@ serve(async (req) => {
 
     if (uploadError) throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
 
-    // **CORREÇÃO DEFINITIVA: Chamar a nova função para obter uma URL assinada e permanente**
-    const signedUrlResponse = await supabaseServiceRole.functions.invoke('get-signed-url', {
-        method: 'POST',
-        body: { bucket, filePath }
-    });
-
-    if (signedUrlResponse.error) throw new Error(`Falha ao obter URL assinada: ${signedUrlResponse.error.message}`);
-    
-    const finalImageUrl = signedUrlResponse.data.signedUrl;
+    // **CORREÇÃO DEFINITIVA: Construir a URL pública diretamente.**
+    // @ts-ignore
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const finalImageUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${filePath}`;
     
     return new Response(JSON.stringify({ 
         success: true, 
