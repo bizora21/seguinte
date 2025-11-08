@@ -9,7 +9,7 @@ import { Textarea } from '../components/ui/textarea'
 import { supabase } from '../lib/supabase'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { ArrowLeft, Save, Plus } from 'lucide-react'
-import ImageUpload from '../components/ImageUpload'
+import CloudinaryImageUpload from '../components/CloudinaryImageUpload' // ATUALIZADO
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Product } from '../types/product'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -74,7 +74,6 @@ const ManageProduct = () => {
         return
       }
 
-      // O tipo 'data' é implicitamente 'Product' devido ao select('*') e single()
       const product = data as Product
       let images: string[] = []
       try {
@@ -87,7 +86,7 @@ const ManageProduct = () => {
         price: product.price.toString(),
         images: images,
         stock: product.stock.toString(),
-        category: product.category || '' // Acessando a propriedade 'category'
+        category: product.category || ''
       })
     } catch (error) {
       showError('Erro ao carregar produto para edição.')
@@ -224,7 +223,6 @@ const ManageProduct = () => {
     }
   }
 
-  // Corrigido: availableCategories é um array de objetos CATEGORIES filtrados
   const availableCategories = CATEGORIES.filter(cat => allowedCategories.includes(cat.value))
   const isEditing = !!productId
 
@@ -331,7 +329,6 @@ const ManageProduct = () => {
                       <div className="p-2 text-sm text-gray-500">Nenhuma categoria definida na loja</div>
                     ) : (
                       availableCategories.map((cat) => {
-                        // Corrigido: cat é o objeto de categoria, usamos cat.value e cat.label
                         return (
                           <SelectItem key={cat.value} value={cat.value}>
                             {cat.label}
@@ -350,11 +347,12 @@ const ManageProduct = () => {
 
               <div className="space-y-2">
                 <Label>Imagens do Produto *</Label>
-                <ImageUpload
+                <CloudinaryImageUpload
                   value={formData.images}
                   onChange={handleImagesChange}
                   maxImages={2}
-                  maxSizeMB={1}
+                  maxSizeMB={2}
+                  folder="products"
                 />
                 <p className="text-sm text-gray-500">
                   Envie até 2 imagens. A primeira imagem será a principal.

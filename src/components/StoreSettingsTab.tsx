@@ -10,6 +10,7 @@ import { Checkbox } from './ui/checkbox'
 import { Settings, Save, Store, AlertTriangle, MapPin, Truck } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import CloudinaryImageUpload from './CloudinaryImageUpload' // ATUALIZADO
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -44,23 +45,22 @@ const StoreSettingsTab = () => {
   const { user, loading: authLoading } = useAuth()
   const [storeName, setStoreName] = useState('')
   const [storeDescription, setStoreDescription] = useState('')
-  const [storeLogo, setStoreLogo] = useState('/store-default.svg')
+  const [storeLogo, setStoreLogo] = useState<string[]>([]) // ATUALIZADO para array
   const [city, setCity] = useState('')
   const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [deliveryScope, setDeliveryScope] = useState<string[]>([]) // Novo estado
+  const [deliveryScope, setDeliveryScope] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (user?.profile) {
-      // Acessando campos opcionais com segurança
       setStoreName(user.profile.store_name || '')
       setStoreDescription(user.profile.store_description || '')
-      setStoreLogo(user.profile.store_logo || '/store-default.svg')
+      setStoreLogo(user.profile.store_logo ? [user.profile.store_logo] : []) // ATUALIZADO
       setSelectedCategories((user.profile.store_categories as string[] | null) || [])
       setCity(user.profile.city || '')
       setProvince(user.profile.province || '')
-      setDeliveryScope((user.profile.delivery_scope as string[] | null) || []) // Novo
+      setDeliveryScope((user.profile.delivery_scope as string[] | null) || [])
     }
   }, [user])
 
@@ -112,10 +112,11 @@ const StoreSettingsTab = () => {
         .update({
           store_name: storeName.trim(),
           store_description: storeDescription.trim(),
-          store_categories: selectedCategories, // Enviando array de strings
+          store_logo: storeLogo[0] || null, // ATUALIZADO
+          store_categories: selectedCategories,
           city: city.trim(),
           province: province,
-          delivery_scope: deliveryScope // Novo campo
+          delivery_scope: deliveryScope
         })
         .eq('id', user.id)
 
@@ -175,12 +176,13 @@ const StoreSettingsTab = () => {
               </div>
               <div className="space-y-2">
                 <Label>Logo da Loja</Label>
-                <div className="flex items-center space-x-4">
-                  <img src={storeLogo} alt="Logo da Loja" className="w-16 h-16 rounded-full object-cover border" />
-                  <p className="text-sm text-gray-600">
-                    Logo atual. Para alterar, entre em contato com o suporte.
-                  </p>
-                </div>
+                <CloudinaryImageUpload
+                  value={storeLogo}
+                  onChange={setStoreLogo}
+                  maxImages={1}
+                  maxSizeMB={1}
+                  folder="logos"
+                />
               </div>
             </div>
           </div>
