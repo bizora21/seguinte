@@ -100,7 +100,8 @@ serve(async (req) => {
     // --- PASSO 4: UPLOAD DA IMAGEM PARA O SUPABASE STORAGE ---
     const imageResponse = await fetch(imageUrl)
     const imageBlob = await imageResponse.blob()
-    const imagePath = `blog-images/${Date.now()}-${generatedContent.title.toLowerCase().replace(/\s+/g, '-')}.jpg`
+    // 🔥 CORREÇÃO: Removido o nome do bucket do caminho do arquivo.
+    const imagePath = `${Date.now()}-${generatedContent.title.toLowerCase().replace(/\s+/g, '-')}.jpg`
 
     const { error: uploadError } = await supabaseServiceRole.storage
       .from('blog-images')
