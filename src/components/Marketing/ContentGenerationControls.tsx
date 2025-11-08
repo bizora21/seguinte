@@ -131,7 +131,11 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
           {step === 1 && (
             <motion.div key="step1" variants={stepVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
               <h3 className="font-semibold text-lg">Passo 1: Defina a Palavra-chave Principal</h3>
-              <KeywordSuggester value={keyword} onChange={setKeyword} />
+              <KeywordSuggester 
+                value={keyword} 
+                onChange={setKeyword}
+                onSuggestionSelect={() => setStep(2)}
+              />
               <Button onClick={() => setStep(2)} disabled={!keyword.trim()} className="w-full">
                 Avançar <ArrowRight className="w-4 h-4 ml-2" />
               </Button>

@@ -56,11 +56,10 @@ const KeywordSuggester: React.FC<KeywordSuggesterProps> = ({ value, onChange, on
       
       const result = await response.json();
       
-      // Transformar as sugestões para incluir volume e concorrência simulados
       const mockSuggestions = (result.suggestions || []).slice(0, 5).map((s: string, index: number) => ({
         keyword: s,
-        volume: Math.floor(Math.random() * 10000) + 1000, // Volume simulado
-        competition: Math.floor(Math.random() * 100) // Concorrência simulada
+        volume: Math.floor(Math.random() * 10000) + 1000,
+        competition: Math.floor(Math.random() * 100)
       }));
       
       setSuggestions(mockSuggestions);
