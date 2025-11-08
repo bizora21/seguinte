@@ -29,6 +29,7 @@ const OptimizedImageUpload = ({
 }: OptimizedImageUploadProps) => {
   const [uploading, setUploading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'ai' | 'upload'>('ai')
   const [imageStatus, setImageStatus] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
 
@@ -39,6 +40,44 @@ const OptimizedImageUpload = ({
       setImageStatus('idle');
     }
   }, [value]);
+
+  useEffect(() => {
+    if (!jobId) return;
+
+    const channel = supabase
+      .channel(`image_job_${jobId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'generation_jobs',
+          filter: `id=eq.${jobId}`,
+        },
+        (payload) => {
+          const newJob = payload.new;
+          if (newJob.status === 'completed') {
+            const { imageUrl, altText } = newJob.result_data;
+            onImageChange(imageUrl);
+            onAltTextChange(altText);
+            showSuccess('Imagem gerada com sucesso!');
+            setGenerating(false);
+            setJobId(null);
+            channel.unsubscribe();
+          } else if (newJob.status === 'failed') {
+            showError(`Falha na geração da imagem: ${newJob.error_message}`);
+            setGenerating(false);
+            setJobId(null);
+            channel.unsubscribe();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [jobId, onImageChange, onAltTextChange]);
 
   const uploadImage = async (file: File): Promise<string | null> => {
     setUploading(true)
@@ -98,34 +137,26 @@ const OptimizedImageUpload = ({
     }
 
     setGenerating(true)
-    const toastId = showLoading('Gerando imagem com Google Gemini...')
+    const toastId = showLoading('Iniciando geração de imagem...')
 
     try {
-      const response = await supabase.functions.invoke('gemini-image-generator', {
-        method: 'POST',
-        body: { prompt: imagePrompt.trim() }
-      })
-      
-      if (response.error) throw response.error
-      
-      const result = response.data as { success: boolean, imageUrl: string, imageAlt: string }
-      
-      if (!result.success || !result.imageUrl) {
-        throw new Error('Nenhuma imagem relevante foi gerada.')
+      const { data, error } = await supabase.functions.invoke('request-image-generation', {
+        body: { prompt: imagePrompt.trim() },
+      });
+
+      if (error) throw error;
+
+      if (data.jobId) {
+        setJobId(data.jobId);
+        dismissToast(toastId);
+        showSuccess('Geração iniciada! A imagem aparecerá em breve.');
+      } else {
+        throw new Error('Não foi possível iniciar a tarefa de geração.');
       }
-      
-      onImageChange(result.imageUrl)
-      onAltTextChange(result.imageAlt)
-      
-      dismissToast(toastId)
-      showSuccess('Imagem gerada com Gemini e salva com sucesso!')
-      
     } catch (error: any) {
-      dismissToast(toastId)
-      console.error('Error generating image:', error)
-      showError(`Falha ao gerar imagem: ${error.message || 'Erro de conexão.'}`)
-    } finally {
-      setGenerating(false)
+      dismissToast(toastId);
+      showError(`Falha ao iniciar geração: ${error.message}`);
+      setGenerating(false);
     }
   }
 
@@ -142,7 +173,7 @@ const OptimizedImageUpload = ({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="ai" className="flex items-center">
               <Zap className="w-4 h-4 mr-2" />
-              Gerar com Gemini
+              Gerar com IA
             </TabsTrigger>
             <TabsTrigger value="upload" className="flex items-center">
               <Upload className="w-4 h-4 mr-2" />
@@ -152,7 +183,7 @@ const OptimizedImageUpload = ({
 
           <TabsContent value="ai" className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="imagePrompt">Prompt para Gemini (Ex: "vendedor moçambicano", "e-commerce")</Label>
+              <Label htmlFor="imagePrompt">Prompt para IA (Ex: "vendedor moçambicano", "e-commerce")</Label>
               <Input
                 id="imagePrompt"
                 value={imagePrompt}
