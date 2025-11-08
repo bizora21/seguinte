@@ -107,7 +107,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
     },
     editorProps: {
         attributes: {
-            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base max-w-none min-h-[400px] focus:outline-none p-4',
+            class: 'max-w-none min-h-[400px] focus:outline-none p-4',
         },
     },
   }, [draft?.id]) // Recria o editor quando o rascunho muda

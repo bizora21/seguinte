@@ -37,8 +37,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
     editable: false, // Modo somente leitura
     editorProps: {
         attributes: {
-            // Aplicando as classes de estilo do editor para consistência, incluindo H4
-            class: 'prose prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base max-w-none min-h-[100px] focus:outline-none',
+            class: 'max-w-none min-h-[100px] focus:outline-none',
         },
     },
   });
@@ -48,7 +47,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
   }
 
   return (
-    <div className="prose max-w-none">
+    <div className="max-w-none">
       <EditorContent editor={editor} />
     </div>
   );

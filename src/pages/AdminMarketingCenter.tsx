@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText, Target, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText, Target, ArrowRight, Tag } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import LoadingSpinner from '../components/LoadingSpinner'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
@@ -11,7 +11,8 @@ import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
-import ContentManagerTab from '../components/Marketing/ContentManagerTab' // Importação correta
+import ContentManagerTab from '../components/Marketing/ContentManagerTab'
+import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
@@ -38,9 +39,12 @@ const AdminMarketingCenter = () => {
         </div>
 
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
             <TabsTrigger value="content" className="py-2 text-xs sm:text-sm flex items-center">
               <FileText className="w-4 h-4 mr-1" /> Conteúdo & SEO
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="py-2 text-xs sm:text-sm flex items-center">
+              <Tag className="w-4 h-4 mr-1" /> Categorias
             </TabsTrigger>
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
               <Users className="w-4 h-4 mr-1" /> Leads & Pop-up
@@ -55,6 +59,10 @@ const AdminMarketingCenter = () => {
 
           <TabsContent value="content">
             <ContentManagerTab />
+          </TabsContent>
+          
+          <TabsContent value="categories">
+            <BlogCategoryManager />
           </TabsContent>
           
           <TabsContent value="leads">

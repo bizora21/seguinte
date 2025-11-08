@@ -11,7 +11,6 @@ import AdvancedEditor from './AdvancedEditor'
 import ContentGenerationControls from './ContentGenerationControls'
 import DraftsList from './DraftsList'
 import PublishedList from './PublishedList'
-import BlogCategoryManager from './BlogCategoryManager' // Importação do BlogCategoryManager
 
 const ContentManagerTab = () => {
   const { user } = useAuth()
@@ -235,20 +234,6 @@ const ContentManagerTab = () => {
           )}
         </TabsContent>
       </Tabs>
-      
-      {/* Gerenciador de Categorias */}
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-            <Target className="w-6 h-6 mr-2" />
-            Gerenciar Categorias do Blog
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Adicione ou edite as categorias que serão usadas nos artigos.
-          </p>
-          <BlogCategoryManager />
-        </CardContent>
-      </Card>
     </div>
   )
 }
