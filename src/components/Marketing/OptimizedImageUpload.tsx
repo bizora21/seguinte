@@ -225,7 +225,7 @@ const OptimizedImageUpload = ({
               <img
                 src={value}
                 alt={altText || 'Preview da imagem'}
-                className={`w-full h-full object-cover rounded-lg border ${imageStatus === 'loaded' ? 'block' : 'hidden'}`}
+                className={`w-full h-full object-cover rounded-lg border transition-opacity duration-300 ${imageStatus === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
                 onLoad={() => setImageStatus('loaded')}
                 onError={() => setImageStatus('error')}
               />
