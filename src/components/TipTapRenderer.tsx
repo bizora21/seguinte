@@ -9,6 +9,25 @@ interface TipTapRendererProps {
   content: JSONContent | string; // Aceita JSON ou HTML
 }
 
+// Função de segurança para garantir que o conteúdo é válido para o TipTap
+const sanitizeContentForTiptap = (content: JSONContent | string | null): JSONContent | string => {
+    if (!content) {
+        return ''; // Retorna string vazia para conteúdo nulo ou indefinido
+    }
+    // Se for um objeto e parecer um documento TipTap válido, use-o.
+    if (typeof content === 'object' && content.type === 'doc') {
+        return content;
+    }
+    // Se for uma string, assume-se que é HTML, o que o TipTap suporta.
+    if (typeof content === 'string') {
+        return content;
+    }
+    // Se for um objeto, mas não um documento TipTap válido, algo está errado.
+    // Loga um aviso e retorna uma string vazia para evitar a falha.
+    console.warn("Conteúdo inválido passado para o TipTapRenderer. Recebido:", content);
+    return ''; 
+}
+
 const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
   const editor = useEditor({
     extensions: [
@@ -33,7 +52,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
         types: ['heading', 'paragraph'],
       }),
     ],
-    content: content,
+    content: sanitizeContentForTiptap(content),
     editable: false, // Modo somente leitura
     editorProps: {
         attributes: {
