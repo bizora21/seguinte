@@ -42,7 +42,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
 
   const generateContent = async () => {
     if (!keyword.trim()) {
-      showError('A palavra-chave principal é obrigatória.')
+      showError('O tópico principal é obrigatório.')
       return
     }
 
@@ -64,8 +64,7 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          action: 'generate',
-          keyword: keyword.trim(),
+          topico: keyword.trim(), // CORREÇÃO: Enviando 'topico' em vez de 'keyword'
           context,
           audience,
           type: contentType
@@ -85,13 +84,11 @@ const ContentGenerationControls: React.FC<ContentGenerationControlsProps> = ({ o
       
       const result = await response.json()
       
-      if (result.success) {
+      if (result.success && result.data && result.data.id) {
         dismissToast(toastId)
         showSuccess(`Conteúdo gerado! Revise no editor.`)
         setKeyword('')
-        if (result.draftId) {
-            onContentGenerated(result.draftId)
-        }
+        onContentGenerated(result.data.id)
       } else {
         dismissToast(toastId)
         throw new Error(result.error || 'Erro desconhecido na Edge Function.')
