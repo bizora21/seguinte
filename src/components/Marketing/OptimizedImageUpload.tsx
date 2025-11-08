@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, Image as ImageIcon, Zap, Download, AlertTriangle, Loader2 } from 'lucide-react'
+import { Upload, X, Image as ImageIcon, Zap, AlertTriangle, Loader2 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Input } from '../ui/input'
@@ -40,70 +40,27 @@ const OptimizedImageUpload = ({
     }
   }, [value]);
 
-  // Função para otimizar imagem (simulação - em produção usaria Canvas API ou serviço externo)
-  const optimizeImage = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-      
-      img.onload = () => {
-        // Dimensões ideais para Google Discover: 1200x675 (16:9)
-        canvas.width = 1200
-        canvas.height = 675
-        
-        // Desenhar imagem redimensionada
-        ctx?.drawImage(img, 0, 0, 1200, 675)
-        
-        // Converter para blob otimizado
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const optimizedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now()
-            })
-            resolve(optimizedFile)
-          } else {
-            resolve(file)
-          }
-        }, 'image/jpeg', 0.85) // 85% de qualidade para otimização
-      }
-      
-      img.src = URL.createObjectURL(file)
-    })
-  }
-
   const uploadImage = async (file: File): Promise<string | null> => {
     try {
-      const optimizedFile = await optimizeImage(file);
-      
-      const fileExt = 'jpg';
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `blog_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `blog-images/${fileName}`;
       const bucket = 'product-images';
 
-      // 1. Upload the file
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(filePath, optimizedFile);
+        .upload(filePath, file);
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
         throw new Error('Falha no upload do arquivo.');
       }
 
-      // 2. Call the edge function to get a signed URL
-      const { data, error: functionError } = await supabase.functions.invoke('get-signed-url', {
-        method: 'POST',
-        body: { bucket, filePath }
-      });
+      const { data } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
 
-      if (functionError) {
-        console.error('Function error:', functionError);
-        throw new Error('Falha ao obter URL segura da imagem.');
-      }
-
-      return data.signedUrl;
+      return data.publicUrl;
 
     } catch (error) {
       console.error('Upload process error:', error);
@@ -116,7 +73,6 @@ const OptimizedImageUpload = ({
 
     const file = acceptedFiles[0]
     
-    // Validação
     if (!file.type.startsWith('image/')) {
       showError('Apenas imagens são aceitas')
       return
@@ -128,7 +84,7 @@ const OptimizedImageUpload = ({
     }
 
     setUploading(true)
-    const toastId = showLoading('Otimizando e fazendo upload da imagem...')
+    const toastId = showLoading('Fazendo upload da imagem...')
 
     const url = await uploadImage(file)
     
@@ -136,10 +92,9 @@ const OptimizedImageUpload = ({
     
     if (url) {
       onImageChange(url)
-      // Sugerir alt text baseado no nome do arquivo
       const suggestedAlt = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
       onAltTextChange(suggestedAlt)
-      showSuccess('Imagem otimizada e carregada com sucesso!')
+      showSuccess('Imagem carregada com sucesso!')
     } else {
       showError('Erro ao fazer upload da imagem')
     }
@@ -167,13 +122,11 @@ const OptimizedImageUpload = ({
     const toastId = showLoading('Buscando imagem no Unsplash...')
 
     try {
-      // 1. Chamar a Edge Function para buscar a imagem
       const response = await supabase.functions.invoke('unsplash-image-generator', {
         method: 'POST',
         body: { prompt: imagePrompt.trim() }
       })
       
-      // A Edge Function retorna { data: { success, imageUrl, imageAlt }, error }
       if (response.error) throw response.error
       
       const result = response.data as { success: boolean, imageUrl: string, imageAlt: string }
@@ -182,7 +135,6 @@ const OptimizedImageUpload = ({
         throw new Error('Nenhuma imagem relevante encontrada no Unsplash.')
       }
       
-      // 2. Usar a URL retornada
       onImageChange(result.imageUrl)
       onAltTextChange(result.imageAlt)
       
@@ -203,11 +155,8 @@ const OptimizedImageUpload = ({
       <CardHeader>
         <CardTitle className="flex items-center text-purple-800">
           <ImageIcon className="w-5 h-5 mr-2" />
-          Imagem de Destaque (Otimizada para Google Discover)
+          Imagem de Destaque (1200x675px)
         </CardTitle>
-        <p className="text-sm text-purple-700">
-          Busque imagens de alta qualidade no Unsplash ou faça upload manual.
-        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <Tabs value={activeTab} onValueChange={(tab: 'upload' | 'ai') => setActiveTab(tab)}>
@@ -222,7 +171,6 @@ const OptimizedImageUpload = ({
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Gerar com IA (Unsplash) */}
           <TabsContent value="ai" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="imagePrompt">Prompt de Busca (Ex: "vendedor moçambicano", "e-commerce")</Label>
@@ -240,20 +188,13 @@ const OptimizedImageUpload = ({
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
               {generating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Buscando...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Buscando...</>
               ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2" />
-                  Buscar Imagem no Unsplash
-                </>
+                <><Zap className="w-4 h-4 mr-2" /> Buscar Imagem</>
               )}
             </Button>
           </TabsContent>
 
-          {/* Tab: Upload Manual */}
           <TabsContent value="upload" className="space-y-4">
             <div
               {...getRootProps()}
@@ -263,26 +204,14 @@ const OptimizedImageUpload = ({
             >
               <input {...getInputProps()} />
               {uploading ? (
-                <div className="space-y-2">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                  <p className="text-sm text-gray-600">Otimizando e fazendo upload...</p>
-                </div>
+                <div className="space-y-2"><Loader2 className="w-8 h-8 mx-auto animate-spin" /><p>Enviando...</p></div>
               ) : (
-                <div className="space-y-2">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto" />
-                  <p className="text-sm text-gray-600 mb-1">
-                    Arraste uma imagem aqui ou clique para selecionar
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Max: 10MB • Será redimensionada para 1200x675px
-                  </p>
-                </div>
+                <div className="space-y-2"><Upload className="w-8 h-8 text-gray-400 mx-auto" /><p>Arraste ou clique para enviar</p></div>
               )}
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Preview da Imagem */}
         {value && (
           <div className="space-y-4">
             <div className="relative aspect-video w-full">
@@ -291,7 +220,6 @@ const OptimizedImageUpload = ({
                 <div className="absolute inset-0 w-full h-full rounded-lg border-2 border-dashed border-red-400 bg-red-50 flex flex-col items-center justify-center text-red-600">
                   <AlertTriangle className="w-8 h-8 mb-2" />
                   <p className="font-semibold">Falha ao carregar imagem</p>
-                  <p className="text-xs">Verifique a URL ou tente novamente.</p>
                 </div>
               )}
               <img
@@ -299,26 +227,18 @@ const OptimizedImageUpload = ({
                 alt={altText || 'Preview da imagem'}
                 className={`w-full h-full object-cover rounded-lg border ${imageStatus === 'loaded' ? 'block' : 'hidden'}`}
                 onLoad={() => setImageStatus('loaded')}
-                onError={() => {
-                  console.error("Falha ao carregar a imagem:", value);
-                  showError("A imagem foi carregada, mas não pode ser exibida. Verifique o console para a URL.");
-                  setImageStatus('error');
-                }}
+                onError={() => setImageStatus('error')}
               />
               <Button
                 variant="destructive"
                 size="sm"
                 className="absolute top-2 right-2 h-8 w-8 p-0 z-10"
-                onClick={() => {
-                  onImageChange('')
-                  onAltTextChange('')
-                }}
+                onClick={() => onImageChange('')}
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 h-4" />
               </Button>
             </div>
             
-            {/* Campo de Alt Text */}
             <div className="space-y-2">
               <Label htmlFor="altText">Texto Alt (Acessibilidade e SEO)</Label>
               <Input
