@@ -2,8 +2,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 // @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
-// @ts-ignore
-import { toByteArray } from 'https://deno.land/std@0.190.0/encoding/base64.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,29 +73,37 @@ serve(async (req) => {
     const rawAlt = imageResult.alt_description || prompt;
     const translatedAlt = await translateToPortuguese(rawAlt);
 
-    // **NOVA ETAPA: BAIXAR A IMAGEM AQUI**
+    // **ETAPA CRÍTICA: BAIXAR A IMAGEM DIRETAMENTE**
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) throw new Error(`Falha ao baixar a imagem do Unsplash: ${imageResponse.statusText}`);
     const imageBuffer = await imageResponse.arrayBuffer();
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    // Invocar a função 'image-optimizer' com os dados da imagem, não a URL
-    const { data: optimizerData, error: optimizerError } = await supabaseServiceRole.functions.invoke('image-optimizer', {
-        method: 'POST',
-        body: {
-            imageBuffer: Array.from(new Uint8Array(imageBuffer)), // Enviar como array de bytes
+    // **ETAPA CRÍTICA: FAZER UPLOAD PARA O SUPABASE STORAGE**
+    const fileExt = contentType.split('/')[1] || 'jpg';
+    const fileName = `blog-${Date.now()}.${fileExt}`;
+    const filePath = `blog-images/${fileName}`;
+    
+    const { error: uploadError } = await supabaseServiceRole.storage
+        .from('product-images')
+        .upload(filePath, imageBuffer, {
             contentType: contentType,
-            altText: translatedAlt,
-        }
-    });
+            upsert: true,
+        });
 
-    if (optimizerError) throw new Error(`Falha na função de otimização de imagem: ${optimizerError.message}`);
-    if (!optimizerData.success) throw new Error(`Erro na otimização da imagem: ${optimizerData.error}`);
+    if (uploadError) throw new Error(`Falha no upload para o storage: ${uploadError.message}.`);
+
+    // Obter a URL pública da imagem recém-carregada
+    const { data: publicUrlData } = supabaseServiceRole.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+        
+    const finalImageUrl = publicUrlData.publicUrl;
     
     return new Response(JSON.stringify({ 
         success: true, 
-        imageUrl: optimizerData.optimizedUrl,
-        imageAlt: optimizerData.altText 
+        imageUrl: finalImageUrl,
+        imageAlt: translatedAlt 
     }), { headers: corsHeaders, status: 200 });
 
   } catch (error) {
