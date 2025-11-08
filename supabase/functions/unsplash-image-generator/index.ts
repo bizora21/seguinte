@@ -9,20 +9,6 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-// Inicializa o cliente Supabase (para interagir com o banco de dados)
-// @ts-ignore
-const supabase = createClient(
-  // @ts-ignore
-  Deno.env.get('SUPABASE_URL') ?? '',
-  // @ts-ignore
-  Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
-)
-
 // Função auxiliar para traduzir texto usando OpenAI
 // @ts-ignore
 async function translateToPortuguese(text: string): Promise<string> {
@@ -52,7 +38,6 @@ async function translateToPortuguese(text: string): Promise<string> {
 
         if (!aiResponse.ok) {
             console.error("OpenAI Translation API Error:", aiResponse.statusText);
-            // Tenta ler o corpo do erro para mais detalhes
             const errorBody = await aiResponse.json();
             console.error("OpenAI Translation Error Body:", errorBody);
             return text;
@@ -125,46 +110,20 @@ serve(async (req) => {
     
     const imageResult = unsplashData.results[0];
     
-    // Usar a URL de tamanho regular
-    const rawImageUrl = imageResult.urls.regular;
+    // Usar a URL de tamanho regular diretamente
+    const imageUrl = imageResult.urls.regular;
     const rawAlt = imageResult.alt_description || prompt;
     
-    console.log(`DEBUG: Imagem encontrada. URL: ${rawImageUrl}`);
+    console.log(`DEBUG: Imagem encontrada. URL: ${imageUrl}`);
 
     // 4. Traduzir o Alt Text para o português
     const translatedAlt = await translateToPortuguese(rawAlt);
     console.log(`DEBUG: Alt Text traduzido: ${translatedAlt}`);
     
-    // 5. Chamar a Edge Function de Otimização para processar a imagem
-    // CORREÇÃO: Usar a URL completa e absoluta para a chamada interna
-    const optimizerUrl = `https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/image-optimizer`;
-    console.log(`DEBUG: Chamando Optimizer em: ${optimizerUrl}`);
-    
-    const optimizeResponse = await fetch(optimizerUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            // Reutiliza o token de autenticação do cliente para a chamada interna
-            'Authorization': req.headers.get('Authorization') || '', 
-        },
-        body: JSON.stringify({
-            imageUrl: rawImageUrl,
-            altText: translatedAlt,
-        }),
-    });
-    
-    if (!optimizeResponse.ok) {
-        const errorBody = await optimizeResponse.json();
-        console.error("Optimizer API Error:", errorBody);
-        throw new Error(`Falha na otimização da imagem: ${errorBody.error || optimizeResponse.statusText}`);
-    }
-    
-    const optimizedData = await optimizeResponse.json();
-    console.log(`DEBUG: Otimização concluída. URL final: ${optimizedData.optimizedUrl}`);
-
+    // 5. Retornar a URL do Unsplash e o alt text traduzido DIRETAMENTE
     return new Response(JSON.stringify({ 
         success: true, 
-        imageUrl: optimizedData.optimizedUrl, // URL do Supabase Storage
+        imageUrl: imageUrl, // URL direta do Unsplash
         imageAlt: translatedAlt 
     }), {
       headers: corsHeaders,
