@@ -68,7 +68,7 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
   }
 
   return (
-    <div className="max-w-none">
+    <div className="prose max-w-none">
       <EditorContent editor={editor} />
     </div>
   );
