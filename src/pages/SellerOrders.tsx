@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import toast from 'react-hot-toast' // Importação direta para notificações
 
 // Interface para pedido processado
 interface ProcessedOrder {
@@ -42,24 +43,48 @@ const SellerOrders = () => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   
-  const defaultImage = '/placeholder.svg' // CORRIGIDO: Usando placeholder local
+  const defaultImage = '/placeholder.svg'
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
       fetchOrders()
       
-      // Configurar subscrição apenas se o user.id estiver disponível
       if (user.id) {
         const channel = setupRealtimeSubscription(user.id)
         return () => {
-          // Cleanup subscription when component unmounts
           supabase.removeChannel(channel)
         }
       }
     }
   }, [user])
 
-  // 🔥 FUNÇÃO DE DEBUGGING COMPLETA
+  // 🔥 NOVO: Subscrição em tempo real para novos pedidos
+  const setupRealtimeSubscription = (sellerId: string) => {
+    const channel = supabase
+      .channel(`seller-orders-${sellerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'order_items',
+          filter: `seller_id=eq.${sellerId}`
+        },
+        (payload) => {
+          toast.success('🎉 Novo pedido recebido! Atualizando a lista...', {
+            duration: 5000,
+          });
+          fetchOrders(); // Recarrega a lista de pedidos
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`[Realtime] Vendedor ${sellerId} está a ouvir por novos pedidos.`);
+        }
+      });
+    return channel;
+  };
+
   const debugDatabase = async () => {
     if (!user) return
     
@@ -67,26 +92,22 @@ const SellerOrders = () => {
     const toastId = showLoading('Investigando banco de dados...')
     
     try {
-      // 1. Verificar contagem de order_items
       const { data: countData, error: countError } = await supabase
         .from('order_items')
         .select('id', { count: 'exact', head: true })
       
-      // 2. Verificar order_items do seller
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select('*')
         .eq('seller_id', user.id)
         .limit(5)
       
-      // 3. Verificar se o seller existe em profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
       
-      // 4. Testar query completa
       const { data: testData, error: testError } = await supabase
         .from('order_items')
         .select(`
@@ -127,7 +148,6 @@ const SellerOrders = () => {
     }
   }
 
-  // 🔥 VERSÃO CORRIGIDA E GARANTIDA
   const fetchOrders = async () => {
     if (!user) return
     
@@ -171,7 +191,6 @@ const SellerOrders = () => {
         return
       }
 
-      // Processamento dos dados
       const orderMap = new Map<string, ProcessedOrder>()
       
       sellerItems.forEach((item: any) => {
@@ -216,14 +235,12 @@ const SellerOrders = () => {
     }
   }
 
-  // 🔥 FUNÇÃO ATUALIZADA COM NOTIFICAÇÃO EM TEMPO REAL
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
     
     try {
       console.log('🔄 Atualizando pedido:', orderId, 'para', newStatus)
       
-      // 1. Atualizar status do pedido
       const { data, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -236,14 +253,10 @@ const SellerOrders = () => {
         return
       }
 
-      // 2. Enviar notificação (se necessário)
       if (newStatus === 'delivered') {
-        // Esta função é mockada no SellerOrders, mas o Realtime no CustomerOrders
-        // já cuida da notificação ao cliente.
         console.log('Notificação de entrega simulada enviada ao cliente.')
       }
 
-      // 3. Atualizar estado local
       setOrders(prev => prev.map(order => 
         order.id === orderId 
           ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() }
@@ -258,42 +271,6 @@ const SellerOrders = () => {
     } finally {
       setUpdatingStatus(null)
     }
-  }
-
-  // 🔥 FUNÇÃO PARA CONFIGURAR SUBSCRIÇÃO EM TEMPO REAL
-  const setupRealtimeSubscription = (userId: string) => {
-    console.log(`🔧 Configurando subscrição em tempo real para o usuário ${userId}`)
-    
-    const channel = supabase
-      .channel(`order_status_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `user_id=eq.${userId}`
-        },
-        (payload) => {
-          console.log('Realtime: Order status updated via subscription:', payload)
-          
-          // Atualiza o estado local
-          setOrders(prev => prev.map(order => 
-            order.id === payload.new.id 
-              ? { ...order, status: payload.new.status as ProcessedOrder['status'], updated_at: payload.new.updated_at }
-              : order
-          ))
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`✅ Realtime: Subscription active for user ${userId}`)
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Realtime: Subscription error for user ${userId}`)
-        }
-      })
-
-    return channel
   }
 
   const formatPrice = (price: number) => {
@@ -384,7 +361,6 @@ const SellerOrders = () => {
           </div>
         </div>
 
-        {/* Painel de Instrução de Fluxo */}
         <Card className="mb-6 border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-start space-x-3">
@@ -404,7 +380,6 @@ const SellerOrders = () => {
           </CardContent>
         </Card>
 
-        {/* Painel de Debug */}
         {debugInfo && (
           <Card className="mb-6 border-yellow-200 bg-yellow-50">
             <CardHeader>
@@ -431,7 +406,6 @@ const SellerOrders = () => {
           </Card>
         )}
 
-        {/* Painel de Erro */}
         {error && (
           <Card className="mb-6 border-red-200 bg-red-50">
             <CardContent className="p-4">
@@ -515,7 +489,6 @@ const SellerOrders = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     
-                    {/* Itens do Pedido */}
                     <div className="space-y-3">
                       {order.order_items.slice(0, 1).map((item) => (
                         <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
@@ -526,12 +499,12 @@ const SellerOrders = () => {
                                 alt={item.product.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
+                                  e.currentTarget.src = defaultImage
                                 }}
                               />
                             ) : (
                               <img
-                                src={defaultImage} // CORRIGIDO: Usando placeholder local
+                                src={defaultImage}
                                 alt={item.product.name}
                                 className="w-full h-full object-cover"
                               />
@@ -555,7 +528,6 @@ const SellerOrders = () => {
                       )}
                     </div>
 
-                    {/* Endereço de Entrega */}
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
                       <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
@@ -564,7 +536,6 @@ const SellerOrders = () => {
                       </div>
                     </div>
 
-                    {/* Total do Pedido */}
                     <div className="flex justify-between items-center pt-4 border-t">
                       <span className="font-semibold">Total do Pedido:</span>
                       <span className="text-xl font-bold text-green-600">
@@ -572,7 +543,6 @@ const SellerOrders = () => {
                       </span>
                     </div>
 
-                    {/* Indicador de Notificação Enviada */}
                     {order.status === 'delivered' && (
                       <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                         <div className="flex items-center text-green-800">
