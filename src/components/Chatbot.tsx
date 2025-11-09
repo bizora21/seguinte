@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { MessageCircle, Send, X, Bot, User, ShoppingBag, UserPlus, LogIn, Store } from 'lucide-react'
+import { MessageCircle, Send, X, Bot, User, ShoppingBag, UserPlus, LogIn, Store, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// --- NOVA ESTRUTURA DE DADOS ---
+// --- ESTRUTURA DE DADOS ATUALIZADA ---
 
 interface ChatAction {
-  type: 'navigate';
-  payload: string;
+  type: 'navigate' | 'show_replies';
+  payload?: string; // Opcional para 'show_replies'
   label: string;
   icon?: React.ReactNode;
 }
@@ -30,7 +30,7 @@ interface KnowledgeTopic {
   action?: ChatAction;
 }
 
-// --- BASE DE CONHECIMENTO EXPANDIDA E ESTRUTURADA ---
+// --- BASE DE CONHECIMENTO ---
 
 const knowledgeBase: KnowledgeTopic[] = [
   {
@@ -114,7 +114,6 @@ const Chatbot = () => {
     setMessages(prev => [...prev, newMessage])
   }
 
-  // --- LÓGICA DE RESPOSTA MELHORADA ---
   const getBotResponse = (userInput: string): KnowledgeTopic | null => {
     const input = userInput.toLowerCase()
     
@@ -144,11 +143,24 @@ const Chatbot = () => {
       if (topic) {
         addMessage(topic.response, 'bot', topic.action)
       } else {
-        // Fallback inteligente: só sugere WhatsApp se não encontrar resposta
         addMessage('Desculpe, não entendi sua pergunta. Tente reformular ou, se preferir, fale com um de nossos atendentes no WhatsApp.', 'bot')
       }
       
       setIsTyping(false)
+
+      // --- NOVA LÓGICA: Oferecer para voltar ao menu ---
+      setTimeout(() => {
+        addMessage(
+          'Posso ajudar com mais alguma coisa?',
+          'bot',
+          {
+            type: 'show_replies',
+            label: 'Ver opções iniciais',
+            icon: <ArrowLeft className="w-4 h-4 mr-2" />
+          }
+        )
+      }, 700) // Atraso para parecer mais natural
+
     }, 1200)
   }
 
@@ -159,9 +171,13 @@ const Chatbot = () => {
   }
 
   const handleActionClick = (action: ChatAction) => {
-    if (action.type === 'navigate') {
+    if (action.type === 'navigate' && action.payload) {
       navigate(action.payload)
       setIsOpen(false)
+    } else if (action.type === 'show_replies') {
+      // Remove a última mensagem (a que tem o botão "Ver opções") para não poluir o chat
+      setMessages(prev => prev.slice(0, -1))
+      setShowQuickReplies(true)
     }
   }
 
@@ -230,7 +246,6 @@ const Chatbot = () => {
                       }`}>
                         <p className="text-sm break-words">{message.text}</p>
                       </div>
-                      {/* RENDERIZAÇÃO DOS BOTÕES DE AÇÃO */}
                       {message.action && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                           <Button
