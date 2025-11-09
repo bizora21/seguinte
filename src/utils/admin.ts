@@ -20,7 +20,7 @@ export interface PaymentProof {
   status: 'pending' | 'approved' | 'rejected'
   submission_date: string
   reviewed_date: string | null
-  seller: {
+  profiles: {
     store_name: string | null
     email: string
   }
@@ -141,7 +141,7 @@ export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
       .from('seller_payment_proofs')
       .select(`
         *,
-        seller:profiles (
+        profiles:seller_id (
           store_name,
           email
         )
