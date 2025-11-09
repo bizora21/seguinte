@@ -39,6 +39,17 @@ serve(async (req) => {
       if (!keyword) throw new Error('Keyword is required.')
       log(`Starting full generation for: "${keyword}"`);
 
+      // 🔥 CORREÇÃO: Buscar artigos existentes para usar como links internos válidos
+      const { data: existingArticles, error: articlesError } = await supabaseServiceRole
+        .from('published_articles')
+        .select('title, slug')
+        .eq('status', 'published');
+      
+      let existingArticlesText = "Nenhum artigo publicado encontrado.";
+      if (existingArticles && existingArticles.length > 0) {
+        existingArticlesText = existingArticles.map(a => `- Título: "${a.title}", URL: /blog/${a.slug}`).join('\n');
+      }
+
       const prompt = `
         **INSTRUÇÃO CRÍTICA E INEGOCIÁVEL**
 
@@ -60,7 +71,11 @@ serve(async (req) => {
 
         3.  **FORMATO HTML PERFEITO:** O campo \`content_html\` deve ser um HTML válido, usando apenas as tags <p>, <h2>, <h3>, <ul>, <li>, e <strong>.
 
-        4.  **SEO COMPLETO E OTIMIZADO:** Todos os campos do JSON de saída devem ser preenchidos com qualidade profissional.
+        4.  **LINKS INTERNOS VÁLIDOS:** A partir da lista de artigos existentes fornecida abaixo, escolha 1 ou 2 que sejam MAIS RELEVANTES para o tópico atual e use-os para o campo \`internal_links\`. **NÃO INVENTE links ou URLs.** Se nenhum for relevante, retorne uma lista vazia.
+            **Artigos Existentes:**
+            ${existingArticlesText}
+
+        5.  **SEO COMPLETO E OTIMIZADO:** Todos os campos do JSON de saída devem ser preenchidos com qualidade profissional.
 
         **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
 
@@ -73,7 +88,7 @@ serve(async (req) => {
           "image_prompt": "Um prompt curto e descritivo em INGLÊS para o Unsplash. Ex: 'young mozambican entrepreneur working on a laptop in a modern Maputo office'.",
           "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, descritivo e otimizado para SEO.",
           "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes e semânticas"],
-          "internal_links": [{ "title": "Sugestão de Título de Artigo Interno Relevante", "url": "/blog/slug-sugerido" }],
+          "internal_links": [{ "title": "Título do Artigo Existente Escolhido", "url": "/blog/slug-do-artigo-existente" }],
           "external_links": [{ "title": "Nome de um Site de Referência de Alta Autoridade", "url": "https://exemplo.com" }],
           "structured_data": {
             "@context": "https://schema.org",
