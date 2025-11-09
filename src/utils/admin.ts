@@ -141,7 +141,7 @@ export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
       .from('seller_payment_proofs')
       .select(`
         *,
-        seller:profiles!seller_payment_proofs_seller_id_fkey (
+        seller:profiles (
           store_name,
           email
         )
