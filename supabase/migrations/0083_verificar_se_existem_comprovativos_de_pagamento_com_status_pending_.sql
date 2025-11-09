@@ -1,0 +1,1 @@
+SELECT id, seller_id, amount_paid, status, submission_date FROM public.seller_payment_proofs WHERE status = 'pending';

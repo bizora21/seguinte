@@ -1,0 +1,1 @@
+SELECT * FROM get_pending_proofs_with_seller_details();
