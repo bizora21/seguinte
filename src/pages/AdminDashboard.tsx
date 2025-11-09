@@ -8,9 +8,9 @@ import { ArrowLeft, DollarSign, TrendingUp, Users, Package, RefreshCw, Zap } fro
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showError } from '../utils/toast'
 import DeliveredOrdersCard from '../components/Admin/DeliveredOrdersCard'
-import PendingProofsCard from '../components/Admin/PendingProofsCard'
 import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
-import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab' // NOVO IMPORT
+import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab'
+import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard' // NOVO IMPORT
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -130,8 +130,9 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Coluna Principal (Ações) */}
           <div className="lg:col-span-2 space-y-8">
-            <AdminPaymentManagementTab /> {/* NOVO COMPONENTE */}
+            <AdminPaymentManagementTab />
             <DeliveredOrdersCard onUpdate={fetchDashboardData} />
+            <CancelledOrdersCard /> {/* NOVO COMPONENTE ADICIONADO */}
           </div>
 
           {/* Coluna Lateral (Histórico) */}
