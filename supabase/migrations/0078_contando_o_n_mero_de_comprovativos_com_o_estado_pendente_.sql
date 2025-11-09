@@ -1,0 +1,1 @@
+SELECT count(*) FROM public.seller_payment_proofs WHERE status = 'pending';
