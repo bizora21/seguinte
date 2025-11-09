@@ -1,0 +1,1 @@
+SELECT id, store_name, email FROM public.profiles WHERE id = 'a92448c0-a408-448d-a243-61a223b8caa9';
