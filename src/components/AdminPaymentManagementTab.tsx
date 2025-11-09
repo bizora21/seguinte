@@ -136,6 +136,7 @@ const AdminPaymentManagementTab = () => {
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <Store className="w-4 h-4 text-gray-600" />
+                        {/* CORREÇÃO: Acessando as propriedades planas */}
                         <span>{proof.store_name || proof.email}</span>
                       </div>
                     </TableCell>

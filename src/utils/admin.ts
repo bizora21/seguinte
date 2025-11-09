@@ -20,8 +20,8 @@ export interface PaymentProof {
   status: 'pending' | 'approved' | 'rejected'
   submission_date: string
   reviewed_date: string | null
-  store_name: string | null // Alterado: não mais aninhado
-  email: string // Alterado: não mais aninhado
+  store_name: string | null // CORRIGIDO: Propriedade plana
+  email: string // CORRIGIDO: Propriedade plana
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
@@ -139,6 +139,7 @@ export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
     const { data, error } = await supabase.rpc('get_pending_proofs_with_seller_details')
 
     if (error) throw error
+    // O resultado da RPC já é um array de objetos planos que corresponde à interface PaymentProof
     return data as PaymentProof[]
   } catch (error: any) {
     console.error('Error fetching pending payment proofs:', error)
