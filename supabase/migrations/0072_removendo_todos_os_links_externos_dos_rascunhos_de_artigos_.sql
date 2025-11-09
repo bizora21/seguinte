@@ -1,0 +1,1 @@
+UPDATE public.content_drafts SET external_links = '[]'::jsonb;

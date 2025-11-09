@@ -88,7 +88,6 @@ serve(async (req) => {
           "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, descritivo e otimizado para SEO.",
           "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes e semânticas"],
           "internal_links": [{ "title": "Título do Artigo Existente Escolhido", "url": "/blog/slug-do-artigo-existente" }],
-          "external_links": [{ "title": "Nome de um Site de Referência de Alta Autoridade", "url": "https://exemplo.com" }],
           "structured_data": {
             "@context": "https://schema.org",
             "@type": "BlogPosting",
@@ -152,7 +151,7 @@ serve(async (req) => {
           image_prompt: generated.image_prompt,
           secondary_keywords: generated.secondary_keywords,
           internal_links: generated.internal_links,
-          external_links: generated.external_links,
+          external_links: [], // Removido
           status: 'draft',
           keyword: keyword,
           context: context,

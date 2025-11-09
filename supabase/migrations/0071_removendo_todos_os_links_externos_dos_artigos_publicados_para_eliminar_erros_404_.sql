@@ -1,0 +1,1 @@
+UPDATE public.published_articles SET external_links = '[]'::jsonb;
