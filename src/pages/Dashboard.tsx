@@ -41,7 +41,6 @@ const Dashboard = () => {
     pendingOrders: 0
   })
   const [recentOrders, setRecentOrders] = useState<any[]>([])
-  // 🔥 NOVO: Estado para pedidos cancelados
   const [cancelledOrders, setCancelledOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -49,7 +48,6 @@ const Dashboard = () => {
     if (user?.profile?.role === 'vendedor') {
       fetchDashboardData()
       
-      // 🔥 NOVO: Configurar subscrições em tempo real
       const orderUpdateChannel = setupOrderUpdateSubscription()
       return () => {
         supabase.removeChannel(orderUpdateChannel)
@@ -57,14 +55,13 @@ const Dashboard = () => {
     }
   }, [user])
 
-  // 🔥 NOVO: Subscrição para ATUALIZAÇÕES de pedidos (incluindo cancelamentos)
   const setupOrderUpdateSubscription = () => {
     const channel = supabase
       .channel(`seller-dashboard-updates-${user!.id}`)
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*', // Ouvir por INSERT e UPDATE
           schema: 'public',
           table: 'orders'
         },
@@ -73,13 +70,20 @@ const Dashboard = () => {
           
           // Verificar se o pedido atualizado pertence a este vendedor
           const isRelevant = recentOrders.some(o => o.id === updatedOrder.id) || 
-                             cancelledOrders.some(o => o.id === updatedOrder.id);
+                             cancelledOrders.some(o => o.id === updatedOrder.id) ||
+                             payload.eventType === 'INSERT'; // Se for um novo pedido, é relevante
 
-          if (isRelevant && updatedOrder.status === 'cancelled') {
-            toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
-              duration: 6000,
-            });
-            // Atualiza a lista de cancelados e remove da lista de recentes
+          if (isRelevant) {
+            if (updatedOrder.status === 'cancelled') {
+              toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
+                duration: 6000,
+              });
+            } else if (payload.eventType === 'INSERT') {
+              toast.success(`🎉 Novo pedido recebido! #${updatedOrder.id.slice(0, 8)}`, {
+                duration: 6000,
+              });
+            }
+            // Atualiza todos os dados para refletir a mudança
             fetchDashboardData()
           }
         }
@@ -92,7 +96,6 @@ const Dashboard = () => {
     if (!user) return
     setLoading(true)
     try {
-      // Buscar todos os IDs de pedidos que contêm produtos deste vendedor
       const { data: sellerOrderItems, error: itemsError } = await supabase
         .from('order_items')
         .select('order_id')
@@ -100,13 +103,15 @@ const Dashboard = () => {
 
       if (itemsError) throw itemsError
       if (!sellerOrderItems || sellerOrderItems.length === 0) {
-        setLoading(false)
-        return
+        setStats({ totalProducts: 0, totalOrders: 0, totalRevenue: 0, pendingOrders: 0 });
+        setRecentOrders([]);
+        setCancelledOrders([]);
+        setLoading(false);
+        return;
       }
 
       const orderIds = [...new Set(sellerOrderItems.map(item => item.order_id))]
 
-      // Buscar detalhes desses pedidos
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
@@ -115,20 +120,17 @@ const Dashboard = () => {
 
       if (ordersError) throw ordersError
 
-      // Buscar produtos do vendedor
       const { count: productCount } = await supabase
         .from('products')
         .select('id', { count: 'exact', head: true })
         .eq('seller_id', user.id)
 
-      // Filtrar e separar os pedidos
       const recent = orders.filter(o => o.status !== 'cancelled' && o.status !== 'completed').slice(0, 5)
       const cancelled = orders.filter(o => o.status === 'cancelled').slice(0, 5)
       
-      // Calcular estatísticas
       const totalRevenue = orders
         .filter(o => o.status === 'completed')
-        .reduce((sum, order) => sum + order.total_amount, 0) // Simplificado para o total do pedido
+        .reduce((sum, order) => sum + order.total_amount, 0)
 
       setStats({
         totalProducts: productCount || 0,
@@ -171,16 +173,10 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-red-600">Acesso Restrito</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-center text-red-600">Acesso Restrito</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-center text-gray-600 mb-4">
-              Esta área é exclusiva para vendedores.
-            </p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Voltar para Home
-            </Button>
+            <p className="text-center text-gray-600 mb-4">Esta área é exclusiva para vendedores.</p>
+            <Button onClick={() => navigate('/')} className="w-full">Voltar para Home</Button>
           </CardContent>
         </Card>
       </div>
@@ -215,73 +211,17 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center space-x-4">
             <Avatar className="h-16 w-16 bg-secondary text-white border-4 border-white shadow-lg">
-              <AvatarFallback className="text-2xl font-bold">
-                {getAvatarFallbackText()}
-              </AvatarFallback>
+              <AvatarFallback className="text-2xl font-bold">{getAvatarFallbackText()}</AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">
-                Dashboard Vendedor
-              </h1>
-              <p className="text-gray-600">
-                Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span>
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard Vendedor</h1>
+              <p className="text-gray-600">Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span></p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {actionButtons.map((action, index) => (
-              <Tooltip key={index}>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={() => navigate(action.href)}
-                    className={`h-24 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 shadow-md ${
-                      action.name === 'Finanças e Comissões' || action.name === 'Gerenciar Pedidos'
-                        ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-800'
-                        : 'bg-white hover:bg-gray-100 border-2 border-gray-300 text-gray-800'
-                    }`}
-                    variant={action.variant}
-                  >
-                    <action.icon className="w-6 h-6 mb-1" />
-                    <span className="text-xs font-semibold mt-1 text-center leading-tight">{action.name}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{action.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            {statCards.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card>
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.title}</p>
-                        <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                      </div>
-                      <div className={`p-2 sm:p-3 rounded-lg ${stat.bgColor}`}>
-                        <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1">
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
               <TabsTrigger value="products">Produtos</TabsTrigger>
               <TabsTrigger value="finance">Finanças</TabsTrigger>
               <TabsTrigger value="settings">Configurações</TabsTrigger>
@@ -291,111 +231,93 @@ const Dashboard = () => {
             <TabsContent value="settings"><StoreSettingsTab /></TabsContent>
             <TabsContent value="finance"><SellerFinanceTab /></TabsContent>
             
-            <TabsContent value="activity">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Pedidos Recentes */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-lg">
-                      <ShoppingBag className="w-5 h-5 mr-2" />
-                      Pedidos Recentes (Ativos)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {recentOrders.length === 0 ? (
-                      <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido ativo.</p></div>
-                    ) : (
-                      <div className="space-y-4">
-                        {recentOrders.map((order) => (
-                          <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                              <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleDateString('pt-MZ')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{formatPrice(order.total_amount)}</p>
-                              <Badge variant="secondary">{order.status}</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* 🔥 NOVO: Cartão de Pedidos Cancelados */}
-                <Card className="border-red-200 bg-red-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-lg text-red-800">
-                      <XCircle className="w-5 h-5 mr-2" />
-                      Últimos Pedidos Cancelados
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {cancelledOrders.length === 0 ? (
-                      <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido cancelado recentemente.</p></div>
-                    ) : (
-                      <div className="space-y-4">
-                        {cancelledOrders.map((order) => (
-                          <div key={order.id} className="flex items-center justify-between p-3 border border-red-200 bg-white rounded-lg">
-                            <div>
-                              <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                              <p className="text-sm text-gray-600">Cancelado em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold line-through">{formatPrice(order.total_amount)}</p>
-                              <Badge variant="destructive">Cancelado</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
             <TabsContent value="overview">
-              <div className="space-y-6">
-                <Card className="bg-yellow-50 border-yellow-200">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-yellow-800 text-lg">
-                      <AlertTriangle className="w-5 h-5 mr-2" />
-                      Aviso Importante: Confiança do Cliente
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-yellow-700 mb-4">
-                      Assim que um cliente fizer uma encomenda, você deve ir para a seção **Gerenciar Pedidos** e atualizar o status para **"Em Preparação"**.
-                    </p>
-                    <p className="text-sm text-yellow-700 font-semibold">
-                      Isso garante que o cliente saiba que o pedido está sendo processado, aumentando a confiança e reduzindo cancelamentos.
-                    </p>
-                    <Button onClick={() => navigate('/meus-pedidos')} className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white w-full">
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Ir para Gerenciar Pedidos
-                    </Button>
-                  </CardContent>
-                </Card>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Coluna Principal (Ações) */}
+                <div className="lg:col-span-2 space-y-6">
                   <Card>
+                    <CardHeader><CardTitle className="flex items-center text-lg"><ShoppingBag className="w-5 h-5 mr-2" />Pedidos Recentes (Ativos)</CardTitle></CardHeader>
+                    <CardContent>
+                      {recentOrders.length === 0 ? (
+                        <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido ativo.</p></div>
+                      ) : (
+                        <div className="space-y-4">
+                          {recentOrders.map((order) => (
+                            <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
+                                <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleDateString('pt-MZ')}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+                                <Badge variant="secondary">{order.status}</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <Button onClick={() => navigate('/meus-pedidos')} className="w-full mt-4">Ver Todos os Pedidos</Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* 🔥 NOVO: Cartão de Pedidos Cancelados */}
+                  <Card className="border-red-200 bg-red-50">
                     <CardHeader>
-                      <CardTitle className="flex items-center"><Store className="w-5 h-5 mr-2" />Minha Loja Pública</CardTitle>
+                      <CardTitle className="flex items-center text-lg text-red-800">
+                        <XCircle className="w-5 h-5 mr-2" />
+                        Pedidos Cancelados Recentemente
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-gray-600 mb-4">Veja como sua loja aparece para os clientes</p>
-                      <Button onClick={() => navigate(`/loja/${user.id}`)} className="w-full"><Eye className="w-4 h-4 mr-2" />Ver Minha Loja</Button>
+                      {cancelledOrders.length === 0 ? (
+                        <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido cancelado recentemente.</p></div>
+                      ) : (
+                        <div className="space-y-4">
+                          {cancelledOrders.map((order) => (
+                            <div key={order.id} className="flex items-center justify-between p-3 border border-red-200 bg-white rounded-lg">
+                              <div>
+                                <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
+                                <p className="text-sm text-gray-600">Cancelado em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold line-through">{formatPrice(order.total_amount)}</p>
+                                <Badge variant="destructive">Cancelado</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Coluna Lateral (Estatísticas e Atalhos) */}
+                <div className="lg:col-span-1 space-y-6">
+                  <Card>
+                    <CardHeader><CardTitle className="text-lg">Estatísticas Rápidas</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      {statCards.map((stat, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center">
+                            <div className={`p-2 rounded-lg mr-3 ${stat.bgColor}`}>
+                              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                              <p className="text-lg font-bold text-gray-900">{stat.value}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </CardContent>
                   </Card>
                   
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center"><MessageCircle className="w-5 h-5 mr-2" />Comunicação</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <Button onClick={() => navigate('/meus-chats')} className="w-full justify-start" variant="outline"><MessageCircle className="w-4 h-4 mr-2" />Mensagens com Clientes</Button>
-                      <Button onClick={() => navigate('/politica-vendedor')} className="w-full justify-start" variant="outline"><Settings className="w-4 h-4 mr-2" />Política do Vendedor</Button>
+                    <CardHeader><CardTitle className="text-lg">Atalhos</CardTitle></CardHeader>
+                    <CardContent className="space-y-3">
+                      <Button onClick={() => navigate('/adicionar-produto')} className="w-full justify-start"><Plus className="w-4 h-4 mr-2" />Adicionar Novo Produto</Button>
+                      <Button onClick={() => navigate(`/loja/${user.id}`)} className="w-full justify-start" variant="outline"><Eye className="w-4 h-4 mr-2" />Ver Minha Loja</Button>
+                      <Button onClick={() => navigate('/meus-chats')} className="w-full justify-start" variant="outline"><MessageCircle className="w-4 h-4 mr-2" />Mensagens</Button>
                     </CardContent>
                   </Card>
                 </div>
