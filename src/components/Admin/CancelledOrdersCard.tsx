@@ -26,7 +26,7 @@ const CancelledOrdersCard: React.FC = () => {
           id,
           total_amount,
           updated_at,
-          customer:profiles ( email )
+          customer:profiles!user_id ( email )
         `)
         .eq('status', 'cancelled')
         .order('updated_at', { ascending: false })
