@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { Separator } from '../../ui/separator'
@@ -8,13 +8,16 @@ import { Badge } from '../../ui/badge'
 import { 
   FileText, Lightbulb, Search, 
   BarChart3, CheckCircle, AlertTriangle,
-  Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag
+  Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag, Link as LinkIcon, Loader2
 } from 'lucide-react'
-import { ContentDraft, BlogCategory, LocalDraftState } from '../../../types/blog'
+import { ContentDraft, BlogCategory, LocalDraftState, LinkItem } from '../../../types/blog'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion'
 import { Textarea } from '../../ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
 import OptimizedImageUpload from '../OptimizedImageUpload'
+import { supabase } from '../../../lib/supabase'
+import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast'
+import { CONTENT_GENERATOR_BASE_URL } from '../../../utils/admin'
 
 interface SidebarProps {
   isOpen: boolean
@@ -27,7 +30,8 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, onUpdateDraft, onGenerateWithAI, wordCount }) => {
-  
+  const [isSuggestingLinks, setIsSuggestingLinks] = useState(false)
+
   const seoAnalysis = useMemo(() => {
     const contentText = (draft.content || '').replace(/<[^>]*>/g, ' ') || ''
     const keyword = draft.keyword || ''
@@ -58,6 +62,55 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
   }
+
+  const handleSuggestInternalLinks = useCallback(async () => {
+    if (!draft.id || !draft.content) {
+      showError('Salve o rascunho com algum conteúdo primeiro.');
+      return;
+    }
+
+    setIsSuggestingLinks(true);
+    const toastId = showLoading('IA está a ler o seu artigo para encontrar os melhores links...');
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) throw new Error('Usuário não autenticado.');
+
+      const response = await fetch(CONTENT_GENERATOR_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'suggest_internal_links',
+          draftId: draft.id,
+          content: draft.content,
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Falha na requisição.');
+
+      if (result.success && result.internal_links) {
+        dismissToast(toastId);
+        showSuccess(`${result.internal_links.length} link(s) interno(s) sugerido(s)!`);
+        onUpdateDraft({ ...draft, internal_links: result.internal_links });
+      } else {
+        throw new Error(result.error || 'Nenhuma sugestão encontrada.');
+      }
+    } catch (error: any) {
+      dismissToast(toastId);
+      showError(`Erro ao sugerir links: ${error.message}`);
+    } finally {
+      setIsSuggestingLinks(false);
+    }
+  }, [draft, onUpdateDraft]);
+
+  const removeInternalLink = (index: number) => {
+    const updatedLinks = (draft.internal_links || []).filter((_, i) => i !== index);
+    onUpdateDraft({ ...draft, internal_links: updatedLinks });
+  };
 
   if (!isOpen) return null
 
@@ -112,6 +165,26 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
               <div className="space-y-2">
                 <Label htmlFor="keywords">Palavras-chave Secundárias</Label>
                 <Input id="keywords" value={(draft.secondary_keywords || []).join(', ')} onChange={(e) => onUpdateDraft({ ...draft, secondary_keywords: e.target.value.split(',').map(k => k.trim()).filter(Boolean) })} />
+              </div>
+              <div className="space-y-2 border-t pt-4">
+                <Label>Links Internos</Label>
+                <div className="space-y-2">
+                  {(draft.internal_links || []).map((link, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-100 rounded">
+                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 truncate hover:underline">
+                        <LinkIcon className="w-3 h-3 mr-1 inline" />
+                        {link.title}
+                      </a>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removeInternalLink(index)}>
+                        <Trash2 className="w-3 h-3 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={handleSuggestInternalLinks} variant="outline" className="w-full" disabled={isSuggestingLinks}>
+                  {isSuggestingLinks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lightbulb className="w-4 h-4 mr-2" />}
+                  Sugerir Links Internos (IA)
+                </Button>
               </div>
             </AccordionContent>
           </AccordionItem>

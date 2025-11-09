@@ -39,7 +39,6 @@ serve(async (req) => {
       if (!keyword) throw new Error('Keyword is required.')
       log(`Starting full generation for: "${keyword}"`);
 
-      // 🔥 CORREÇÃO: Buscar artigos existentes para usar como links internos válidos
       const { data: existingArticles, error: articlesError } = await supabaseServiceRole
         .from('published_articles')
         .select('title, slug')
@@ -218,6 +217,62 @@ serve(async (req) => {
       log(`Reanálise concluída.`);
 
       return new Response(JSON.stringify({ success: true, data: analysisResult }), { headers: corsHeaders, status: 200 })
+    
+    } else if (action === 'suggest_internal_links') {
+      const { draftId, content } = payload;
+      if (!draftId || !content) throw new Error('Draft ID and content are required to suggest links.');
+      log(`Suggesting internal links for draft ID: ${draftId}`);
+
+      const { data: existingArticles, error: articlesError } = await supabaseServiceRole
+        .from('published_articles')
+        .select('title, slug')
+        .eq('status', 'published')
+        .neq('id', draftId); // Excluir o próprio artigo da lista de sugestões
+
+      if (articlesError) throw new Error(`Database Error: ${articlesError.message}`);
+
+      let existingArticlesText = "Nenhum outro artigo publicado encontrado.";
+      if (existingArticles && existingArticles.length > 0) {
+        existingArticlesText = existingArticles.map(a => `- Título: "${a.title}", URL: /blog/${a.slug}`).join('\n');
+      }
+
+      const suggestPrompt = `
+        **INSTRUÇÃO CRÍTICA: VOCÊ É UM ESPECIALISTA EM SEO E ARQUITETURA DE CONTEÚDO.**
+
+        **Tarefa:** Analise o resumo do artigo fornecido e, a partir da lista de artigos existentes, sugira 1 ou 2 links internos que sejam **altamente relevantes** para o conteúdo.
+
+        **Resumo do Artigo Atual:**
+        ${content.replace(/<[^>]*>/g, ' ').substring(0, 2000)}
+
+        **LISTA DE ARTIGOS DISPONÍVEIS PARA LINKAGEM (NÃO INVENTE OUTROS):**
+        ${existingArticlesText}
+
+        **REGRAS:**
+        1. Escolha apenas os artigos da lista que mais agregam valor e contexto ao artigo atual.
+        2. Se nenhum artigo da lista for relevante, retorne uma lista vazia.
+        3. Sua resposta DEVE ser um objeto JSON com uma única chave "internal_links".
+
+        **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
+        {
+          "internal_links": [
+            { "title": "Título Exato do Artigo Escolhido", "url": "/blog/slug-exato-do-artigo-escolhido" }
+          ]
+        }
+      `;
+
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: suggestPrompt }], response_format: { type: 'json_object' } }),
+      });
+
+      if (!openaiResponse.ok) throw new Error(`OpenAI Suggestion Error: ${await openaiResponse.text()}`);
+      
+      const openaiData = await openaiResponse.json();
+      const suggested = JSON.parse(openaiData.choices[0].message.content);
+      log(`Sugestões de links internos geradas.`);
+
+      return new Response(JSON.stringify({ success: true, internal_links: suggested.internal_links || [] }), { headers: corsHeaders, status: 200 });
     }
 
     return new Response(JSON.stringify({ error: 'Ação inválida.' }), { status: 400, headers: corsHeaders })
