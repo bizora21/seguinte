@@ -8,7 +8,7 @@ import { Badge } from '../../ui/badge'
 import { 
   FileText, Lightbulb, Search, 
   BarChart3, CheckCircle, AlertTriangle,
-  Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag, Link as LinkIcon, Loader2
+  Plus, Trash2, X, RefreshCw, Settings, Image as ImageIcon, Tag, Link as LinkIcon, Loader2, ExternalLink
 } from 'lucide-react'
 import { ContentDraft, BlogCategory, LocalDraftState, LinkItem } from '../../../types/blog'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../ui/accordion'
@@ -185,6 +185,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, draft, categories, o
                   {isSuggestingLinks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lightbulb className="w-4 h-4 mr-2" />}
                   Sugerir Links Internos (IA)
                 </Button>
+              </div>
+              <div className="space-y-2 border-t pt-4">
+                <Label>Sugestões de Links Externos (IA)</Label>
+                <div className="space-y-2">
+                  {(draft.external_links || []).map((link, index) => (
+                    <div key={index} className="p-2 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-xs font-semibold text-blue-800">{link.title}</p>
+                      <p className="text-xs text-blue-600 mt-1">{(link as any).reason}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </AccordionContent>
           </AccordionItem>

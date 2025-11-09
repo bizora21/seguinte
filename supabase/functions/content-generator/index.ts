@@ -50,44 +50,39 @@ serve(async (req) => {
       }
 
       const prompt = `
-        **INSTRUÇÃO CRÍTICA E INEGOCIÁVEL**
+        **PERSONA E OBJETIVO:**
+        Você é um especialista de elite em SEO e redação de conteúdo, com profundo conhecimento do mercado digital, cultura e nuances linguísticas de Moçambique. Sua missão é criar um artigo definitivo sobre o tópico "${keyword}", que não apenas domine os rankings de busca no país, mas que também se torne uma referência de qualidade e utilidade para o público local.
 
-        Você é um copywriter sênior e estratega de SEO para o mercado de Moçambique. Sua missão é produzir um artigo de classe mundial, 100% humanizado, e otimizado para SEO sobre o tópico: "${keyword}".
+        **TÓPICO CENTRAL:** ${keyword}
+        **PALAVRA-CHAVE PRIMÁRIA:** ${keyword}
 
-        **Público-Alvo:** "${audience}"
-        **Contexto Local:** "${context}"
-        **Formato do Artigo:** "${type}"
+        ---
 
         **REGRAS ABSOLUTAS QUE NÃO PODEM SER IGNORADAS:**
 
-        1.  **NÃO REPITA O TÍTULO NA INTRODUÇÃO:** O campo \`content_html\` **NÃO DEVE** começar com uma tag \`<h1>\`. O artigo deve começar diretamente com o primeiro parágrafo da introdução. O título pertence apenas ao campo \`title\`.
-
-        2.  **CONTEÚDO PROFUNDO E HUMANIZADO (MÍNIMO 1200 PALAVRAS):**
-            *   Escreva como um especialista humano para outro humano. Use um tom conversacional e envolvente.
-            *   Forneça insights práticos, exemplos locais de Moçambique e conselhos acionáveis.
-            *   Estruture o artigo de forma lógica: introdução cativante, desenvolvimento com subtítulos (<h2>, <h3>), e uma conclusão forte.
-            *   A profundidade e a qualidade são mais importantes que a contagem de palavras, mas o mínimo absoluto é 1200 palavras.
-
-        3.  **FORMATO HTML PERFEITO:** O campo \`content_html\` deve ser um HTML válido, usando apenas as tags <p>, <h2>, <h3>, <ul>, <li>, e <strong>.
-
-        4.  **LINKS INTERNOS VÁLIDOS:** A partir da lista de artigos existentes fornecida abaixo, escolha 1 ou 2 que sejam MAIS RELEVANTES para o tópico atual e use-os para o campo \`internal_links\`. **NÃO INVENTE links ou URLs.** Se nenhum for relevante, retorne uma lista vazia.
+        1.  **CONTEÚDO PROFUNDO E HUMANIZADO (MÍNIMO 1200 PALAVRAS):** O artigo deve ter no mínimo 1200 palavras, ser bem estruturado, e fornecer valor real.
+        2.  **NÃO REPITA O TÍTULO NA INTRODUÇÃO:** O campo \`content_html\` **NÃO DEVE** começar com uma tag \`<h1>\`.
+        3.  **FORMATO HTML PERFEITO:** Use apenas as tags <p>, <h2>, <h3>, <ul>, <li>, e <strong>.
+        4.  **LINKS INTERNOS VÁLIDOS:** A partir da lista de artigos existentes, escolha 1 ou 2 que sejam MAIS RELEVANTES. Se nenhum for relevante, retorne uma lista vazia.
             **Artigos Existentes:**
             ${existingArticlesText}
+        5.  **SUGESTÕES DE LINKS EXTERNOS (NÃO URLs):** No campo \`suggested_external_links\`, sugira 1 ou 2 fontes de alta autoridade (ex: Wikipedia, Banco Mundial, artigos de notícias de renome). **NÃO GERE A URL**, apenas o título e uma breve justificação.
 
-        5.  **SEO COMPLETO E OTIMIZADO:** Todos os campos do JSON de saída devem ser preenchidos com qualidade profissional.
+        ---
 
         **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
 
-        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional antes ou depois.
+        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional.
 
         {
-          "title": "Um título H1 otimizado para SEO (60-70 caracteres), magnético e que gere cliques.",
-          "meta_description": "Uma meta descrição otimizada e persuasiva (150-160 caracteres) que incentive o clique no SERP.",
-          "content_html": "O artigo completo em HTML (mínimo 1200 palavras), começando com um parágrafo, não com um título.",
+          "title": "Um título H1 otimizado para SEO (máx. 60 caracteres), intrigante e que inclua a palavra-chave principal.",
+          "meta_description": "Uma meta descrição única (máx. 160 caracteres) que inclua a palavra-chave e um CTA sutil.",
+          "content_html": "O artigo completo em HTML (mínimo 1200 palavras), começando com um parágrafo, incluindo uma seção de FAQ com 3 perguntas e respostas usando <h3> no final, e terminando com a seção de CTA.",
           "image_prompt": "Um prompt curto e descritivo em INGLÊS para o Unsplash. Ex: 'young mozambican entrepreneur working on a laptop in a modern Maputo office'.",
           "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, descritivo e otimizado para SEO.",
-          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes e semânticas"],
+          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI/semânticas relevantes"],
           "internal_links": [{ "title": "Título do Artigo Existente Escolhido", "url": "/blog/slug-do-artigo-existente" }],
+          "suggested_external_links": [{ "title": "Ex: 'Relatório do Banco Mundial sobre Economia Digital em África'", "reason": "Fornece dados estatísticos para suportar a afirmação sobre o crescimento do e-commerce." }],
           "structured_data": {
             "@context": "https://schema.org",
             "@type": "BlogPosting",
@@ -151,7 +146,7 @@ serve(async (req) => {
           image_prompt: generated.image_prompt,
           secondary_keywords: generated.secondary_keywords,
           internal_links: generated.internal_links,
-          external_links: [], // Removido
+          external_links: generated.suggested_external_links, // Armazenando sugestões no campo 'external_links'
           status: 'draft',
           keyword: keyword,
           context: context,
