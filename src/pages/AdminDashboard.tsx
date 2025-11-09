@@ -10,6 +10,7 @@ import { showError } from '../utils/toast'
 import DeliveredOrdersCard from '../components/Admin/DeliveredOrdersCard'
 import PendingProofsCard from '../components/Admin/PendingProofsCard'
 import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
+import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab' // NOVO IMPORT
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -129,8 +130,8 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Coluna Principal (Ações) */}
           <div className="lg:col-span-2 space-y-8">
+            <AdminPaymentManagementTab /> {/* NOVO COMPONENTE */}
             <DeliveredOrdersCard onUpdate={fetchDashboardData} />
-            <PendingProofsCard onUpdate={fetchDashboardData} />
           </div>
 
           {/* Coluna Lateral (Histórico) */}
