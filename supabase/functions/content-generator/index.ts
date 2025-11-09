@@ -50,43 +50,45 @@ serve(async (req) => {
       }
 
       const prompt = `
-        **INSTRUÇÃO CRÍTICA E INEGOCIÁVEL**
+        **PERSONA E OBJETIVO:**
+        Você é um especialista de elite em SEO e redação de conteúdo, com profundo conhecimento do mercado digital, cultura e nuances linguísticas de Moçambique. Sua missão é criar um artigo definitivo sobre o tópico "${keyword}", que não apenas domine os rankings de busca no país, mas que também se torne uma referência de qualidade e utilidade para o público local.
 
-        Você é um copywriter sênior e estratega de SEO para o mercado de Moçambique. Sua missão é produzir um artigo de classe mundial, 100% humanizado, e otimizado para SEO sobre o tópico: "${keyword}".
+        **TÓPICO CENTRAL:** ${keyword}
+        **PALAVRA-CHAVE PRIMÁRIA:** ${keyword}
 
-        **Público-Alvo:** "${audience}"
-        **Contexto Local:** "${context}"
-        **Formato do Artigo:** "${type}"
+        ---
 
-        **REGRAS ABSOLUTAS QUE NÃO PODEM SER IGNORADAS:**
+        **ANÁLISE E ESTRATÉGIA (ANTES DE ESCREVER):**
 
-        1.  **NÃO REPITA O TÍTULO NA INTRODUÇÃO:** O campo \`content_html\` **NÃO DEVE** começar com uma tag \`<h1>\`. O artigo deve começar diretamente com o primeiro parágrafo da introdução. O título pertence apenas ao campo \`title\`.
+        1.  **Público-Alvo e Contexto Moçambicano:**
+            *   O público é composto por "${audience}".
+            *   Adapte a linguagem, exemplos e referências culturais para ressoar com a realidade moçambicana. Use termos e expressões do português de Moçambique quando apropriado para criar conexão.
+            *   Considere fatores locais que possam influenciar o tópico (ex: clima, economia, regulamentações locais, eventos sazonais) no contexto de "${context}".
 
-        2.  **CONTEÚDO PROFUNDO E HUMANIZADO (MÍNIMO 1200 PALAVRAS):**
-            *   Escreva como um especialista humano para outro humano. Use um tom conversacional e envolvente.
-            *   Forneça insights práticos, exemplos locais de Moçambique e conselhos acionáveis.
-            *   Estruture o artigo de forma lógica: introdução cativante, desenvolvimento com subtítulos (<h2>, <h3>), e uma conclusão forte.
-            *   A profundidade e a qualidade são mais importantes que a contagem de palavras, mas o mínimo absoluto é 1200 palavras.
+        ---
 
-        3.  **FORMATO HTML PERFEITO:** O campo \`content_html\` deve ser um HTML válido, usando apenas as tags <p>, <h2>, <h3>, <ul>, <li>, e <strong>.
+        **ESTRUTURA E REDAÇÃO DO ARTIGO:**
 
-        4.  **LINKS INTERNOS VÁLIDOS:** A partir da lista de artigos existentes fornecida abaixo, escolha 1 ou 2 que sejam MAIS RELEVANTES para o tópico atual e use-os para o campo \`internal_links\`. **NÃO INVENTE links ou URLs.** Se nenhum for relevante, retorne uma lista vazia.
-            **Artigos Existentes:**
-            ${existingArticlesText}
+        1.  **Fluxo Natural e Humanizado:** Escreva o conteúdo de forma fluida e coesa. **NÃO** use cabeçalhos genéricos como "Introdução". O primeiro parágrafo deve ser um gancho forte que engaje imediatamente.
+        2.  **Tom de Voz:** Autoritário, mas empático e acessível. Escreva como um especialista local explicando um tema para um amigo.
+        3.  **Tamanho:** Mínimo de 1200 palavras. Aprofunde-se no tópico para fornecer valor exaustivo.
+        4.  **Subtítulos:** Use uma hierarquia clara com subtítulos H2 para seções principais e H3 para pontos específicos.
+        5.  **Legibilidade:** Utilize parágrafos curtos (2-4 frases), listas com marcadores (bullet points) e negrito para enfatizar termos importantes.
+        6.  **Conclusão e CTA:** Finalize o artigo com uma conclusão forte e uma seção de chamada para ação (CTA) com um subtítulo H2 "Pronto para Vender em Moçambique?", convidando o leitor a se cadastrar como vendedor na LojaRápida.
 
-        5.  **SEO COMPLETO E OTIMIZADO:** Todos os campos do JSON de saída devem ser preenchidos com qualidade profissional.
+        ---
 
-        **ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
+        **OTIMIZAÇÃO TÉCNICA E ESTRUTURA DE SAÍDA (JSON OBRIGATÓRIO):**
 
-        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional antes ou depois.
+        Sua resposta DEVE ser um único objeto JSON, sem qualquer texto adicional antes ou depois, preenchendo todos os campos com qualidade profissional.
 
         {
-          "title": "Um título H1 otimizado para SEO (60-70 caracteres), magnético e que gere cliques.",
-          "meta_description": "Uma meta descrição otimizada e persuasiva (150-160 caracteres) que incentive o clique no SERP.",
-          "content_html": "O artigo completo em HTML (mínimo 1200 palavras), começando com um parágrafo, não com um título.",
+          "title": "Um título H1 otimizado para SEO (máx. 60 caracteres), intrigante e que inclua a palavra-chave principal.",
+          "meta_description": "Uma meta descrição única (máx. 160 caracteres) que inclua a palavra-chave, resuma o valor do artigo e tenha uma chamada para ação sutil.",
+          "content_html": "O artigo completo em HTML (mínimo 1200 palavras), começando com um parágrafo (NÃO um <h1>), incluindo uma seção de FAQ com 3 perguntas e respostas usando <h3> no final, e terminando com a seção de CTA.",
           "image_prompt": "Um prompt curto e descritivo em INGLÊS para o Unsplash. Ex: 'young mozambican entrepreneur working on a laptop in a modern Maputo office'.",
           "image_alt_text": "Um texto alternativo (ALT text) para a imagem, em PORTUGUÊS, descritivo e otimizado para SEO.",
-          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI relevantes e semânticas"],
+          "secondary_keywords": ["uma", "lista", "de", "5", "palavras-chave LSI/semânticas relevantes"],
           "internal_links": [{ "title": "Título do Artigo Existente Escolhido", "url": "/blog/slug-do-artigo-existente" }],
           "external_links": [{ "title": "Nome de um Site de Referência de Alta Autoridade", "url": "https://exemplo.com" }],
           "structured_data": {
