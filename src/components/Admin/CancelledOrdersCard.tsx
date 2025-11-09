@@ -20,28 +20,13 @@ const CancelledOrdersCard: React.FC = () => {
   const fetchCancelledOrders = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          total_amount,
-          updated_at,
-          customer:profiles!user_id ( email )
-        `)
-        .eq('status', 'cancelled')
-        .order('updated_at', { ascending: false })
-        .limit(10)
+      // ATUALIZADO: Chamando a função RPC segura
+      const { data, error } = await supabase.rpc('get_cancelled_orders_with_customer_email')
 
       if (error) throw error
       
-      const formattedData = data.map(order => ({
-        id: order.id,
-        total_amount: order.total_amount,
-        updated_at: order.updated_at,
-        customer_email: (order.customer as any)?.email || 'Email não encontrado'
-      }))
-      
-      setOrders(formattedData)
+      // O 'data' já vem no formato correto, sem necessidade de formatação extra
+      setOrders(data || [])
     } catch (error: any) {
       showError('Erro ao buscar pedidos cancelados: ' + error.message)
     } finally {
