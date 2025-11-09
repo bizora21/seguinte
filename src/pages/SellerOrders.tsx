@@ -50,18 +50,20 @@ const SellerOrders = () => {
       fetchOrders()
       
       if (user.id) {
-        const channel = setupRealtimeSubscription(user.id)
+        const newOrderChannel = setupNewOrderSubscription(user.id)
+        const orderUpdateChannel = setupOrderUpdateSubscription(user.id)
+        
         return () => {
-          supabase.removeChannel(channel)
+          supabase.removeChannel(newOrderChannel)
+          supabase.removeChannel(orderUpdateChannel)
         }
       }
     }
   }, [user])
 
-  // 🔥 NOVO: Subscrição em tempo real para novos pedidos
-  const setupRealtimeSubscription = (sellerId: string) => {
+  const setupNewOrderSubscription = (sellerId: string) => {
     const channel = supabase
-      .channel(`seller-orders-${sellerId}`)
+      .channel(`seller-new-orders-${sellerId}`)
       .on(
         'postgres_changes',
         {
@@ -74,14 +76,44 @@ const SellerOrders = () => {
           toast.success('🎉 Novo pedido recebido! Atualizando a lista...', {
             duration: 5000,
           });
-          fetchOrders(); // Recarrega a lista de pedidos
+          fetchOrders();
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`[Realtime] Vendedor ${sellerId} está a ouvir por novos pedidos.`);
+      .subscribe();
+    return channel;
+  };
+
+  // 🔥 NOVO: Subscrição para ATUALIZAÇÕES de pedidos (cancelamentos)
+  const setupOrderUpdateSubscription = (sellerId: string) => {
+    const channel = supabase
+      .channel(`seller-order-updates-${sellerId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          const updatedOrder = payload.new as ProcessedOrder;
+          
+          // Verificar se o pedido atualizado pertence a este vendedor
+          const isRelevant = orders.some(o => o.id === updatedOrder.id);
+
+          if (isRelevant && updatedOrder.status === 'cancelled') {
+            toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
+              duration: 6000,
+            });
+            // Atualizar o estado local para refletir o cancelamento
+            setOrders(prev => prev.map(order => 
+              order.id === updatedOrder.id 
+                ? { ...order, status: 'cancelled', updated_at: updatedOrder.updated_at }
+                : order
+            ));
+          }
         }
-      });
+      )
+      .subscribe();
     return channel;
   };
 
