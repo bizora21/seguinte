@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip'
 import { 
   Plus, 
   ShoppingBag, 
@@ -21,13 +21,15 @@ import {
   Settings,
   CreditCard,
   AlertTriangle,
-  User
+  User,
+  XCircle // Ícone para cancelados
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import SellerFinanceTab from '../components/SellerFinanceTab'
 import StoreSettingsTab from '../components/StoreSettingsTab'
-import SellerProductsTab from '../components/SellerProductsTab' // Importado
+import SellerProductsTab from '../components/SellerProductsTab'
 import { Avatar, AvatarFallback } from '../components/ui/avatar'
+import toast from 'react-hot-toast'
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -39,67 +41,105 @@ const Dashboard = () => {
     pendingOrders: 0
   })
   const [recentOrders, setRecentOrders] = useState<any[]>([])
+  // 🔥 NOVO: Estado para pedidos cancelados
+  const [cancelledOrders, setCancelledOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
       fetchDashboardData()
+      
+      // 🔥 NOVO: Configurar subscrições em tempo real
+      const orderUpdateChannel = setupOrderUpdateSubscription()
+      return () => {
+        supabase.removeChannel(orderUpdateChannel)
+      }
     }
   }, [user])
 
+  // 🔥 NOVO: Subscrição para ATUALIZAÇÕES de pedidos (incluindo cancelamentos)
+  const setupOrderUpdateSubscription = () => {
+    const channel = supabase
+      .channel(`seller-dashboard-updates-${user!.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          const updatedOrder = payload.new as any;
+          
+          // Verificar se o pedido atualizado pertence a este vendedor
+          const isRelevant = recentOrders.some(o => o.id === updatedOrder.id) || 
+                             cancelledOrders.some(o => o.id === updatedOrder.id);
+
+          if (isRelevant && updatedOrder.status === 'cancelled') {
+            toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
+              duration: 6000,
+            });
+            // Atualiza a lista de cancelados e remove da lista de recentes
+            fetchDashboardData()
+          }
+        }
+      )
+      .subscribe();
+    return channel;
+  };
+
   const fetchDashboardData = async () => {
+    if (!user) return
+    setLoading(true)
     try {
-      // Buscar estatísticas de produtos
-      const { data: products } = await supabase
-        .from('products')
-        .select('id')
-        .eq('seller_id', user!.id)
+      // Buscar todos os IDs de pedidos que contêm produtos deste vendedor
+      const { data: sellerOrderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('order_id')
+        .eq('seller_id', user.id)
 
-      // Buscar estatísticas de pedidos
-      const { data: orders } = await supabase
+      if (itemsError) throw itemsError
+      if (!sellerOrderItems || sellerOrderItems.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      const orderIds = [...new Set(sellerOrderItems.map(item => item.order_id))]
+
+      // Buscar detalhes desses pedidos
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            product:products (
-              seller_id
-            )
-          )
-        `)
-        .in('order_items.product.seller_id', [user!.id])
+        .select('*')
+        .in('id', orderIds)
         .order('created_at', { ascending: false })
-        .limit(5)
 
+      if (ordersError) throw ordersError
+
+      // Buscar produtos do vendedor
+      const { count: productCount } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('seller_id', user.id)
+
+      // Filtrar e separar os pedidos
+      const recent = orders.filter(o => o.status !== 'cancelled' && o.status !== 'completed').slice(0, 5)
+      const cancelled = orders.filter(o => o.status === 'cancelled').slice(0, 5)
+      
       // Calcular estatísticas
-      const sellerOrders = orders?.filter(order => 
-        order.order_items?.some(item => 
-          item.product?.seller_id === user!.id
-        )
-      ) || []
-
-      const totalRevenue = sellerOrders.reduce((sum, order) => {
-        const sellerItems = order.order_items?.filter(item => 
-          item.product?.seller_id === user!.id
-        ) || []
-        const orderTotal = sellerItems.reduce((itemSum, item) => 
-          itemSum + (item.price * item.quantity), 0
-        )
-        return sum + orderTotal
-      }, 0)
-
-      const pendingCount = sellerOrders.filter(order => 
-        order.status === 'pending'
-      ).length
+      const totalRevenue = orders
+        .filter(o => o.status === 'completed')
+        .reduce((sum, order) => sum + order.total_amount, 0) // Simplificado para o total do pedido
 
       setStats({
-        totalProducts: products?.length || 0,
-        totalOrders: sellerOrders.length,
+        totalProducts: productCount || 0,
+        totalOrders: orders.length,
         totalRevenue,
-        pendingOrders: pendingCount
+        pendingOrders: orders.filter(o => o.status === 'pending').length
       })
 
-      setRecentOrders(sellerOrders.slice(0, 3))
+      setRecentOrders(recent)
+      setCancelledOrders(cancelled)
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -156,316 +196,214 @@ const Dashboard = () => {
   }
 
   const statCards = [
-    {
-      title: 'Total de Produtos',
-      value: formatNumber(stats.totalProducts),
-      icon: Package,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      change: '+12%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Pedidos Totais',
-      value: formatNumber(stats.totalOrders),
-      icon: ShoppingBag,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      change: '+8%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Receita Total',
-      value: formatPrice(stats.totalRevenue),
-      icon: DollarSign,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      change: '+23%',
-      changeType: 'positive'
-    },
-    {
-      title: 'Pedidos Pendentes',
-      value: formatNumber(stats.pendingOrders),
-      icon: BarChart3,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      change: '-5%',
-      changeType: 'negative'
-    }
+    { title: 'Total de Produtos', value: formatNumber(stats.totalProducts), icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { title: 'Pedidos Totais', value: formatNumber(stats.totalOrders), icon: ShoppingBag, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { title: 'Receita (Concluídos)', value: formatPrice(stats.totalRevenue), icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: 'Pedidos Pendentes', value: formatNumber(stats.pendingOrders), icon: BarChart3, color: 'text-orange-600', bgColor: 'bg-orange-50' }
   ]
   
-  // Botões de Ação CONSOLIDADOS
   const actionButtons = [
-    { 
-      name: 'Gerenciar Pedidos', 
-      href: '/meus-pedidos', 
-      icon: ShoppingBag, 
-      description: 'Visualize e atualize o status de todos os pedidos recebidos.',
-      variant: 'default' as const
-    },
-    { 
-      name: 'Meus Produtos', 
-      href: '/dashboard?tab=products', 
-      icon: Package, 
-      description: 'Adicione, edite ou exclua seus produtos.',
-      variant: 'default' as const
-    },
-    { 
-      name: 'Finanças e Comissões', 
-      href: '/dashboard?tab=finance', 
-      icon: CreditCard, 
-      description: 'Monitore suas comissões e gerencie pagamentos.',
-      variant: 'default' as const
-    },
-    { 
-      name: 'Configurações da Loja', 
-      href: '/dashboard?tab=settings', 
-      icon: Settings, 
-      description: 'Atualize o nome, descrição e categorias da sua loja.',
-      variant: 'outline' as const
-    },
+    { name: 'Gerenciar Pedidos', href: '/meus-pedidos', icon: ShoppingBag, description: 'Visualize e atualize o status de todos os pedidos recebidos.', variant: 'default' as const },
+    { name: 'Meus Produtos', href: '/dashboard?tab=products', icon: Package, description: 'Adicione, edite ou exclua seus produtos.', variant: 'default' as const },
+    { name: 'Finanças e Comissões', href: '/dashboard?tab=finance', icon: CreditCard, description: 'Monitore suas comissões e gerencie pagamentos.', variant: 'default' as const },
+    { name: 'Configurações da Loja', href: '/dashboard?tab=settings', icon: Settings, description: 'Atualize o nome, descrição e categorias da sua loja.', variant: 'outline' as const },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header com Avatar */}
-        <div className="mb-8 flex items-center space-x-4">
-          <Avatar className="h-16 w-16 bg-secondary text-white border-4 border-white shadow-lg">
-            {/* Aqui você usaria user.profile?.store_logo se estivesse implementado */}
-            <AvatarFallback className="text-2xl font-bold">
-              {getAvatarFallbackText()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              Dashboard Vendedor
-            </h1>
-            <p className="text-gray-600">
-              Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span>
-            </p>
+      <TooltipProvider>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 flex items-center space-x-4">
+            <Avatar className="h-16 w-16 bg-secondary text-white border-4 border-white shadow-lg">
+              <AvatarFallback className="text-2xl font-bold">
+                {getAvatarFallbackText()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                Dashboard Vendedor
+              </h1>
+              <p className="text-gray-600">
+                Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span>
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Ações Principais Destacadas (Layout responsivo) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {actionButtons.map((action, index) => (
-            <Tooltip key={index}>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => navigate(action.href)}
-                  className={`h-24 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 shadow-md ${
-                    // Destaque para Finanças e Pedidos
-                    action.name === 'Finanças e Comissões' || action.name === 'Gerenciar Pedidos'
-                      ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-800'
-                      : 'bg-white hover:bg-gray-100 border-2 border-gray-300 text-gray-800'
-                  }`}
-                  variant={action.variant}
-                >
-                  <action.icon className="w-6 h-6 mb-1" />
-                  <span className="text-xs font-semibold mt-1 text-center leading-tight">{action.name}</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{action.description}</p>
-              </TooltipContent>
-            </Tooltip>
-          ))}
-        </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {actionButtons.map((action, index) => (
+              <Tooltip key={index}>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => navigate(action.href)}
+                    className={`h-24 flex flex-col justify-center items-center text-center p-2 transition-all duration-300 shadow-md ${
+                      action.name === 'Finanças e Comissões' || action.name === 'Gerenciar Pedidos'
+                        ? 'bg-green-600 hover:bg-green-700 text-white border-2 border-green-800'
+                        : 'bg-white hover:bg-gray-100 border-2 border-gray-300 text-gray-800'
+                    }`}
+                    variant={action.variant}
+                  >
+                    <action.icon className="w-6 h-6 mb-1" />
+                    <span className="text-xs font-semibold mt-1 text-center leading-tight">{action.name}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{action.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
 
-        {/* Stats Grid (Layout responsivo: 2 colunas em mobile, 4 em desktop) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          {statCards.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <Card>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.title}</p>
-                      <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                      <div className="flex items-center mt-2">
-                        <span className={`text-xs font-medium ${
-                          stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {stat.change}
-                        </span>
-                        <span className="text-xs text-gray-500 ml-1 hidden sm:inline">vs mês passado</span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            {statCards.map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <Card>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs sm:text-sm font-medium text-gray-600">{stat.title}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                      </div>
+                      <div className={`p-2 sm:p-3 rounded-lg ${stat.bgColor}`}>
+                        <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
                       </div>
                     </div>
-                    <div className={`p-2 sm:p-3 rounded-lg ${stat.bgColor}`}>
-                      <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
 
-        {/* Tabs for different sections */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          {/* Tabs List responsiva */}
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1">
-            <TabsTrigger value="overview" className="py-2 text-xs sm:text-sm">Visão Geral</TabsTrigger>
-            <TabsTrigger value="activity" className="py-2 text-xs sm:text-sm">Atividade</TabsTrigger>
-            <TabsTrigger value="products" className="py-2 text-xs sm:text-sm">Produtos</TabsTrigger>
-            <TabsTrigger value="finance" className="py-2 text-xs sm:text-sm">Finanças</TabsTrigger>
-            <TabsTrigger value="settings" className="py-2 text-xs sm:text-sm">Configurações</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="products">
-            <SellerProductsTab />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <StoreSettingsTab />
-          </TabsContent>
-          
-          <TabsContent value="finance">
-            <SellerFinanceTab />
-          </TabsContent>
-          
-          <TabsContent value="activity">
-            <div className="space-y-6">
-              {/* Pedidos Recentes */}
-              <Card>
-                <CardHeader className="flex items-center justify-between">
-                  <CardTitle className="flex items-center text-lg">
-                    <ShoppingBag className="w-5 h-5 mr-2" />
-                    Pedidos Recentes
-                  </CardTitle>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/meus-pedidos')}
-                  >
-                    Ver Todos
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {recentOrders.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Nenhum pedido recebido ainda</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {recentOrders.map((order) => (
-                        <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div>
-                            <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                            <p className="text-sm text-gray-600">
-                              {new Date(order.created_at).toLocaleDateString('pt-MZ')}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold">{formatPrice(order.total_amount)}</p>
-                            <Badge 
-                              variant={order.status === 'pending' ? 'secondary' : 'default'}
-                              className="text-xs"
-                            >
-                              {order.status === 'pending' ? 'Pendente' : 
-                               order.status === 'preparing' ? 'Preparando' :
-                               order.status === 'in_transit' ? 'A Caminho' : 'Entregue'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="overview">
-            <div className="space-y-6">
-              {/* Instrução de Confiança */}
-              <Card className="bg-yellow-50 border-yellow-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-yellow-800 text-lg">
-                    <AlertTriangle className="w-5 h-5 mr-2" />
-                    Aviso Importante: Confiança do Cliente
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-yellow-700 mb-4">
-                    Assim que um cliente fizer uma encomenda, você deve ir para a seção **Gerenciar Pedidos** e atualizar o status para **"Em Preparação"**.
-                  </p>
-                  <p className="text-sm text-yellow-700 font-semibold">
-                    Isso garante que o cliente saiba que o pedido está sendo processado, aumentando a confiança e reduzindo cancelamentos.
-                  </p>
-                  <Button
-                    onClick={() => navigate('/meus-pedidos')}
-                    className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white w-full"
-                  >
-                    <ShoppingBag className="w-4 h-4 mr-2" />
-                    Ir para Gerenciar Pedidos
-                  </Button>
-                </CardContent>
-              </Card>
-              
-              {/* Minha Loja Pública */}
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1">
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="activity">Atividade Recente</TabsTrigger>
+              <TabsTrigger value="products">Produtos</TabsTrigger>
+              <TabsTrigger value="finance">Finanças</TabsTrigger>
+              <TabsTrigger value="settings">Configurações</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="products"><SellerProductsTab /></TabsContent>
+            <TabsContent value="settings"><StoreSettingsTab /></TabsContent>
+            <TabsContent value="finance"><SellerFinanceTab /></TabsContent>
+            
+            <TabsContent value="activity">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Pedidos Recentes */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Store className="w-5 h-5 mr-2" />
-                      Minha Loja Pública
+                    <CardTitle className="flex items-center text-lg">
+                      <ShoppingBag className="w-5 h-5 mr-2" />
+                      Pedidos Recentes (Ativos)
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Veja como sua loja aparece para os clientes
+                    {recentOrders.length === 0 ? (
+                      <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido ativo.</p></div>
+                    ) : (
+                      <div className="space-y-4">
+                        {recentOrders.map((order) => (
+                          <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
+                              <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleDateString('pt-MZ')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+                              <Badge variant="secondary">{order.status}</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 🔥 NOVO: Cartão de Pedidos Cancelados */}
+                <Card className="border-red-200 bg-red-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-lg text-red-800">
+                      <XCircle className="w-5 h-5 mr-2" />
+                      Últimos Pedidos Cancelados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {cancelledOrders.length === 0 ? (
+                      <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido cancelado recentemente.</p></div>
+                    ) : (
+                      <div className="space-y-4">
+                        {cancelledOrders.map((order) => (
+                          <div key={order.id} className="flex items-center justify-between p-3 border border-red-200 bg-white rounded-lg">
+                            <div>
+                              <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
+                              <p className="text-sm text-gray-600">Cancelado em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold line-through">{formatPrice(order.total_amount)}</p>
+                              <Badge variant="destructive">Cancelado</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="overview">
+              <div className="space-y-6">
+                <Card className="bg-yellow-50 border-yellow-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-yellow-800 text-lg">
+                      <AlertTriangle className="w-5 h-5 mr-2" />
+                      Aviso Importante: Confiança do Cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-yellow-700 mb-4">
+                      Assim que um cliente fizer uma encomenda, você deve ir para a seção **Gerenciar Pedidos** e atualizar o status para **"Em Preparação"**.
                     </p>
-                    <Button
-                      onClick={() => navigate(`/loja/${user.id}`)}
-                      className="w-full"
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Ver Minha Loja
+                    <p className="text-sm text-yellow-700 font-semibold">
+                      Isso garante que o cliente saiba que o pedido está sendo processado, aumentando a confiança e reduzindo cancelamentos.
+                    </p>
+                    <Button onClick={() => navigate('/meus-pedidos')} className="mt-4 bg-yellow-600 hover:bg-yellow-700 text-white w-full">
+                      <ShoppingBag className="w-4 h-4 mr-2" />
+                      Ir para Gerenciar Pedidos
                     </Button>
                   </CardContent>
                 </Card>
                 
-                {/* Outras Ações */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Comunicação
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button
-                      onClick={() => navigate('/meus-chats')}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Mensagens com Clientes
-                    </Button>
-                    <Button
-                      onClick={() => navigate('/politica-vendedor')}
-                      className="w-full justify-start"
-                      variant="outline"
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Política do Vendedor
-                    </Button>
-                  </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center"><Store className="w-5 h-5 mr-2" />Minha Loja Pública</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 mb-4">Veja como sua loja aparece para os clientes</p>
+                      <Button onClick={() => navigate(`/loja/${user.id}`)} className="w-full"><Eye className="w-4 h-4 mr-2" />Ver Minha Loja</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center"><MessageCircle className="w-5 h-5 mr-2" />Comunicação</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Button onClick={() => navigate('/meus-chats')} className="w-full justify-start" variant="outline"><MessageCircle className="w-4 h-4 mr-2" />Mensagens com Clientes</Button>
+                      <Button onClick={() => navigate('/politica-vendedor')} className="w-full justify-start" variant="outline"><Settings className="w-4 h-4 mr-2" />Política do Vendedor</Button>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </TooltipProvider>
     </div>
   )
 }
