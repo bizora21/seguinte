@@ -167,6 +167,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
       const contentHtml = editor.getHTML()
       
       const publishedData = {
+        id: draft.id, // Usar o mesmo ID do rascunho
         title: draft.title,
         slug: draft.slug,
         meta_description: draft.meta_description,
@@ -186,12 +187,17 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ initialDraft, categorie
         published_at: new Date().toISOString(),
       }
 
-      const { error: insertError } = await supabase
+      // 🔥 CORREÇÃO: Usar 'upsert' para inserir ou atualizar
+      const { error: upsertError } = await supabase
         .from('published_articles')
-        .insert(publishedData)
+        .upsert(publishedData, { onConflict: 'id' })
 
-      if (insertError) {
-        throw new Error('Falha ao inserir artigo publicado: ' + insertError.message)
+      if (upsertError) {
+        // Verificar se o erro é de slug duplicado, mas com ID diferente (caso raro)
+        if (upsertError.message.includes('duplicate key value violates unique constraint "blog_posts_slug_key"')) {
+          throw new Error('Falha ao publicar: O slug (URL) já está em uso por outro artigo.')
+        }
+        throw new Error('Falha ao publicar/atualizar artigo: ' + upsertError.message)
       }
       
       const { error: updateDraftError } = await supabase
