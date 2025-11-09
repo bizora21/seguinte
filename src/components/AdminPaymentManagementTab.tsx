@@ -136,7 +136,7 @@ const AdminPaymentManagementTab = () => {
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-2">
                         <Store className="w-4 h-4 text-gray-600" />
-                        <span>{proof.profiles.store_name || proof.profiles.email}</span>
+                        <span>{proof.store_name || proof.email}</span>
                       </div>
                     </TableCell>
                     <TableCell className="font-bold text-green-600">
@@ -159,7 +159,7 @@ const AdminPaymentManagementTab = () => {
                           <h3 className="text-lg font-semibold mb-2">Comprovante de Pagamento</h3>
                           <img 
                             src={proof.proof_file_url} 
-                            alt={`Comprovante de ${proof.profiles.store_name}`} 
+                            alt={`Comprovante de ${proof.store_name}`} 
                             className="w-full h-auto object-contain max-h-[80vh]"
                           />
                         </DialogContent>

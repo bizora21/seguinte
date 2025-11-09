@@ -20,10 +20,8 @@ export interface PaymentProof {
   status: 'pending' | 'approved' | 'rejected'
   submission_date: string
   reviewed_date: string | null
-  profiles: {
-    store_name: string | null
-    email: string
-  }
+  store_name: string | null // Alterado: não mais aninhado
+  email: string // Alterado: não mais aninhado
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
@@ -137,17 +135,8 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
 
 export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
   try {
-    const { data, error } = await supabase
-      .from('seller_payment_proofs')
-      .select(`
-        *,
-        profiles:seller_id (
-          store_name,
-          email
-        )
-      `)
-      .eq('status', 'pending')
-      .order('submission_date', { ascending: true })
+    // Chama a função segura na base de dados
+    const { data, error } = await supabase.rpc('get_pending_proofs_with_seller_details')
 
     if (error) throw error
     return data as PaymentProof[]
