@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store } from 'lucide-react';
+import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -10,6 +10,8 @@ import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../compone
 import { getFirstImageUrl } from '../utils/images';
 import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
 import ProductChat from '../components/ProductChat';
+import { Card, CardContent } from '../components/ui/card'; // Adicionado Card para melhor estrutura
+import { Separator } from '../components/ui/separator'; // CORREÇÃO: Importação do Separator
 
 // Interface para os dados do produto
 interface Product {
@@ -176,59 +178,88 @@ const ProductDetail = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            {/* Coluna da Galeria de Imagens */}
-            <div className="space-y-4">
-              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-sm">
-                <img 
-                  src={mainImage || defaultImage}
-                  alt={`Imagem principal do produto ${product.name}`}
-                  className="w-full h-full object-contain"
-                  onError={(e) => { e.currentTarget.src = defaultImage; }}
-                />
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
-                      <Maximize className="w-5 h-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                    <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {productImages.length > 1 && (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
-                  {productImages.map((url, index) => (
-                    <div 
-                      key={index} 
-                      className={`aspect-square relative rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
-                      onClick={() => setMainImage(url)}
-                    >
-                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
+            
+            {/* Coluna da Esquerda: Imagens e Detalhes */}
+            <div className="lg:col-span-7 space-y-8">
+              
+              {/* Galeria de Imagens */}
+              <Card className="p-4 shadow-lg">
+                <div className="space-y-4">
+                  {/* Imagem Principal (Forçando Aspecto Quadrado) */}
+                  <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 border">
+                    <img 
+                      src={mainImage || defaultImage}
+                      alt={`Imagem principal do produto ${product.name}`}
+                      className="w-full h-full object-contain" // Garante que a imagem se ajusta sem cortar
+                      loading="eager"
+                      onError={(e) => { e.currentTarget.src = defaultImage; }}
+                    />
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
+                          <Maximize className="w-5 h-5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                        <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  
+                  {/* Miniaturas */}
+                  {productImages.length > 1 && (
+                    <div className="flex space-x-2 overflow-x-auto pb-2">
+                      {productImages.map((url, index) => (
+                        <div 
+                          key={index} 
+                          className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
+                          onClick={() => setMainImage(url)}
+                        >
+                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
+              </Card>
+              
+              {/* Descrição Detalhada */}
+              <Card className="p-6 shadow-lg">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Detalhes do Produto</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição detalhada disponível.'}</p>
+              </Card>
+              
+              {/* Informações de Entrega e Garantia */}
+              <Card className="p-6 shadow-lg">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Informações de Compra</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                    <Truck className="w-6 h-6 text-green-600" />
+                    <div>
+                      <p className="font-semibold text-sm">Entrega Rápida</p>
+                      <p className="text-xs text-gray-600">1 a 5 dias úteis em todo MZ</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                    <Shield className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-sm">Pagamento Seguro</p>
+                      <p className="text-xs text-gray-600">Pague na Entrega (COD)</p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
 
-            {/* Coluna de Informações e Ações */}
-            <div className="space-y-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm border space-y-6">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h1>
+            {/* Coluna da Direita: Ações e Chat (Sticky) */}
+            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24 self-start">
+              
+              {/* Card de Preço e Ação */}
+              <Card className="p-6 shadow-lg border-2 border-green-200">
+                <h1 className="text-xl font-bold text-gray-900 mb-2 lg:hidden">{product.name}</h1>
                 
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                    <span>4.8 (125 avaliações)</span>
-                  </div>
-                  <div className="flex items-center text-sm text-blue-600 hover:underline cursor-pointer" onClick={() => navigate(`/loja/${product.seller_id}`)}>
-                    <Store className="w-4 h-4 mr-1" />
-                    <span>{storeName}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-baseline justify-between">
-                  <div className="text-3xl font-bold text-green-600">{formatPrice(product.price)}</div>
+                <div className="flex items-baseline justify-between mb-4">
+                  <div className="text-4xl font-bold text-green-600">{formatPrice(product.price)}</div>
                   <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
                     {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
                   </Badge>
@@ -236,29 +267,31 @@ const ProductDetail = () => {
 
                 <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
                   <Package className="w-5 h-5 mr-2" />
-                  {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda'}
+                  {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda Agora'}
                 </Button>
-
-                <div className="space-y-2 border-t pt-4">
-                  <h3 className="font-semibold">Descrição</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição disponível.'}</p>
-                </div>
-
-                <div className="space-y-2 border-t pt-4">
-                  <h3 className="font-semibold flex items-center"><MapPin className="w-4 h-4 mr-2" />Disponibilidade de Entrega</h3>
-                  {deliveryScope.length === 0 ? (
-                    <p className="text-sm text-red-600">⚠️ O vendedor não definiu áreas de entrega. Contate-o para confirmar.</p>
-                  ) : isNationalDelivery ? (
-                    <p className="text-sm text-green-600 font-medium">✅ Entrega disponível em todo Moçambique.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {deliveryScope.map(scope => (
-                        <Badge key={scope} variant="secondary" className="bg-blue-100 text-blue-800 text-xs">{PROVINCE_LABELS[scope] || scope}</Badge>
-                      ))}
+                
+                <Separator className="my-4" />
+                
+                {/* Informações do Vendedor */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Store className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">Vendido por:</p>
+                      <p className="font-semibold text-lg text-gray-900 hover:text-blue-600 cursor-pointer" onClick={() => navigate(`/loja/${product.seller_id}`)}>
+                        {storeName}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
+                      <span>4.8</span>
+                    </div>
+                    <p className="text-xs text-gray-500">{deliveryScope.length} áreas de entrega</p>
+                  </div>
                 </div>
-              </div>
+              </Card>
 
               {/* Componente de Chat */}
               <ProductChat 
