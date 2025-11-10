@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -54,6 +54,7 @@ const ProductDetail = () => {
   const [mainImage, setMainImage] = useState('');
   const [error, setError] = useState<string | null>(null);
   
+  const titleRef = useRef<HTMLHeadingElement>(null); // Ref para o título
   const defaultImage = '/placeholder.svg';
 
   useEffect(() => {
@@ -82,6 +83,9 @@ const ProductDetail = () => {
         setProduct(data);
         const images = getProductImages(data.image_url);
         setMainImage(images[0] || defaultImage);
+        
+        // Focar no título após o carregamento dos dados
+        setTimeout(() => titleRef.current?.focus(), 100);
 
       } catch (error) {
         setError('Erro ao carregar produto');
@@ -177,54 +181,59 @@ const ProductDetail = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             
-            {/* Coluna da Esquerda: Imagens (lg:col-span-5) */}
-            <div className="lg:col-span-5 space-y-4">
+            {/* Coluna da Esquerda: Imagens e Detalhes */}
+            <div className="space-y-8">
               
-              {/* Imagem Principal (Forçando Aspecto Quadrado) */}
-              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-md">
-                <img 
-                  src={mainImage || defaultImage}
-                  alt={`Imagem principal do produto ${product.name}`}
-                  className="w-full h-full object-contain"
-                  loading="eager"
-                  onError={(e) => { e.currentTarget.src = defaultImage; }}
-                />
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
-                      <Maximize className="w-5 h-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                    <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
-                  </DialogContent>
-                </Dialog>
+              {/* Galeria de Imagens */}
+              <div className="space-y-4">
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-sm">
+                  <img 
+                    src={mainImage || defaultImage}
+                    alt={`Imagem principal do produto ${product.name}`}
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.currentTarget.src = defaultImage; }}
+                  />
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
+                        <Maximize className="w-5 h-5" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                      <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                {productImages.length > 1 && (
+                  <div className="flex space-x-2 overflow-x-auto pb-2">
+                    {productImages.map((url, index) => (
+                      <div 
+                        key={index} 
+                        className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
+                        onClick={() => setMainImage(url)}
+                      >
+                        <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
-              {/* Miniaturas */}
-              {productImages.length > 1 && (
-                <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {productImages.map((url, index) => (
-                    <div 
-                      key={index} 
-                      className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
-                      onClick={() => setMainImage(url)}
-                    >
-                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Descrição Detalhada */}
+              <Card className="p-6 shadow-sm">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Detalhes do Produto</h2>
+                <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição detalhada disponível.'}</p>
+              </Card>
             </div>
 
-            {/* Coluna da Direita: Informações e Ações (lg:col-span-7) */}
-            <div className="lg:col-span-7 space-y-6">
+            {/* Coluna da Direita: Ações e Chat (Sticky) */}
+            <div className="space-y-6 lg:sticky lg:top-24 self-start">
               
               {/* Card de Preço e Ação */}
               <Card className="p-6 shadow-lg border-2 border-green-200">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+                <h1 ref={titleRef} tabIndex={-1} className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2 outline-none">{product.name}</h1>
                 
                 <div className="flex items-center space-x-4 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
@@ -251,32 +260,7 @@ const ProductDetail = () => {
                 
                 <Separator className="my-6" />
                 
-                {/* Informações de Entrega e Vendedor */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
-                    <Truck className="w-6 h-6 text-green-600" />
-                    <div>
-                      <p className="font-semibold text-sm">Entrega Rápida</p>
-                      <p className="text-xs text-gray-600">1 a 5 dias úteis em todo MZ</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
-                    <Shield className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <p className="font-semibold text-sm">Pagamento Seguro</p>
-                      <p className="text-xs text-gray-600">Pague na Entrega (COD)</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator className="my-6" />
-
                 <div className="space-y-2">
-                  <h3 className="font-semibold">Descrição</h3>
-                  <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição disponível.'}</p>
-                </div>
-
-                <div className="space-y-2 border-t pt-4">
                   <h3 className="font-semibold flex items-center"><MapPin className="w-4 h-4 mr-2" />Disponibilidade de Entrega</h3>
                   {deliveryScope.length === 0 ? (
                     <p className="text-sm text-red-600">⚠️ O vendedor não definiu áreas de entrega. Contate-o para confirmar.</p>
@@ -292,7 +276,7 @@ const ProductDetail = () => {
                 </div>
               </Card>
 
-              {/* Componente de Chat (Fica abaixo das informações principais) */}
+              {/* Componente de Chat */}
               <ProductChat 
                 productId={product.id}
                 sellerId={product.seller_id}
