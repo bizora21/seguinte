@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store } from 'lucide-react';
@@ -12,6 +12,15 @@ import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
 import ProductChat from '../components/ProductChat';
 import { Card, CardContent } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
+import { motion } from 'framer-motion';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 // Interface para os dados do produto
 interface Product {
@@ -30,20 +39,6 @@ interface Product {
   };
 }
 
-const PROVINCE_LABELS: Record<string, string> = {
-  'maputo_cidade': 'Maputo (Cidade)',
-  'maputo_provincia': 'Maputo (Província)',
-  'gaza': 'Gaza',
-  'inhambane': 'Inhambane',
-  'sofala': 'Sofala',
-  'manica': 'Manica',
-  'tete': 'Tete',
-  'zambezia': 'Zambézia',
-  'nampula': 'Nampula',
-  'cabo_delgado': 'Cabo Delgado',
-  'niassa': 'Niassa'
-}
-
 const ProductDetail = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -54,7 +49,7 @@ const ProductDetail = () => {
   const [mainImage, setMainImage] = useState('');
   const [error, setError] = useState<string | null>(null);
   
-  const titleRef = useRef<HTMLHeadingElement>(null); // Ref para o título
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const defaultImage = '/placeholder.svg';
 
   useEffect(() => {
@@ -67,10 +62,7 @@ const ProductDetail = () => {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select(`
-            *,
-            seller:profiles!products_seller_id_fkey(id, store_name, email, delivery_scope)
-          `)
+          .select(`*, seller:profiles!products_seller_id_fkey(id, store_name, email, delivery_scope)`)
           .eq('id', productId)
           .single();
 
@@ -84,7 +76,6 @@ const ProductDetail = () => {
         const images = getProductImages(data.image_url);
         setMainImage(images[0] || defaultImage);
         
-        // Focar no título após o carregamento dos dados
         setTimeout(() => titleRef.current?.focus(), 100);
 
       } catch (error) {
@@ -105,37 +96,23 @@ const ProductDetail = () => {
     navigate(`/confirmar-encomenda/${productId}`);
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-MZ', {
-      style: 'currency',
-      currency: 'MZN'
-    }).format(price);
-  };
+  const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price);
 
   const getProductImages = (imageUrl: string | null): string[] => {
     if (!imageUrl) return [];
-    
     try {
       const urls = JSON.parse(imageUrl);
-      if (Array.isArray(urls)) {
-        return urls.filter(url => typeof url === 'string');
-      }
+      return Array.isArray(urls) ? urls.filter(url => typeof url === 'string') : [];
     } catch (e) {
-      if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
-        return [imageUrl];
-      }
+      return typeof imageUrl === 'string' && imageUrl.trim().length > 0 ? [imageUrl] : [];
     }
-    
-    return [];
   };
 
   const productImages = getProductImages(product?.image_url || null);
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
   const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   
-  if (loading) {
-    return <ProductDetailSkeleton />;
-  }
+  if (loading) return <ProductDetailSkeleton />;
 
   if (error || !product) {
     return (
@@ -150,16 +127,12 @@ const ProductDetail = () => {
   }
   
   const productSchema = generateProductSchema(product as any, storeName);
-  
   const breadcrumbs = [
-    { name: 'Início', url: 'https://lojarapidamz.com/' },
-    { name: 'Produtos', url: 'https://lojarapidamz.com/produtos' },
+    { name: 'Início', url: '/' },
+    { name: 'Produtos', url: '/produtos' },
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
-  
-  const deliveryScope = product.seller?.delivery_scope || [];
-  const isNationalDelivery = deliveryScope.length === Object.keys(PROVINCE_LABELS).length;
 
   return (
     <>
@@ -175,114 +148,107 @@ const ProductDetail = () => {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem><BreadcrumbLink asChild><Link to="/">Início</Link></BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbLink asChild><Link to="/produtos">Produtos</Link></BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbPage>{product.name}</BreadcrumbPage></BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             
-            {/* Coluna da Esquerda: Imagens e Detalhes */}
-            <div className="space-y-8">
-              
-              {/* Galeria de Imagens */}
-              <div className="space-y-4">
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-sm">
-                  <img 
-                    src={mainImage || defaultImage}
-                    alt={`Imagem principal do produto ${product.name}`}
-                    className="w-full h-full object-contain"
-                    onError={(e) => { e.currentTarget.src = defaultImage; }}
-                  />
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
-                        <Maximize className="w-5 h-5" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                      <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                {productImages.length > 1 && (
-                  <div className="flex space-x-2 overflow-x-auto pb-2">
-                    {productImages.map((url, index) => (
-                      <div 
-                        key={index} 
-                        className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
-                        onClick={() => setMainImage(url)}
-                      >
-                        <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {/* Coluna da Esquerda: Imagens */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
+              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-md">
+                <img 
+                  src={mainImage || defaultImage}
+                  alt={`Imagem principal do produto ${product.name}`}
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.currentTarget.src = defaultImage; }}
+                />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
+                      <Maximize className="w-5 h-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                    <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                  </DialogContent>
+                </Dialog>
               </div>
-              
-              {/* Descrição Detalhada */}
-              <Card className="p-6 shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Detalhes do Produto</h2>
-                <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição detalhada disponível.'}</p>
-              </Card>
-            </div>
-
-            {/* Coluna da Direita: Ações e Chat (Sticky) */}
-            <div className="space-y-6 lg:sticky lg:top-24 self-start">
-              
-              {/* Card de Preço e Ação */}
-              <Card className="p-6 shadow-lg border-2 border-green-200">
-                <h1 ref={titleRef} tabIndex={-1} className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2 outline-none">{product.name}</h1>
-                
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                    <span>4.8 (125 avaliações)</span>
-                  </div>
-                  <div className="flex items-center text-sm text-blue-600 hover:underline cursor-pointer" onClick={() => navigate(`/loja/${product.seller_id}`)}>
-                    <Store className="w-4 h-4 mr-1" />
-                    <span>{storeName}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-baseline justify-between mb-6">
-                  <div className="text-4xl font-bold text-green-600">{formatPrice(product.price)}</div>
-                  <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
-                    {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
-                  </Badge>
-                </div>
-
-                <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
-                  <Package className="w-5 h-5 mr-2" />
-                  {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda Agora'}
-                </Button>
-                
-                <Separator className="my-6" />
-                
-                <div className="space-y-2">
-                  <h3 className="font-semibold flex items-center"><MapPin className="w-4 h-4 mr-2" />Disponibilidade de Entrega</h3>
-                  {deliveryScope.length === 0 ? (
-                    <p className="text-sm text-red-600">⚠️ O vendedor não definiu áreas de entrega. Contate-o para confirmar.</p>
-                  ) : isNationalDelivery ? (
-                    <p className="text-sm text-green-600 font-medium">✅ Entrega disponível em todo Moçambique.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {deliveryScope.map(scope => (
-                        <Badge key={scope} variant="secondary" className="bg-blue-100 text-blue-800 text-xs">{PROVINCE_LABELS[scope] || scope}</Badge>
-                      ))}
+              {productImages.length > 1 && (
+                <div className="flex space-x-2 overflow-x-auto pb-2">
+                  {productImages.map((url, index) => (
+                    <div 
+                      key={index} 
+                      className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
+                      onClick={() => setMainImage(url)}
+                    >
+                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
-                  )}
+                  ))}
                 </div>
+              )}
+            </motion.div>
+
+            {/* Coluna da Direita: Informações e Ações */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="space-y-6">
+              <h1 ref={titleRef} tabIndex={-1} className="text-3xl lg:text-4xl font-bold text-gray-900 outline-none">{product.name}</h1>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
+                  <span>4.8 (125 avaliações)</span>
+                </div>
+                <div className="flex items-center text-sm text-blue-600 hover:underline cursor-pointer" onClick={() => navigate(`/loja/${product.seller_id}`)}>
+                  <Store className="w-4 h-4 mr-1" />
+                  <span>Vendido por: {storeName}</span>
+                </div>
+              </div>
+
+              <div className="text-5xl font-bold text-green-600">{formatPrice(product.price)}</div>
+              
+              <p className="text-gray-600 leading-relaxed">{product.description || 'Nenhuma descrição disponível.'}</p>
+
+              <Card className="bg-gray-100 border-gray-200">
+                <CardContent className="p-4 grid grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Truck className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-sm">Entrega Rápida</p>
+                      <p className="text-xs text-gray-600">1-5 dias úteis</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-6 h-6 text-green-600" />
+                    <div>
+                      <p className="font-semibold text-sm">Pagamento Seguro</p>
+                      <p className="text-xs text-gray-600">Pague na Entrega</p>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
 
-              {/* Componente de Chat */}
+              <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
+                {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
+              </Badge>
+
+              <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
+                <Package className="w-5 h-5 mr-2" />
+                {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
+              </Button>
+
               <ProductChat 
                 productId={product.id}
                 sellerId={product.seller_id}
                 storeName={storeName}
               />
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
