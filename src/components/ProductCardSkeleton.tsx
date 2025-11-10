@@ -6,11 +6,9 @@ const ProductCardSkeleton: React.FC = () => {
   return (
     <Card className="h-full flex flex-col overflow-hidden shadow-md">
       <CardHeader className="p-0">
-        <div className="aspect-square w-full overflow-hidden bg-gray-100">
-          <Skeleton className="h-full w-full" />
-        </div>
+        <Skeleton className="aspect-square w-full" />
       </CardHeader>
-      <CardContent className="flex-1 p-3 sm:p-4 space-y-3">
+      <CardContent className="flex-1 p-4 space-y-3">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-5/6" />
@@ -20,7 +18,7 @@ const ProductCardSkeleton: React.FC = () => {
           <Skeleton className="h-4 w-1/3" />
         </div>
       </CardContent>
-      <CardFooter className="p-3 sm:p-4 pt-0 space-y-2 flex flex-col">
+      <CardFooter className="p-4 pt-0 space-y-2 flex flex-col">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
       </CardFooter>
