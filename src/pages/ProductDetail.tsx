@@ -175,49 +175,46 @@ const ProductDetail = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Coluna da Galeria de Imagens */}
-            <div className="lg:col-span-7">
-              <div className="flex flex-col-reverse md:flex-row gap-4 sticky top-24">
-                {/* Thumbnails */}
-                <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pb-2 md:pb-0 md:pr-2">
+            <div className="space-y-4">
+              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-sm">
+                <img 
+                  src={mainImage || defaultImage}
+                  alt={`Imagem principal do produto ${product.name}`}
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.currentTarget.src = defaultImage; }}
+                />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
+                      <Maximize className="w-5 h-5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                    <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {productImages.length > 1 && (
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                   {productImages.map((url, index) => (
                     <div 
                       key={index} 
-                      className={`w-20 h-20 aspect-square flex-shrink-0 rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200'}`}
+                      className={`aspect-square relative rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
                       onClick={() => setMainImage(url)}
                     >
-                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>
-                {/* Imagem Principal */}
-                <div className="relative aspect-square w-full flex-1 overflow-hidden rounded-lg bg-white border">
-                  <img 
-                    src={mainImage || defaultImage}
-                    alt={`Imagem principal do produto ${product.name}`}
-                    className="w-full h-full object-contain"
-                    loading="eager"
-                    onError={(e) => { e.currentTarget.src = defaultImage; }}
-                  />
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
-                        <Maximize className="w-5 h-5" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                      <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Coluna de Informações e Ações */}
-            <div className="lg:col-span-5 space-y-8">
+            <div className="space-y-8">
               <div className="bg-white p-6 rounded-lg shadow-sm border space-y-6">
-                <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h1>
                 
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center text-sm text-gray-600">
