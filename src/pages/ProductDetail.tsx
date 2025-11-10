@@ -167,38 +167,32 @@ const ProductDetail = () => {
       />
       
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Button variant="ghost" onClick={() => navigate(-1)}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-                <h1 className="text-lg font-semibold ml-4 truncate max-w-[200px] sm:max-w-none">{product.name}</h1>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary" className="bg-green-100 text-green-800 hidden sm:flex">
-                  <Shield className="w-3 h-3 mr-1" />
-                  Compra Segura
-                </Badge>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800 hidden sm:flex">
-                  <Truck className="w-3 h-3 mr-1" />
-                  Frete Grátis
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </header>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-full">
-            {/* Coluna da Esquerda: Detalhes do Produto */}
-            <div className="space-y-6">
-              {/* Galeria de Imagens */}
-              <div className="space-y-4">
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 border">
+          <div className="mb-6">
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Coluna da Galeria de Imagens */}
+            <div className="lg:col-span-7">
+              <div className="flex flex-col-reverse md:flex-row gap-4 sticky top-24">
+                {/* Thumbnails */}
+                <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pb-2 md:pb-0 md:pr-2">
+                  {productImages.map((url, index) => (
+                    <div 
+                      key={index} 
+                      className={`w-20 h-20 aspect-square flex-shrink-0 rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200'}`}
+                      onClick={() => setMainImage(url)}
+                    >
+                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+                {/* Imagem Principal */}
+                <div className="relative aspect-square w-full flex-1 overflow-hidden rounded-lg bg-white border">
                   <img 
                     src={mainImage || defaultImage}
                     alt={`Imagem principal do produto ${product.name}`}
@@ -217,23 +211,11 @@ const ProductDetail = () => {
                     </DialogContent>
                   </Dialog>
                 </div>
-                
-                {productImages.length > 1 && (
-                  <div className="flex space-x-2 overflow-x-auto pb-2">
-                    {productImages.map((url, index) => (
-                      <div 
-                        key={index} 
-                        className={`w-20 h-20 aspect-square flex-shrink-0 rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200'}`}
-                        onClick={() => setMainImage(url)}
-                      >
-                        <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
+            </div>
 
-              {/* Informações do Produto */}
+            {/* Coluna de Informações e Ações */}
+            <div className="lg:col-span-5 space-y-8">
               <div className="bg-white p-6 rounded-lg shadow-sm border space-y-6">
                 <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
                 
@@ -255,7 +237,12 @@ const ProductDetail = () => {
                   </Badge>
                 </div>
 
-                <div className="space-y-2">
+                <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
+                  <Package className="w-5 h-5 mr-2" />
+                  {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda'}
+                </Button>
+
+                <div className="space-y-2 border-t pt-4">
                   <h3 className="font-semibold">Descrição</h3>
                   <p className="text-gray-600 whitespace-pre-wrap">{product.description || 'Nenhuma descrição disponível.'}</p>
                 </div>
@@ -274,16 +261,9 @@ const ProductDetail = () => {
                     </div>
                   )}
                 </div>
-                
-                <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
-                  <Package className="w-5 h-5 mr-2" />
-                  {product.stock === 0 ? 'Fora de Estoque' : 'Fazer Encomenda'}
-                </Button>
               </div>
-            </div>
 
-            {/* Coluna da Direita: Chat */}
-            <div className="lg:sticky lg:top-24 h-fit">
+              {/* Componente de Chat */}
               <ProductChat 
                 productId={product.id}
                 sellerId={product.seller_id}
