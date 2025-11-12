@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Send, Share2, Calendar, TrendingUp, Clock, MousePointerClick, Link, Settings, Globe, FileText, Target, ArrowRight, Tag } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import LoadingSpinner from '../components/LoadingSpinner'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Tag } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
@@ -13,6 +10,7 @@ import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
 import ContentManagerTab from '../components/Marketing/ContentManagerTab'
 import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
+import LeadsListTab from '../components/Marketing/LeadsListTab' // NOVO IMPORT
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
@@ -68,7 +66,10 @@ const AdminMarketingCenter = () => {
           </TabsContent>
           
           <TabsContent value="leads">
-            <LeadCaptureTab />
+            <div className="space-y-6">
+              <LeadCaptureTab />
+              <LeadsListTab />
+            </div>
           </TabsContent>
 
           <TabsContent value="social">
