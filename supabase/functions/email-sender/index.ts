@@ -9,7 +9,8 @@ const corsHeaders = {
 
 // @ts-ignore
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-const FROM_EMAIL = 'LojaRapida <contato@lojarapida.co.mz>' // Altere se tiver um domínio verificado
+// CORREÇÃO APLICADA AQUI:
+const FROM_EMAIL = 'LojaRapida <contato@lojarapidamz.com>' 
 
 // @ts-ignore
 serve(async (req) => {
