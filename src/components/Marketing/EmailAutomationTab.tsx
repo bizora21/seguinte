@@ -37,7 +37,6 @@ const EmailAutomationTab = () => {
       setAutomations(automationsData || [])
 
       // Buscar API Key (simulado, pois a chave está nos secrets)
-      // Em um app real, poderíamos ter um status de "configurado"
       setApiKey('CONFIGURADO_NOS_SECRETS')
 
     } catch (error: any) {
@@ -122,7 +121,6 @@ const EmailAutomationTab = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Configuração da API */}
         <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
           <Label htmlFor="apiKey" className="font-medium flex items-center">
             <Settings className="w-4 h-4 mr-2" />
@@ -138,7 +136,6 @@ const EmailAutomationTab = () => {
           <p className="text-xs text-gray-500">A chave de API é gerida através dos Secrets do Supabase para maior segurança.</p>
         </div>
 
-        {/* Teste de Envio */}
         <div className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <Label htmlFor="testEmail" className="font-medium">Verificar Integração</Label>
           <div className="flex space-x-2">
@@ -153,7 +150,6 @@ const EmailAutomationTab = () => {
           </div>
         </div>
 
-        {/* Lista de Automações */}
         <h3 className="text-lg font-semibold border-b pb-2">Fluxos de Automação</h3>
         <div className="space-y-4">
           {automations.map((automation) => (
