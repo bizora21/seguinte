@@ -6,7 +6,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Type': 'application/xml',
 }
 
 // @ts-ignore
@@ -63,39 +62,22 @@ serve(async (req) => {
 
     urls.push(...staticUrls.map(url => ({
       ...url,
-      lastmod: new Date().toISOString()
+      lastmod: new Date().toISOString().split('T')[0]
     })))
 
     // Buscar artigos do blog publicados
     const { data: blogPosts, error: blogError } = await supabase
-      .from('blog_posts')
-      .select('slug, updated_at, published_at')
+      .from('published_articles')
+      .select('slug, updated_at')
       .eq('status', 'published')
-      .order('published_at', { ascending: false })
 
     if (!blogError && blogPosts) {
       blogPosts.forEach(post => {
         urls.push({
           loc: `${BASE_URL}/blog/${post.slug}`,
-          lastmod: post.updated_at,
+          lastmod: new Date(post.updated_at).toISOString().split('T')[0],
           changefreq: 'weekly',
           priority: '0.7'
-        })
-      })
-    }
-
-    // Buscar categorias do blog
-    const { data: categories, error: catError } = await supabase
-      .from('blog_categories')
-      .select('slug, created_at')
-
-    if (!catError && categories) {
-      categories.forEach(cat => {
-        urls.push({
-          loc: `${BASE_URL}/blog/categoria/${cat.slug}`,
-          lastmod: cat.created_at,
-          changefreq: 'weekly',
-          priority: '0.6'
         })
       })
     }
@@ -103,16 +85,15 @@ serve(async (req) => {
     // Buscar produtos
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, updated_at')
+      .select('id, created_at')
       .gt('stock', 0)
-      .order('updated_at', { ascending: false })
       .limit(1000)
 
     if (!productsError && products) {
       products.forEach(product => {
         urls.push({
           loc: `${BASE_URL}/produto/${product.id}`,
-          lastmod: product.updated_at,
+          lastmod: new Date(product.created_at).toISOString().split('T')[0],
           changefreq: 'weekly',
           priority: '0.8'
         })
@@ -122,26 +103,22 @@ serve(async (req) => {
     // Buscar lojas
     const { data: sellers, error: sellersError } = await supabase
       .from('profiles')
-      .select('id, updated_at')
+      .select('id, created_at')
       .eq('role', 'vendedor')
       .neq('email', 'lojarapidamz@outlook.com')
-      .order('updated_at', { ascending: false })
 
     if (!sellersError && sellers) {
       sellers.forEach(seller => {
         urls.push({
           loc: `${BASE_URL}/loja/${seller.id}`,
-          lastmod: seller.updated_at,
+          lastmod: new Date(seller.created_at).toISOString().split('T')[0],
           changefreq: 'weekly',
           priority: '0.7'
         })
       })
     }
 
-    // Gerar XML
     const sitemapXml = generateSitemapXml(urls)
-    
-    console.log(`Sitemap gerado com ${urls.length} URLs`)
     
     return new Response(sitemapXml, {
       headers: {
@@ -152,9 +129,8 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('Sitemap generation error:', error)
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
-      headers: corsHeaders,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
   }

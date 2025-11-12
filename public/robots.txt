@@ -1,16 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /login
-Disallow: /register
-Disallow: /dashboard
-Disallow: /admin
-Disallow: /meus-pedidos
-Disallow: /meus-chats
-Disallow: /carrinho
-Disallow: /checkout
-Disallow: /adicionar-produto
-Disallow: /confirmar-encomenda
-Disallow: /encomenda-sucesso
-Disallow: /encomenda-confirmada
 
-Sitemap: https://lojarapida.co.mz/sitemap.xml
+Sitemap: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap-generator
