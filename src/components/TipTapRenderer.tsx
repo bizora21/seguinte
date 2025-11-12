@@ -39,9 +39,11 @@ const TipTapRenderer: React.FC<TipTapRendererProps> = ({ content }) => {
         link: false, // Desativar a extensão Link do StarterKit
       }),
       Link.configure({ // Adicionar a extensão Link separadamente
-        openOnClick: true,
+        openOnClick: false, // CORRIGIDO: Alterado para false para permitir o comportamento padrão do navegador
         HTMLAttributes: {
           class: 'text-blue-600 hover:underline',
+          target: '_blank', // Adicionado para abrir links externos em nova aba
+          rel: 'noopener noreferrer', // Adicionado por segurança
         },
       }),
       Image.configure({
