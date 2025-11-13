@@ -69,28 +69,28 @@ const BlogDetail = () => {
     return {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
-      headline: post.title,
-      description: post.meta_description,
-      image: post.featured_image_url || `${BASE_URL}/og-image.jpg`,
-      datePublished: post.published_at || post.created_at,
-      dateModified: post.updated_at,
-      author: {
+      "headline": post.title,
+      "description": post.meta_description,
+      "image": post.featured_image_url || `${BASE_URL}/og-image.jpg`,
+      "datePublished": post.published_at || post.created_at,
+      "dateModified": post.updated_at,
+      "author": {
         "@type": "Organization",
-        name: "LojaRápida",
-        url: BASE_URL
+        "name": "LojaRápida",
+        "url": BASE_URL
       },
-      publisher: {
+      "publisher": {
         "@type": "Organization",
-        name: "LojaRápida Marketplace",
-        logo: {
+        "name": "LojaRápida Marketplace",
+        "logo": {
           "@type": "ImageObject",
           "url": `${BASE_URL}/favicon.svg`,
           "width": 40,
           "height": 40
         },
-        url: BASE_URL
+        "url": BASE_URL
       },
-      mainEntityOfPage: {
+      "mainEntityOfPage": {
         "@type": "WebPage",
         "@id": postUrl
       }
@@ -117,15 +117,7 @@ const BlogDetail = () => {
   if (error || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-600 mb-2">
-              {error || 'Artigo não encontrado'}
-            </h2>
-            <Button onClick={() => navigate('/blog')}>Voltar para o Blog</Button>
-          </CardContent>
-        </Card>
+        <Card className="w-full max-w-md"><CardContent className="p-12 text-center"><AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" /><h2 className="text-xl font-semibold text-red-600 mb-2">{error || 'Artigo não encontrado'}</h2><Button onClick={() => navigate('/blog')}>Voltar para o Blog</Button></CardContent></Card>
       </div>
     )
   }
