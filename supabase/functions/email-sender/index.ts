@@ -22,7 +22,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // --- AUTHENTICATION ---
+  // --- BLOCO DE AUTENTICAÇÃO ADICIONADO ---
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Missing Authorization header' }), { status: 401, headers: corsHeaders })
@@ -31,11 +31,11 @@ serve(async (req) => {
 
   let isAuthorized = false
 
-  // Check 1: Is it the service role key? (from DB trigger)
+  // Verificação 1: É a chave de serviço (usada por gatilhos do banco de dados)?
   if (token === SERVICE_ROLE_KEY) {
     isAuthorized = true
   } else {
-    // Check 2: Is it a valid JWT from the admin user? (from client-side test)
+    // Verificação 2: É um token de usuário válido do administrador?
     const supabaseClient = createClient(
       // @ts-ignore
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -52,7 +52,7 @@ serve(async (req) => {
   if (!isAuthorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
   }
-  // --- END AUTHENTICATION ---
+  // --- FIM DO BLOCO DE AUTENTICAÇÃO ---
 
   if (!RESEND_API_KEY) {
     return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), { status: 500, headers: corsHeaders })
