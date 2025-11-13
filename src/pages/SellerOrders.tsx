@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
-import toast from 'react-hot-toast' // Importação direta para notificações
+import toast from 'react-hot-toast'
+import { getFirstImageUrl } from '../utils/images'
 
-// Interface para pedido processado
 interface ProcessedOrder {
   id: string
   user_id: string
@@ -39,7 +39,6 @@ const SellerOrders = () => {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<ProcessedOrder[]>([])
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   
@@ -50,135 +49,67 @@ const SellerOrders = () => {
       fetchOrders()
       
       if (user.id) {
-        const newOrderChannel = setupNewOrderSubscription(user.id)
-        const orderUpdateChannel = setupOrderUpdateSubscription(user.id)
-        
+        const channel = setupRealtimeSubscription(user.id)
         return () => {
-          supabase.removeChannel(newOrderChannel)
-          supabase.removeChannel(orderUpdateChannel)
+          supabase.removeChannel(channel)
         }
       }
     }
   }, [user])
 
-  const setupNewOrderSubscription = (sellerId: string) => {
-    const channel = supabase
-      .channel(`seller-new-orders-${sellerId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'order_items',
-          filter: `seller_id=eq.${sellerId}`
-        },
-        (payload) => {
-          toast.success('🎉 Novo pedido recebido! Atualizando a lista...', {
-            duration: 5000,
-          });
-          fetchOrders();
-        }
-      )
-      .subscribe();
-    return channel;
-  };
+  const setupRealtimeSubscription = (sellerId: string) => {
+    const channel = supabase.channel(`seller-orders-channel-${sellerId}`)
 
-  // 🔥 NOVO: Subscrição para ATUALIZAÇÕES de pedidos (cancelamentos)
-  const setupOrderUpdateSubscription = (sellerId: string) => {
-    const channel = supabase
-      .channel(`seller-order-updates-${sellerId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          const updatedOrder = payload.new as ProcessedOrder;
+    // Ouvir por NOVOS PEDIDOS
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'order_items',
+        filter: `seller_id=eq.${sellerId}`
+      },
+      (payload) => {
+        toast.success('🎉 Novo pedido recebido! Atualizando a lista...', { duration: 5000 });
+        fetchOrders();
+      }
+    )
+
+    // Ouvir por ATUALIZAÇÕES DE STATUS (ex: cancelamento pelo cliente)
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'orders'
+      },
+      (payload) => {
+        const updatedOrder = payload.new as ProcessedOrder;
+        
+        setOrders(prevOrders => {
+          const orderIndex = prevOrders.findIndex(o => o.id === updatedOrder.id);
           
-          // Verificar se o pedido atualizado pertence a este vendedor
-          const isRelevant = orders.some(o => o.id === updatedOrder.id);
-
-          if (isRelevant && updatedOrder.status === 'cancelled') {
-            toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
-              duration: 6000,
-            });
-            // Atualizar o estado local para refletir o cancelamento
-            setOrders(prev => prev.map(order => 
-              order.id === updatedOrder.id 
-                ? { ...order, status: 'cancelled', updated_at: updatedOrder.updated_at }
-                : order
-            ));
+          // Se o pedido existe na lista, atualize-o
+          if (orderIndex > -1) {
+            const oldStatus = prevOrders[orderIndex].status;
+            if (oldStatus !== updatedOrder.status) {
+              const statusInfo = getStatusInfo(updatedOrder.status);
+              toast.success(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`);
+            }
+            
+            const newOrders = [...prevOrders];
+            newOrders[orderIndex] = { ...newOrders[orderIndex], status: updatedOrder.status, updated_at: updatedOrder.updated_at };
+            return newOrders;
           }
-        }
-      )
-      .subscribe();
+          
+          return prevOrders;
+        });
+      }
+    )
+    .subscribe();
+
     return channel;
   };
-
-  const debugDatabase = async () => {
-    if (!user) return
-    
-    console.log('🔍 INICIANDO DEBUGGING COMPLETO')
-    const toastId = showLoading('Investigando banco de dados...')
-    
-    try {
-      const { data: countData, error: countError } = await supabase
-        .from('order_items')
-        .select('id', { count: 'exact', head: true })
-      
-      const { data: sellerItems, error: sellerError } = await supabase
-        .from('order_items')
-        .select('*')
-        .eq('seller_id', user.id)
-        .limit(5)
-      
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
-      const { data: testData, error: testError } = await supabase
-        .from('order_items')
-        .select(`
-          *,
-          orders!inner(*),
-          products(*)
-        `)
-        .eq('seller_id', user.id)
-        .limit(3)
-      
-      const debugResult = {
-        userId: user.id,
-        userRole: user.profile?.role,
-        countData: countData || 'error',
-        countError: countError?.message,
-        sellerItems: sellerItems || [],
-        sellerError: sellerError?.message,
-        profileData: profileData || 'not found',
-        profileError: profileError?.message,
-        testData: testData || [],
-        testError: testError?.message
-      }
-      
-      console.log('📊 DEBUG RESULT:', debugResult)
-      setDebugInfo(debugResult)
-      
-      if (testError) {
-        setError(`Erro na query principal: ${testError.message}`)
-      } else {
-        showSuccess('Debugging concluído! Verifique o console.')
-      }
-      
-    } catch (err: any) {
-      console.error('❌ ERRO NO DEBUGGING:', err)
-      setError(`Erro no debugging: ${err.message}`)
-    } finally {
-      dismissToast(toastId)
-    }
-  }
 
   const fetchOrders = async () => {
     if (!user) return
@@ -190,74 +121,37 @@ const SellerOrders = () => {
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select(`
-          id,
           order_id,
-          product_id,
-          quantity,
-          price,
-          created_at,
           orders!inner(
-            id,
-            user_id,
-            total_amount,
-            status,
-            delivery_address,
-            created_at,
-            updated_at
-          ),
-          products(
-            id,
-            name,
-            image_url
+            id, user_id, total_amount, status, delivery_address, created_at, updated_at
           )
         `)
         .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
 
-      if (sellerError) {
-        throw new Error(`Query falhou: ${sellerError.message}`)
-      }
-
+      if (sellerError) throw new Error(`Query falhou: ${sellerError.message}`)
       if (!sellerItems || sellerItems.length === 0) {
         setOrders([])
+        setLoading(false)
         return
       }
 
-      const orderMap = new Map<string, ProcessedOrder>()
-      
-      sellerItems.forEach((item: any) => {
-        const orderId = item.order_id
-        
-        if (!orderMap.has(orderId)) {
-          orderMap.set(orderId, {
-            id: item.orders.id,
-            user_id: item.orders.user_id,
-            total_amount: item.orders.total_amount,
-            status: item.orders.status as ProcessedOrder['status'],
-            delivery_address: item.orders.delivery_address,
-            created_at: item.orders.created_at,
-            updated_at: item.orders.updated_at,
-            order_items: []
-          })
-        }
-        
-        const order = orderMap.get(orderId)!
-        order.order_items.push({
-          id: item.id,
-          order_id: item.order_id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price,
-          created_at: item.created_at,
-          product: {
-            name: item.products?.name || 'Produto sem nome',
-            image_url: item.products?.image_url
-          }
-        })
-      })
-      
-      const finalOrders = Array.from(orderMap.values())
-      setOrders(finalOrders)
+      const orderIds = [...new Set(sellerItems.map((item: any) => item.order_id))]
+
+      const { data: ordersWithItems, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            *,
+            product:products ( name, image_url )
+          )
+        `)
+        .in('id', orderIds)
+        .order('created_at', { ascending: false })
+
+      if (ordersError) throw ordersError
+
+      setOrders(ordersWithItems || [])
       
     } catch (error: any) {
       console.error('❌ Erro ao buscar pedidos:', error)
@@ -269,37 +163,27 @@ const SellerOrders = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
+    const toastId = showLoading('Atualizando status...')
     
     try {
-      console.log('🔄 Atualizando pedido:', orderId, 'para', newStatus)
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        .select()
 
       if (error) {
-        console.error('❌ Erro ao atualizar status:', error)
-        showError('Erro ao atualizar status: ' + error.message)
-        return
+        throw error
       }
-
-      if (newStatus === 'delivered') {
-        console.log('Notificação de entrega simulada enviada ao cliente.')
-      }
-
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: newStatus as ProcessedOrder['status'], updated_at: new Date().toISOString() }
-          : order
-      ))
-
-      showSuccess(`Pedido #${orderId.slice(0, 8)} atualizado para ${getStatusInfo(newStatus as ProcessedOrder['status']).label}`)
       
+      // A atualização do estado local agora é tratada pelo subscription em tempo real,
+      // garantindo que a UI reflita o estado real do banco de dados.
+      dismissToast(toastId)
+      // A notificação de sucesso será exibida pelo listener do realtime.
+
     } catch (error: any) {
-      console.error('❌ Erro ao atualizar pedido:', error)
-      showError('Erro inesperado ao atualizar status')
+      dismissToast(toastId)
+      console.error('❌ Erro ao atualizar status:', error)
+      showError('Erro ao atualizar status: ' + error.message)
     } finally {
       setUpdatingStatus(null)
     }
@@ -327,13 +211,9 @@ const SellerOrders = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-red-600">Acesso Negado</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-center text-red-600">Acesso Negado</CardTitle></CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Voltar para a página inicial
-            </Button>
+            <Button onClick={() => navigate('/')} className="w-full">Voltar para a página inicial</Button>
           </CardContent>
         </Card>
       </div>
@@ -357,37 +237,15 @@ const SellerOrders = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/dashboard')}
-                className="mb-4"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+              <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
               </Button>
               <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
-              <p className="text-gray-600 mt-2">
-                Gerencie o status dos seus pedidos em tempo real
-                {user && <span className="ml-2 text-sm text-gray-500">({user.id.slice(0, 8)}...)</span>}
-              </p>
+              <p className="text-gray-600 mt-2">Gerencie o status dos seus pedidos em tempo real</p>
             </div>
-            
             <div className="flex space-x-2 mt-4 sm:mt-0">
-              <Button
-                variant="outline"
-                onClick={debugDatabase}
-                className="flex items-center"
-              >
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Debug
-              </Button>
-              <Button
-                variant="outline"
-                onClick={fetchOrders}
-                className="flex items-center"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Atualizar
+              <Button variant="outline" onClick={fetchOrders} className="flex items-center">
+                <RefreshCw className="w-4 h-4 mr-2" /> Atualizar
               </Button>
             </div>
           </div>
@@ -412,32 +270,6 @@ const SellerOrders = () => {
           </CardContent>
         </Card>
 
-        {debugInfo && (
-          <Card className="mb-6 border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center text-yellow-800">
-                <AlertTriangle className="w-5 h-5 mr-2" />
-                Informações de Debug
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div><strong>User ID:</strong> {debugInfo.userId}</div>
-                <div><strong>User Role:</strong> {debugInfo.userRole}</div>
-                <div><strong>Total Order Items:</strong> {debugInfo.countData}</div>
-                <div><strong>Seller Items Found:</strong> {debugInfo.sellerItems.length}</div>
-                <div><strong>Test Query Result:</strong> {debugInfo.testData.length} itens</div>
-                {debugInfo.testError && (
-                  <div className="text-red-600"><strong>Test Error:</strong> {debugInfo.testError}</div>
-                )}
-              </div>
-              <pre className="mt-4 p-4 bg-gray-100 rounded text-xs overflow-auto max-h-40">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-
         {error && (
           <Card className="mb-6 border-red-200 bg-red-50">
             <CardContent className="p-4">
@@ -454,16 +286,8 @@ const SellerOrders = () => {
           <Card>
             <CardContent className="p-12 text-center">
               <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum pedido recebido ainda
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Os clientes ainda não fizeram pedidos com seus produtos.
-              </p>
-              <Button onClick={debugDatabase} variant="outline">
-                <AlertTriangle className="w-4 h-4 mr-2" />
-                Investigar Banco de Dados
-              </Button>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Nenhum pedido recebido ainda</h2>
+              <p className="text-gray-600 mb-6">Os clientes ainda não fizeram pedidos com seus produtos.</p>
             </CardContent>
           </Card>
         ) : (
@@ -522,42 +346,23 @@ const SellerOrders = () => {
                   <CardContent className="space-y-4">
                     
                     <div className="space-y-3">
-                      {order.order_items.slice(0, 1).map((item) => (
+                      {order.order_items.map((item) => (
                         <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
                           <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                            {item.product.image_url ? (
-                              <img
-                                src={item.product.image_url}
-                                alt={item.product.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.src = defaultImage
-                                }}
-                              />
-                            ) : (
-                              <img
-                                src={defaultImage}
-                                alt={item.product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
+                            <img
+                              src={getFirstImageUrl(item.product.image_url) || defaultImage}
+                              alt={item.product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = defaultImage }}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium truncate">{item.product.name}</h4>
-                            <p className="text-sm text-gray-600">
-                              {item.quantity}x {formatPrice(item.price)}
-                            </p>
+                            <p className="text-sm text-gray-600">{item.quantity}x {formatPrice(item.price)}</p>
                           </div>
-                          <div className="font-semibold">
-                            {formatPrice(item.price * item.quantity)}
-                          </div>
+                          <div className="font-semibold">{formatPrice(item.price * item.quantity)}</div>
                         </div>
                       ))}
-                      {order.order_items.length > 1 && (
-                        <p className="text-sm text-gray-500 mt-1 ml-4">
-                          + {order.order_items.length - 1} item(s)
-                        </p>
-                      )}
                     </div>
 
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
@@ -570,9 +375,7 @@ const SellerOrders = () => {
 
                     <div className="flex justify-between items-center pt-4 border-t">
                       <span className="font-semibold">Total do Pedido:</span>
-                      <span className="text-xl font-bold text-green-600">
-                        {formatPrice(order.total_amount)}
-                      </span>
+                      <span className="text-xl font-bold text-green-600">{formatPrice(order.total_amount)}</span>
                     </div>
 
                     {order.status === 'delivered' && (
@@ -581,9 +384,7 @@ const SellerOrders = () => {
                           <CheckCircle className="w-5 h-5 mr-2" />
                           <span className="font-medium">Notificação enviada ao cliente!</span>
                         </div>
-                        <p className="text-sm text-green-700 mt-1">
-                          O cliente foi notificado que o pedido foi entregue e pode confirmar o recebimento.
-                        </p>
+                        <p className="text-sm text-green-700 mt-1">O cliente foi notificado que o pedido foi entregue e pode confirmar o recebimento.</p>
                       </div>
                     )}
                   </CardContent>
