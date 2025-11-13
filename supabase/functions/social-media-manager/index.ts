@@ -9,6 +9,8 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+
 // Inicializa o cliente Supabase (para interagir com o banco de dados)
 // @ts-ignore
 const supabase = createClient(
@@ -29,11 +31,27 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
   
-  // 1. Autenticação do Usuário (Verificação de Admin)
+  // --- AUTHENTICATION ---
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
   }
+  const token = authHeader.replace('Bearer ', '')
+
+  // Create a new Supabase client to validate the user's token
+  const supabaseClient = createClient(
+    // @ts-ignore
+    Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+
+  if (authError || !user || user.email !== ADMIN_EMAIL) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Admin access required' }), { status: 401, headers: corsHeaders })
+  }
+  // --- END AUTHENTICATION ---
   
   try {
     const { method } = req
