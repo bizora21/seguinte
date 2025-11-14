@@ -14,20 +14,25 @@ const DEFAULT_SITE = 'LojaRápida'
 const BASE_URL = 'https://lojarapidamz.com' // domínio principal usado pelo site
 const DEFAULT_IMAGE_PATH = '/og-image.jpg'
 
+function isAbsoluteUrl(input: string) {
+  return input.startsWith('http://') || input.startsWith('https://')
+}
+
 function ensureAbsoluteUrl(input?: string) {
   if (!input) return `${BASE_URL}${DEFAULT_IMAGE_PATH}`
-  try {
-    if (input.startsWith('http://') || input.startsWith('https://')) {
-      return input
-    }
-    if (input.startsWith('/')) {
-      return `${BASE_URL}${input}`
-    }
-    // fallback
-    return `${BASE_URL}/${input}`
-  } catch {
-    return `${BASE_URL}${DEFAULT_IMAGE_PATH}`
+  
+  // Se a URL já for absoluta (como as do Supabase Storage), retorne-a diretamente.
+  if (isAbsoluteUrl(input)) {
+    return input
   }
+  
+  // Se for um caminho relativo, prefixe com o BASE_URL.
+  if (input.startsWith('/')) {
+    return `${BASE_URL}${input}`
+  }
+  
+  // fallback
+  return `${BASE_URL}/${input}`
 }
 
 export const SEO: React.FC<SEOProps> = ({
@@ -38,8 +43,11 @@ export const SEO: React.FC<SEOProps> = ({
   type = 'website',
   jsonLd
 }) => {
-  const absoluteImage = ensureAbsoluteUrl(image)
-  const absoluteUrl = url ? (url.startsWith('http') ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
+  // Usar a imagem do produto se fornecida, caso contrário, a imagem padrão.
+  const finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
+  const absoluteImage = ensureAbsoluteUrl(finalImage)
+  
+  const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 
   return (
     <Helmet>
