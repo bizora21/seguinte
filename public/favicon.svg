@@ -1,11 +1,16 @@
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Fundo Azul Profundo -->
+<svg
+  viewBox="0 0 40 40"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Fundo Azul Profundo (#0A2540) -->
   <rect width="40" height="40" rx="8" fill="#0A2540"/>
   
   <!-- Sacola de Compras (Branco) -->
   <path d="M13 15H27L25 30H15L13 15Z" fill="white"/>
   <path d="M16 15V13C16 11.3431 17.3431 10 19 10H21C22.6569 10 24 11.3431 24 13V15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   
-  <!-- Raio (Flash) Verde Vibrante -->
+  <!-- Raio (Flash) Verde Vibrante (#00D4AA) -->
+  <path d="M20 20L18 25H22L20 30" stroke="#00D4AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   <path d="M20 20L22 25H18L20 30" fill="#00D4AA"/>
 </svg>
