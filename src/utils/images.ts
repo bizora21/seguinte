@@ -13,3 +13,18 @@ export const getFirstImageUrl = (imageField: string | null | undefined): string 
   }
   return null;
 };
+
+export const getAllImageUrls = (imageField: string | null | undefined): string[] => {
+  if (!imageField) return [];
+  try {
+    const parsed = JSON.parse(imageField);
+    if (Array.isArray(parsed)) {
+      return parsed.filter(url => typeof url === 'string');
+    }
+  } catch {
+    if (typeof imageField === 'string' && imageField.trim().length > 0) {
+      return [imageField];
+    }
+  }
+  return [];
+};

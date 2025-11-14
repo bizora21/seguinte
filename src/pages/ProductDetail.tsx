@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../components/SEO';
-import { getFirstImageUrl } from '../utils/images';
+import { getFirstImageUrl, getAllImageUrls } from '../utils/images';
 import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
 import ProductChat from '../components/ProductChat';
 import { Card, CardContent } from '../components/ui/card';
@@ -73,8 +73,8 @@ const ProductDetail = () => {
         }
 
         setProduct(data);
-        const images = getProductImages(data.image_url);
-        setMainImage(images[0] || defaultImage);
+        const firstImage = getFirstImageUrl(data.image_url);
+        setMainImage(firstImage || defaultImage);
         
         setTimeout(() => titleRef.current?.focus(), 100);
 
@@ -98,17 +98,7 @@ const ProductDetail = () => {
 
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price);
 
-  const getProductImages = (imageUrl: string | null): string[] => {
-    if (!imageUrl) return [];
-    try {
-      const urls = JSON.parse(imageUrl);
-      return Array.isArray(urls) ? urls.filter(url => typeof url === 'string') : [];
-    } catch (e) {
-      return typeof imageUrl === 'string' && imageUrl.trim().length > 0 ? [imageUrl] : [];
-    }
-  };
-
-  const productImages = getProductImages(product?.image_url || null);
+  const productImages = getAllImageUrls(product?.image_url || null);
   const storeName = product?.seller?.store_name || 'Loja do Vendedor';
   const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   
@@ -139,7 +129,7 @@ const ProductDetail = () => {
       <SEO
         title={`${product.name} | ${storeName} | LojaRápida`}
         description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
-        image={productImages[0] || '/og-image.jpg'}
+        image={getFirstImageUrl(product.image_url) || '/og-image.jpg'}
         url={productUrl}
         type="product"
         jsonLd={[productSchema, breadcrumbSchema]}
