@@ -22,7 +22,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-// Interface para os dados do produto
 interface Product {
   id: string;
   name: string;
@@ -49,7 +48,6 @@ const ProductDetail = () => {
   const [mainImage, setMainImage] = useState('');
   const [error, setError] = useState<string | null>(null);
   
-  const titleRef = useRef<HTMLHeadingElement>(null);
   const defaultImage = '/placeholder.svg';
 
   useEffect(() => {
@@ -75,8 +73,6 @@ const ProductDetail = () => {
         setProduct(data);
         const firstImage = getFirstImageUrl(data.image_url);
         setMainImage(firstImage || defaultImage);
-        
-        setTimeout(() => titleRef.current?.focus(), 100);
 
       } catch (error) {
         setError('Erro ao carregar produto');
@@ -125,14 +121,16 @@ const ProductDetail = () => {
 
   return (
     <>
-      <SEO
-        title={`${product.name} | ${storeName} | LojaRápida`}
-        description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
-        image={getFirstImageUrl(product.image_url) || '/og-image.jpg'}
-        url={productUrl}
-        type="product"
-        jsonLd={[productSchema, breadcrumbSchema]}
-      />
+      {product && (
+        <SEO
+          title={`${product.name} | ${storeName} | LojaRápida`}
+          description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
+          image={getFirstImageUrl(product.image_url) || '/og-image.jpg'}
+          url={productUrl}
+          type="product"
+          jsonLd={[productSchema, breadcrumbSchema]}
+        />
+      )}
       
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -148,10 +146,10 @@ const ProductDetail = () => {
             </Breadcrumb>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             
-            {/* Coluna da Esquerda: Imagens */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
+            {/* Coluna da Esquerda: Imagens (Ocupa 3 colunas) */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-3 space-y-4">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-md">
                 <img 
                   src={mainImage || defaultImage}
@@ -185,52 +183,40 @@ const ProductDetail = () => {
               )}
             </motion.div>
 
-            {/* Coluna da Direita: Informações e Ações */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="space-y-6">
-              <h1 ref={titleRef} tabIndex={-1} className="text-3xl lg:text-4xl font-bold text-gray-900 outline-none">{product.name}</h1>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                  <span>4.8 (125 avaliações)</span>
-                </div>
-                <div className="flex items-center text-sm text-blue-600 hover:underline cursor-pointer" onClick={() => navigate(`/loja/${product.seller_id}`)}>
-                  <Store className="w-4 h-4 mr-1" />
-                  <span>Vendido por: {storeName}</span>
-                </div>
-              </div>
-
-              <div className="text-5xl font-bold text-green-600">{formatPrice(product.price)}</div>
-              
-              <p className="text-gray-600 leading-relaxed">{product.description || 'Nenhuma descrição disponível.'}</p>
-
-              <Card className="bg-gray-100 border-gray-200">
-                <CardContent className="p-4 grid grid-cols-2 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Truck className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <p className="font-semibold text-sm">Entrega Rápida</p>
-                      <p className="text-xs text-gray-600">1-5 dias úteis</p>
+            {/* Coluna da Direita: Informações e Ações (Ocupa 2 colunas) */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="lg:col-span-2 space-y-6">
+              <Card className="shadow-lg border-0">
+                <CardContent className="p-6 space-y-4">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h1>
+                  
+                  <div className="flex items-center space-x-4 text-sm">
+                    <div className="flex items-center text-gray-600">
+                      <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
+                      <span>4.8 (125)</span>
                     </div>
+                    <Separator orientation="vertical" className="h-4" />
+                    <Link to={`/loja/${product.seller_id}`} className="flex items-center text-blue-600 hover:underline">
+                      <Store className="w-4 h-4 mr-1" />
+                      <span>{storeName}</span>
+                    </Link>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Shield className="w-6 h-6 text-green-600" />
-                    <div>
-                      <p className="font-semibold text-sm">Pagamento Seguro</p>
-                      <p className="text-xs text-gray-600">Pague na Entrega</p>
-                    </div>
-                  </div>
+
+                  <Separator />
+
+                  <div className="text-3xl font-bold text-green-600">{formatPrice(product.price)}</div>
+                  
+                  <p className="text-gray-600 leading-relaxed text-sm">{product.description || 'Nenhuma descrição disponível.'}</p>
+
+                  <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
+                    {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
+                  </Badge>
+
+                  <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
+                    <Package className="w-5 h-5 mr-2" />
+                    {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
+                  </Button>
                 </CardContent>
               </Card>
-
-              <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
-                {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
-              </Badge>
-
-              <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
-                <Package className="w-5 h-5 mr-2" />
-                {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
-              </Button>
 
               <ProductChat 
                 productId={product.id}
