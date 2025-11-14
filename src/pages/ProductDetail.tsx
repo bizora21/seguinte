@@ -97,10 +97,6 @@ const ProductDetail = () => {
   };
 
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price);
-
-  const productImages = getAllImageUrls(product?.image_url || null);
-  const storeName = product?.seller?.store_name || 'Loja do Vendedor';
-  const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   
   if (loading) return <ProductDetailSkeleton />;
 
@@ -116,6 +112,9 @@ const ProductDetail = () => {
     );
   }
   
+  const productImages = getAllImageUrls(product.image_url || null);
+  const storeName = product.seller?.store_name || 'Loja do Vendedor';
+  const productUrl = `https://lojarapidamz.com/produto/${productId}`;
   const productSchema = generateProductSchema(product as any, storeName);
   const breadcrumbs = [
     { name: 'Início', url: '/' },
