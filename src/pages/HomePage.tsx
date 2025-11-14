@@ -191,7 +191,8 @@ const HomePage: React.FC = () => {
       <SEO
         title="LojaRápida | Marketplace Rápido e Seguro em Moçambique"
         description="O maior marketplace de Moçambique. Compre e venda produtos online com segurança, pagamento na entrega e frete grátis para todo o país."
-        url="https://lojarapida.co.mz/"
+        url="https://lojarapidamz.com/"
+        image="/og-image.jpg"
         jsonLd={[generateWebSiteSchema(), generateLocalBusinessSchema()]}
       />
       <div className="min-h-screen">
