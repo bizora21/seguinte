@@ -80,6 +80,7 @@ const ProductDetail = () => {
         console.log('[DEBUG B] Produto bruto do BD:', data);
         console.log('[DEBUG C] Caminho da imagem (image_url):', data.image_url);
         console.log('[DEBUG D] URL da primeira imagem (OG Image):', firstImage);
+        console.log('[DEBUG F] URL Canônica passada para SEO:', `${BASE_URL}/produto/${productId}`);
         // --- FIM LOGS DE DEBUG ---
 
       } catch (error) {
@@ -119,11 +120,10 @@ const ProductDetail = () => {
   const productImages = getAllImageUrls(product.image_url || null);
   const storeName = product.seller?.store_name || 'Loja do Vendedor';
   
-  // *** CORREÇÃO CRÍTICA: Garantir que a URL canônica é sempre absoluta e correta ***
   const productUrl = `${BASE_URL}/produto/${productId}`;
   
   // --- DADOS DINÂMICOS PARA SEO ---
-  const seoImage = getFirstImageUrl(product.image_url); // URL absoluta do Supabase
+  const seoImage = getFirstImageUrl(product.image_url);
   const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
   const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
   
@@ -135,19 +135,13 @@ const ProductDetail = () => {
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
   
-  // LOG E: O que está a ser passado para o SEO?
-  console.log('[DEBUG E] URL final passado para SEO:', seoImage);
-  console.log('[DEBUG F] URL Canônica passada para SEO:', productUrl);
-  // --- FIM DADOS DINÂMICOS PARA SEO ---
-
-
   return (
     <>
       {product && (
         <SEO
           title={ogTitle}
           description={ogDescription}
-          image={seoImage || undefined} // Passa o URL do produto ou undefined
+          image={seoImage || undefined}
           url={productUrl}
           type="product"
           jsonLd={[productSchema, breadcrumbSchema]}
@@ -155,6 +149,7 @@ const ProductDetail = () => {
       )}
       
       <div className="min-h-screen bg-gray-50">
+        <h1 style={{color: 'red', background: 'yellow', textAlign: 'center', padding: '10px'}}>TESTE DE DEPLOY - VERSÃO 2.0</h1>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
             <Breadcrumb>
