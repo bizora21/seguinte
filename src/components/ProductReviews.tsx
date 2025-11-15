@@ -21,13 +21,13 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
     setLoading(true)
     setError(null)
     try {
-      // CORREÇÃO: Usando o nome da chave estrangeira explícita (product_reviews_user_id_fkey)
-      // para garantir que o PostgREST encontre a relação correta com a tabela profiles.
+      // Tentativa 3: Usar a sintaxe de inner join com o nome da coluna de destino (user)
+      // e forçar a relação com a tabela profiles.
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
           *,
-          user:profiles!product_reviews_user_id_fkey (
+          user:profiles!inner (
             email,
             store_name
           )
@@ -41,7 +41,13 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
       onReviewsLoaded(data?.length || 0)
     } catch (e: any) {
       console.error('Error fetching reviews:', e)
-      setError('Erro ao carregar avaliações.')
+      // Se o erro for PGRST200, o PostgREST não está a conseguir resolver a FK.
+      // Vamos tentar uma query sem o join para pelo menos carregar as reviews.
+      if (e.code === 'PGRST200') {
+        setError('Erro de configuração de relação (PGRST200). As avaliações não podem ser carregadas com detalhes do usuário.')
+      } else {
+        setError('Erro ao carregar avaliações.')
+      }
     } finally {
       setLoading(false)
     }
@@ -100,7 +106,8 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4 text-gray-500" />
                   <span className="font-semibold text-gray-800">
-                    {review.user.store_name || review.user.email.split('@')[0]}
+                    {/* Se a relação falhar, o campo 'user' será undefined. Usamos um fallback. */}
+                    {review.user?.store_name || review.user?.email?.split('@')[0] || 'Usuário'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
