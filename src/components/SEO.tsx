@@ -12,14 +12,15 @@ interface SEOProps {
 
 const DEFAULT_SITE = 'LojaRápida'
 const BASE_URL = 'https://lojarapidamz.com' // domínio principal usado pelo site
-const DEFAULT_IMAGE_PATH = '/og-image.jpg' // REVERTIDO PARA .jpg
+// Usando uma URL externa válida como fallback para contornar o problema do arquivo estático corrompido
+const DEFAULT_IMAGE_PATH = 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1200&h=630&fit=crop'
 
 function isAbsoluteUrl(input: string) {
   return input.startsWith('http://') || input.startsWith('https://')
 }
 
 function ensureAbsoluteUrl(input?: string) {
-  if (!input) return `${BASE_URL}${DEFAULT_IMAGE_PATH}`
+  if (!input) return DEFAULT_IMAGE_PATH // Retorna o fallback externo
   
   // Se a URL já for absoluta (como as do Supabase Storage), retorne-a diretamente.
   if (isAbsoluteUrl(input)) {
