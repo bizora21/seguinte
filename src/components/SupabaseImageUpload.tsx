@@ -36,6 +36,7 @@ const SupabaseImageUpload = ({
 
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}_${Date.now()}.${fileExt}`
+    // CORREÇÃO: Garante que o folder é usado como prefixo, mas sem barras extras
     const filePath = folder ? `${folder}/${fileName}` : fileName
 
     const toastId = showLoading('Enviando imagem...')

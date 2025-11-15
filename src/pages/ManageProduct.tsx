@@ -351,7 +351,7 @@ const ManageProduct = () => {
                   value={formData.images}
                   onChange={handleImagesChange}
                   bucket="product-images"
-                  folder="public"
+                  folder="products" {/* CORREÇÃO: Usar 'products' como subpasta */}
                   maxImages={2}
                   maxSizeMB={2}
                 />
