@@ -149,7 +149,6 @@ const ProductDetail = () => {
       )}
       
       <div className="min-h-screen bg-gray-50">
-        <h1 style={{color: 'red', background: 'yellow', textAlign: 'center', padding: '10px'}}>TESTE DE DEPLOY - VERSÃO 2.0</h1>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-6">
             <Breadcrumb>
