@@ -63,7 +63,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
       
-      {/* Tags de Imagem (Sempre incluídas e explícitas) */}
+      {/* Tags de Imagem (Sempre incluídas e explícitas com dimensões fixas) */}
       <meta property="og:image" content={absoluteImage} />
       <meta property="og:image:secure_url" content={absoluteImage} />
       <meta property="og:image:width" content="1200" />
@@ -211,6 +211,7 @@ export const generateStoreSchema = (storeName: string, sellerId: string) => {
     "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "Maputo",
       "addressLocality": "Maputo",
       "addressRegion": "Maputo",
       "addressCountry": "MZ"
