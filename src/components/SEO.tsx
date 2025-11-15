@@ -44,12 +44,18 @@ export const SEO: React.FC<SEOProps> = ({
   type = 'website',
   jsonLd
 }) => {
-  // Usar a imagem do produto se fornecida, caso contrário, a imagem padrão.
-  const finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
+  
+  // --- INÍCIO DO TESTE 1: HARDCODE DA IMAGEM ---
+  let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
+  
+  if (type === 'product') {
+    // URL de teste hardcoded
+    finalImage = "https://via.placeholder.com/1200x630.png/000000/FFFFFF?text=IMAGEM+DE+TESTE";
+  }
+  // --- FIM DO TESTE 1 ---
+
   const absoluteImage = ensureAbsoluteUrl(finalImage)
   
-  // CORREÇÃO: Garantir que a URL canônica seja a URL fornecida, ou a BASE_URL se não houver URL.
-  // O ProductDetail.tsx já fornece a URL absoluta correta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 
   return (
