@@ -12,7 +12,7 @@ interface SEOProps {
 
 const DEFAULT_SITE = 'LojaRápida'
 const BASE_URL = 'https://lojarapidamz.com' // domínio principal usado pelo site
-const DEFAULT_IMAGE_PATH = '/og-image.jpg'
+const DEFAULT_IMAGE_PATH = '/og-image.jpeg' // ALTERADO PARA .jpeg
 
 function isAbsoluteUrl(input: string) {
   return input.startsWith('http://') || input.startsWith('https://')
@@ -211,7 +211,6 @@ export const generateStoreSchema = (storeName: string, sellerId: string) => {
     "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Maputo",
       "addressLocality": "Maputo",
       "addressRegion": "Maputo",
       "addressCountry": "MZ"
