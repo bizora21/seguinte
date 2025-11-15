@@ -22,7 +22,7 @@ function isAbsoluteUrl(input: string) {
 function ensureAbsoluteUrl(input?: string) {
   if (!input) return DEFAULT_IMAGE_PATH // Retorna o fallback externo
   
-  // Se a URL já for absoluta (como as do Supabase Storage), retorne-a diretamente.
+  // Se a URL já for absoluta (como as do Supabase Storage ou o fallback externo), retorne-a diretamente.
   if (isAbsoluteUrl(input)) {
     return input
   }
