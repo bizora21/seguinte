@@ -48,6 +48,8 @@ export const SEO: React.FC<SEOProps> = ({
   const finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
   const absoluteImage = ensureAbsoluteUrl(finalImage)
   
+  // CORREÇÃO: Garantir que a URL canônica seja a URL fornecida, ou a BASE_URL se não houver URL.
+  // O ProductDetail.tsx já fornece a URL absoluta correta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 
   return (
