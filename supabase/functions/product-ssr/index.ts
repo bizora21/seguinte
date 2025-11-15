@@ -27,7 +27,13 @@ const getFirstImageUrl = (imageField: string | null | undefined): string | null 
   try {
     const parsed = JSON.parse(imageField);
     if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-      return parsed[0] as string;
+      // CORREÇÃO: Retornar a URL com dimensões otimizadas para OG (1200x630)
+      let url = parsed[0] as string;
+      if (url.includes('unsplash.com')) {
+          // Se for Unsplash, garantir que os parâmetros de OG sejam usados
+          url = url.replace(/w=\d+&h=\d+/, 'w=1200&h=630');
+      }
+      return url;
     }
   } catch {
     if (typeof imageField === 'string' && imageField.trim().length > 0) {
@@ -81,7 +87,6 @@ serve(async (req) => {
     
     // 2. Extrair e garantir a URL da imagem
     const seoImage = getFirstImageUrl(product.image_url);
-    // Usamos a URL do produto se existir, caso contrário, usamos o fallback genérico.
     const absoluteImage = seoImage || DEFAULT_IMAGE_PATH; 
     
     const cleanedDescription = cleanDescription(product.description);
