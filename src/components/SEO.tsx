@@ -59,21 +59,22 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={absoluteImage} />
-      <meta property="og:image:secure_url" content={absoluteImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:image:type" content="image/jpeg" /> {/* Adicionado tipo explícito */}
       <meta property="og:url" content={absoluteUrl} />
       <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
       
-      {/* Tags Específicas para Produtos (Passo 4) */}
+      {/* Tags de Imagem (Sempre incluídas e explícitas) */}
+      <meta property="og:image" content={absoluteImage} />
+      <meta property="og:image:secure_url" content={absoluteImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:type" content="image/jpeg" />
+      
+      {/* Tags Específicas para Produtos */}
       {type === 'product' && (
         <>
           <meta property="product:brand" content={DEFAULT_SITE} />
           <meta property="product:price:currency" content="MZN" />
-          {/* O preço e a disponibilidade serão injetados via JSON-LD (generateProductSchema) */}
         </>
       )}
 
