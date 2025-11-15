@@ -51,7 +51,7 @@ const TermosDeUsoPage = React.lazy(() => import("./pages/TermosDeUsoPage"));
 const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePrivacidadePage"));
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
-// const ManageBlogPost = React.lazy(() => import("./pages/ManageBlogPost")); // REMOVIDO
+const TestSocial = React.lazy(() => import("./pages/TestSocial")); // NOVO IMPORT
 
 const queryClient = new QueryClient();
 
@@ -80,6 +80,9 @@ const App = () => (
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       
+                      {/* ROTA DE TESTE SOCIAL */}
+                      <Route path="/teste-social" element={<TestSocial />} />
+
                       {/* Redirecionamento de rotas antigas para a nova estrutura */}
                       <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />
                       <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />
@@ -109,23 +112,6 @@ const App = () => (
                           </AdminRoute>
                         } 
                       />
-                      {/* ROTAS DE BLOG ADMIN (REMOVIDAS, pois a gestão agora é feita via ContentManagerTab) */}
-                      {/* <Route 
-                        path="/dashboard/admin/blog/new" 
-                        element={
-                          <AdminRoute>
-                            <ManageBlogPost />
-                          </AdminRoute>
-                        } 
-                      />
-                      <Route 
-                        path="/dashboard/admin/blog/edit/:slug" 
-                        element={
-                          <AdminRoute>
-                            <ManageBlogPost />
-                          </AdminRoute>
-                        } 
-                      /> */}
                       
                       {/* Rota de Cliente (Usando /lojas como área principal do cliente) */}
                       <Route 
