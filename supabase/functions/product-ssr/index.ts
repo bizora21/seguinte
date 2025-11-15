@@ -99,6 +99,7 @@ serve(async (req) => {
         <meta property="og:image" content="${absoluteImage}" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/jpeg" /> <!-- Adicionado tipo de imagem -->
         <meta property="og:url" content="${productUrl}" />
         <meta property="og:type" content="product" />
         <meta property="og:site_name" content="LojaRápida" />
