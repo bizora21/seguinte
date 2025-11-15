@@ -131,6 +131,9 @@ const ProductDetail = () => {
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
+  
+  // LOG E: O que está a ser passado para o SEO?
+  console.log('[DEBUG E] URL final passado para SEO:', seoImage);
   // --- FIM DADOS DINÂMICOS PARA SEO ---
 
 
