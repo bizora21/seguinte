@@ -21,8 +21,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
     setLoading(true)
     setError(null)
     try {
-      // Tentativa 3: Usar a sintaxe de inner join com o nome da coluna de destino (user)
-      // e forçar a relação com a tabela profiles.
+      // Usando a sintaxe de inner join padrão. Isso deve funcionar agora que a FK está garantida no banco.
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
@@ -41,13 +40,8 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
       onReviewsLoaded(data?.length || 0)
     } catch (e: any) {
       console.error('Error fetching reviews:', e)
-      // Se o erro for PGRST200, o PostgREST não está a conseguir resolver a FK.
-      // Vamos tentar uma query sem o join para pelo menos carregar as reviews.
-      if (e.code === 'PGRST200') {
-        setError('Erro de configuração de relação (PGRST200). As avaliações não podem ser carregadas com detalhes do usuário.')
-      } else {
-        setError('Erro ao carregar avaliações.')
-      }
+      // Se o erro persistir, exibimos uma mensagem genérica.
+      setError('Erro ao carregar avaliações. (Verifique a configuração da chave estrangeira no Supabase).')
     } finally {
       setLoading(false)
     }
