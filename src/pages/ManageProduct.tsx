@@ -347,11 +347,12 @@ const ManageProduct = () => {
 
               <div className="space-y-2">
                 <Label>Imagens do Produto *</Label>
+                {/* CORREÇÃO: Usar 'products' como subpasta */}
                 <SupabaseImageUpload
                   value={formData.images}
                   onChange={handleImagesChange}
                   bucket="product-images"
-                  folder="products" {/* CORREÇÃO: Usar 'products' como subpasta */}
+                  folder="products"
                   maxImages={2}
                   maxSizeMB={2}
                 />
