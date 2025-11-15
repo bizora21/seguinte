@@ -29,11 +29,15 @@ function ensureAbsoluteUrl(input?: string) {
   
   // Se for um caminho relativo, prefixe com o BASE_URL.
   if (input.startsWith('/')) {
-    return `${BASE_URL}${input}`
+    const finalUrl = `${BASE_URL}${input}`
+    console.log(`[SEO DEBUG] Imagem relativa convertida para: ${finalUrl}`)
+    return finalUrl
   }
   
   // fallback
-  return `${BASE_URL}/${input}`
+  const finalUrl = `${BASE_URL}/${input}`
+  console.log(`[SEO DEBUG] Imagem fallback convertida para: ${finalUrl}`)
+  return finalUrl
 }
 
 export const SEO: React.FC<SEOProps> = ({
@@ -51,13 +55,6 @@ export const SEO: React.FC<SEOProps> = ({
   // Garante que a URL canônica é sempre absoluta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
   
-  // Se a URL fornecida for exatamente a BASE_URL, usamos a tag canonical.
-  // Se for uma rota dinâmica, usamos a URL específica.
-  // Se for uma rota dinâmica e o Facebook estiver a ler a tag canônica da homepage,
-  // isso significa que o Helmet está a injetar a tag padrão antes da montagem.
-  // Vamos garantir que a tag canonical só é injetada se for diferente da BASE_URL,
-  // ou se for explicitamente a rota raiz.
-  
   const canonicalUrl = absoluteUrl === BASE_URL ? BASE_URL : absoluteUrl;
 
   return (
@@ -66,8 +63,6 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="description" content={description} />
       
       {/* A URL canônica deve ser a URL da página atual. */}
-      {/* Em SPAs, o Facebook pode ler a tag canônica da homepage se o JS falhar. */}
-      {/* Aqui, garantimos que a tag é injetada com a URL correta. */}
       <link rel="canonical" href={canonicalUrl} />
 
       {/* Open Graph (OG) Tags Essenciais */}
