@@ -49,6 +49,16 @@ const cleanDescription = (description: string | undefined | null): string => {
 }
 
 // @ts-ignore
+const sanitizeImageUrl = (url: string | null): string => {
+    if (!url) return DEFAULT_IMAGE_PATH;
+    
+    // CORREÇÃO: Remove a duplicação de '/public/public/' se existir
+    const sanitized = url.replace('/product-images/public/public/', '/product-images/public/');
+    
+    return sanitized;
+}
+
+// @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -81,7 +91,8 @@ serve(async (req) => {
     const priceFormatted = new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(product.price);
     
     // 2. Extrair e garantir a URL da imagem
-    const seoImage = getFirstImageUrl(product.image_url);
+    const rawImage = getFirstImageUrl(product.image_url);
+    const seoImage = sanitizeImageUrl(rawImage); // Aplicar a limpeza aqui
     const absoluteImage = seoImage || DEFAULT_IMAGE_PATH; 
     
     const cleanedDescription = cleanDescription(product.description);

@@ -70,7 +70,7 @@ const ProductDetail = () => {
         .single();
 
       if (error) {
-        setError('Produto não encontrado');
+        setError('Produto não encontrado ou acesso negado.');
         setProduct(null);
         return;
       }
@@ -83,15 +83,17 @@ const ProductDetail = () => {
       if (user) {
         const { data: reviewData } = await supabase
           .from('product_reviews')
-          .select('*')
+          .select('rating, comment') // Simplificando a seleção
           .eq('product_id', productId)
           .eq('user_id', user.id)
           .single();
         
-        setUserReview(reviewData || null);
+        // O tipo retornado é { rating: number, comment: string | null }
+        setUserReview(reviewData as ProductReview || null);
       }
 
     } catch (error) {
+      console.error('Error fetching product data:', error);
       setError('Erro ao carregar produto');
     } finally {
       setLoading(false);

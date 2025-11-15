@@ -21,11 +21,12 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
     setLoading(true)
     setError(null)
     try {
+      // Usando a sintaxe de join explícita para garantir que a relação user_id seja resolvida
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
           *,
-          user:profiles!product_reviews_user_id_fkey (
+          user:profiles!inner (
             email,
             store_name
           )
