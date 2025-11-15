@@ -45,16 +45,10 @@ export const SEO: React.FC<SEOProps> = ({
   jsonLd
 }) => {
   
-  // --- INÍCIO DO TESTE 1: HARDCODE DA IMAGEM ---
+  // --- Lógica Original Restaurada ---
   let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
-  
-  if (type === 'product') {
-    // URL de teste hardcoded
-    finalImage = "https://via.placeholder.com/1200x630.png/000000/FFFFFF?text=IMAGEM+DE+TESTE";
-  }
-  // --- FIM DO TESTE 1 ---
-
   const absoluteImage = ensureAbsoluteUrl(finalImage)
+  // --- Fim Lógica Original Restaurada ---
   
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 

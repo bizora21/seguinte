@@ -73,6 +73,13 @@ const ProductDetail = () => {
         setProduct(data);
         const firstImage = getFirstImageUrl(data.image_url);
         setMainImage(firstImage || defaultImage);
+        
+        // --- LOGS DE DEBUG ---
+        console.log(`[DEBUG A] ID recebido: ${productId}`);
+        console.log('[DEBUG B] Produto bruto do BD:', data);
+        console.log('[DEBUG C] Caminho da imagem (image_url):', data.image_url);
+        console.log('[DEBUG D] URL da primeira imagem (OG Image):', firstImage);
+        // --- FIM LOGS DE DEBUG ---
 
       } catch (error) {
         setError('Erro ao carregar produto');
