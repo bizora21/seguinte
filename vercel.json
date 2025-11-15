@@ -8,6 +8,10 @@
         {
           "key": "User-Agent",
           "value": "(facebookexternalhit|twitterbot|pinterest|googlebot|linkedinbot|slackbot)"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
