@@ -119,24 +119,19 @@ const ProductDetail = () => {
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
   
-  // 1. Extrair a URL da imagem principal
+  // CORREÇÃO: Garantir que a imagem passada para o SEO é a URL da imagem principal
   const seoImage = getFirstImageUrl(product.image_url) || undefined;
-  
-  // 2. Formatar Título e Descrição para OG
-  const ogTitle = `${product.name} | ${formatPrice(product.price)}`;
-  const ogDescription = product.description ? product.description.substring(0, 300) : `Compre ${product.name} por ${formatPrice(product.price)} na LojaRápida. Frete grátis em Moçambique.`;
 
   return (
     <>
       {product && (
         <SEO
-          title={ogTitle}
-          description={ogDescription}
-          image={seoImage}
+          title={`${product.name} | ${storeName} | LojaRápida`}
+          description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
+          image={seoImage} // Usar a imagem extraída
           url={productUrl}
-          type="product" // Definindo o tipo como 'product'
+          type="product"
           jsonLd={[productSchema, breadcrumbSchema]}
-          siteName="LojaRápida" // Passando o nome do site
         />
       )}
       
