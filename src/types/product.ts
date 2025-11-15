@@ -25,3 +25,20 @@ export interface ProductFormData {
   images: string[]
   stock: string
 }
+
+// --- Novos Tipos para Avaliações ---
+export interface ProductReview {
+  id: string
+  product_id: string
+  user_id: string
+  rating: number
+  comment: string | null
+  created_at: string
+}
+
+export interface ReviewWithUser extends ProductReview {
+  user: {
+    email: string
+    store_name: string | null
+  }
+}

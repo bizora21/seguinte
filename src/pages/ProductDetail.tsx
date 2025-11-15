@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store } from 'lucide-react';
+import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -10,6 +10,8 @@ import { SEO, generateProductSchema, generateBreadcrumbSchema } from '../compone
 import { getFirstImageUrl, getAllImageUrls } from '../utils/images';
 import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
 import ProductChat from '../components/ProductChat';
+import ProductReviews from '../components/ProductReviews'; // NOVO IMPORT
+import ReviewForm from '../components/ReviewForm'; // NOVO IMPORT
 import { Card, CardContent } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { motion } from 'framer-motion';
@@ -21,6 +23,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { ProductReview } from '../types/product'; // Importar tipo de review
 
 interface Product {
   id: string;
@@ -47,51 +50,57 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [reviewCount, setReviewCount] = useState(0); // Estado para contagem de reviews
+  const [userReview, setUserReview] = useState<ProductReview | null>(null); // Estado para a review do usuário logado
   
   const defaultImage = '/placeholder.svg';
-  const BASE_URL = 'https://lojarapidamz.com'; // Definido localmente para garantir a URL canônica
+  const BASE_URL = 'https://lojarapidamz.com';
 
-  useEffect(() => {
+  const fetchProductData = useCallback(async () => {
     if (!productId) return;
 
-    const fetchProduct = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select(`*, seller:profiles!products_seller_id_fkey(id, store_name, email, delivery_scope)`)
-          .eq('id', productId)
-          .single();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`*, seller:profiles!products_seller_id_fkey(id, store_name, email, delivery_scope)`)
+        .eq('id', productId)
+        .single();
 
-        if (error) {
-          setError('Produto não encontrado');
-          setProduct(null);
-          return;
-        }
-
-        setProduct(data);
-        const firstImage = getFirstImageUrl(data.image_url);
-        setMainImage(firstImage || defaultImage);
-        
-        // --- LOGS DE DEBUG ---
-        console.log(`[DEBUG A] ID recebido: ${productId}`);
-        console.log('[DEBUG B] Produto bruto do BD:', data);
-        console.log('[DEBUG C] Caminho da imagem (image_url):', data.image_url);
-        console.log('[DEBUG D] URL da primeira imagem (OG Image):', firstImage);
-        console.log('[DEBUG F] URL Canônica passada para SEO:', `${BASE_URL}/produto/${productId}`);
-        // --- FIM LOGS DE DEBUG ---
-
-      } catch (error) {
-        setError('Erro ao carregar produto');
-      } finally {
-        setLoading(false);
+      if (error) {
+        setError('Produto não encontrado');
+        setProduct(null);
+        return;
       }
-    };
 
-    fetchProduct();
-  }, [productId, navigate]);
+      setProduct(data);
+      const firstImage = getFirstImageUrl(data.image_url);
+      setMainImage(firstImage || defaultImage);
+      
+      // Buscar review do usuário logado
+      if (user) {
+        const { data: reviewData } = await supabase
+          .from('product_reviews')
+          .select('*')
+          .eq('product_id', productId)
+          .eq('user_id', user.id)
+          .single();
+        
+        setUserReview(reviewData || null);
+      }
+
+    } catch (error) {
+      setError('Erro ao carregar produto');
+    } finally {
+      setLoading(false);
+    }
+  }, [productId, user]);
+
+  useEffect(() => {
+    fetchProductData();
+  }, [fetchProductData]);
 
   const handleEncomendar = () => {
     if (!user) {
@@ -122,7 +131,6 @@ const ProductDetail = () => {
   
   const productUrl = `${BASE_URL}/produto/${productId}`;
   
-  // --- DADOS DINÂMICOS PARA SEO ---
   const seoImage = getFirstImageUrl(product.image_url);
   const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
   const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
@@ -164,43 +172,66 @@ const ProductDetail = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
             
-            {/* Coluna da Esquerda: Imagens (Ocupa 3 colunas) */}
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-3 space-y-4">
-              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white border shadow-md">
-                <img 
-                  src={mainImage || defaultImage}
-                  alt={`Imagem principal do produto ${product.name}`}
-                  className="w-full h-full object-contain"
-                  onError={(e) => { e.currentTarget.src = defaultImage; }}
-                />
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
-                      <Maximize className="w-5 h-5" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                    <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {productImages.length > 1 && (
-                <div className="flex space-x-2 overflow-x-auto pb-2">
-                  {productImages.map((url, index) => (
-                    <div 
-                      key={index} 
-                      className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
-                      onClick={() => setMainImage(url)}
-                    >
-                      <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
+            {/* Coluna da Esquerda: Imagens e Detalhes (Ocupa 3 colunas) */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-3 space-y-8">
+              
+              {/* Imagens */}
+              <Card className="shadow-lg border-0">
+                <CardContent className="p-4">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
+                    <img 
+                      src={mainImage || defaultImage}
+                      alt={`Imagem principal do produto ${product.name}`}
+                      className="w-full h-full object-contain"
+                      onError={(e) => { e.currentTarget.src = defaultImage; }}
+                    />
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="secondary" size="icon" className="absolute top-4 right-4 bg-white/80 hover:bg-white" aria-label="Zoom na imagem">
+                          <Maximize className="w-5 h-5" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+                        <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  {productImages.length > 1 && (
+                    <div className="flex space-x-2 overflow-x-auto pt-4">
+                      {productImages.map((url, index) => (
+                        <div 
+                          key={index} 
+                          className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
+                          onClick={() => setMainImage(url)}
+                        >
+                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Descrição Detalhada */}
+              <Card className="shadow-lg border-0">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900 border-b pb-2">Detalhes do Produto</h2>
+                  <p className="text-gray-700 leading-relaxed">{product.description || 'Nenhuma descrição detalhada fornecida pelo vendedor.'}</p>
+                </CardContent>
+              </Card>
+              
+              {/* Seção de Avaliações */}
+              <ProductReviews 
+                productId={productId} 
+                onReviewsLoaded={setReviewCount} 
+              />
+              
             </motion.div>
 
-            {/* Coluna da Direita: Informações e Ações (Ocupa 2 colunas) */}
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="lg:col-span-2 space-y-6">
+            {/* Coluna da Direita: Ações, Chat e Formulário de Review (Ocupa 2 colunas) */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="lg:col-span-2 space-y-6 lg:sticky lg:top-24 h-fit">
+              
+              {/* Informações e Ações Principais */}
               <Card className="shadow-lg border-0">
                 <CardContent className="p-6 space-y-4">
                   <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h1>
@@ -208,7 +239,7 @@ const ProductDetail = () => {
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="flex items-center text-gray-600">
                       <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                      <span>4.8 (125)</span>
+                      <span>4.8 ({reviewCount} avaliações)</span>
                     </div>
                     <Separator orientation="vertical" className="h-4" />
                     <Link to={`/loja/${product.seller_id}`} className="flex items-center text-blue-600 hover:underline">
@@ -221,8 +252,6 @@ const ProductDetail = () => {
 
                   <div className="text-3xl font-bold text-green-600">{formatPrice(product.price)}</div>
                   
-                  <p className="text-gray-600 leading-relaxed text-sm">{product.description || 'Nenhuma descrição disponível.'}</p>
-
                   <Badge variant={product.stock > 0 ? 'default' : 'destructive'} className={product.stock > 0 ? 'bg-green-100 text-green-800' : ''}>
                     {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
                   </Badge>
@@ -233,7 +262,17 @@ const ProductDetail = () => {
                   </Button>
                 </CardContent>
               </Card>
+              
+              {/* Formulário de Avaliação */}
+              {user?.profile?.role === 'cliente' && (
+                <ReviewForm 
+                  productId={productId} 
+                  onReviewSubmitted={fetchProductData} // Recarrega dados para atualizar a review do usuário
+                  existingReview={userReview}
+                />
+              )}
 
+              {/* Chat com Vendedor */}
               <ProductChat 
                 productId={product.id}
                 sellerId={product.seller_id}
