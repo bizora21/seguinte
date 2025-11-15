@@ -7,7 +7,7 @@
       "headers": [
         {
           "key": "User-Agent",
-          "value": "(facebookexternalhit|twitterbot|pinterest|googlebot|linkedinbot|slackbot|whatsapp)"
+          "value": "(facebookexternalhit|twitterbot|pinterest|googlebot|linkedinbot|slackbot|whatsapp|bingbot|yandexbot|duckduckbot|baiduspider|embedly)"
         },
         {
           "key": "Cache-Control",
