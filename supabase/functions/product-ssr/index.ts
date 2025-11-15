@@ -38,15 +38,6 @@ const getFirstImageUrl = (imageField: string | null | undefined): string | null 
 };
 
 // @ts-ignore
-const ensureAbsoluteUrl = (input?: string) => {
-  if (!input) return DEFAULT_IMAGE_PATH
-  if (input.startsWith('http://') || input.startsWith('https://')) {
-    return input
-  }
-  return `${BASE_URL}${input.startsWith('/') ? input : '/' + input}`
-}
-
-// @ts-ignore
 const cleanDescription = (description: string | undefined | null): string => {
   if (!description) return '';
   // Remove Markdown (**, #, ---, etc.) e quebras de linha excessivas
@@ -88,8 +79,10 @@ serve(async (req) => {
     const productUrl = `${BASE_URL}/produto/${product.id}`;
     const priceFormatted = new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(product.price);
     
+    // 2. Extrair e garantir a URL da imagem
     const seoImage = getFirstImageUrl(product.image_url);
-    const absoluteImage = ensureAbsoluteUrl(seoImage);
+    // Usamos a URL do produto se existir, caso contrário, usamos o fallback genérico.
+    const absoluteImage = seoImage || DEFAULT_IMAGE_PATH; 
     
     const cleanedDescription = cleanDescription(product.description);
     const ogDescription = `${cleanedDescription.substring(0, 300) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'}`;
@@ -97,7 +90,7 @@ serve(async (req) => {
     // Título mais descritivo para o OG
     const ogTitle = `${product.name} | ${priceFormatted} - ${storeName}`;
 
-    // 2. Gerar o HTML mínimo com as meta tags
+    // 3. Gerar o HTML mínimo com as meta tags
     const html = `
       <!DOCTYPE html>
       <html lang="pt-MZ">

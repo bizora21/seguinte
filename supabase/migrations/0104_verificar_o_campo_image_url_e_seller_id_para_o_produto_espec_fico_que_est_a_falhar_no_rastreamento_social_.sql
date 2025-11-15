@@ -1,0 +1,1 @@
+SELECT id, name, image_url, seller_id, stock FROM products WHERE id = 'ce5a0dd2-a88a-47a2-8487-569893219529';
