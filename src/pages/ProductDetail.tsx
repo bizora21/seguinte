@@ -118,6 +118,9 @@ const ProductDetail = () => {
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
+  
+  // CORREÇÃO: Garantir que a imagem passada para o SEO é a URL da imagem principal
+  const seoImage = getFirstImageUrl(product.image_url) || undefined;
 
   return (
     <>
@@ -125,7 +128,7 @@ const ProductDetail = () => {
         <SEO
           title={`${product.name} | ${storeName} | LojaRápida`}
           description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
-          image={getFirstImageUrl(product.image_url) || '/og-image.jpg'}
+          image={seoImage} // Usar a imagem extraída
           url={productUrl}
           type="product"
           jsonLd={[productSchema, breadcrumbSchema]}
