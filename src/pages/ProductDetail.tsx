@@ -49,6 +49,7 @@ const ProductDetail = () => {
   const [error, setError] = useState<string | null>(null);
   
   const defaultImage = '/placeholder.svg';
+  const BASE_URL = 'https://lojarapidamz.com'; // Definido localmente para garantir a URL canônica
 
   useEffect(() => {
     if (!productId) return;
@@ -117,7 +118,9 @@ const ProductDetail = () => {
   
   const productImages = getAllImageUrls(product.image_url || null);
   const storeName = product.seller?.store_name || 'Loja do Vendedor';
-  const productUrl = `https://lojarapidamz.com/produto/${productId}`;
+  
+  // *** CORREÇÃO CRÍTICA: Garantir que a URL canônica é sempre absoluta e correta ***
+  const productUrl = `${BASE_URL}/produto/${productId}`;
   
   // --- DADOS DINÂMICOS PARA SEO ---
   const seoImage = getFirstImageUrl(product.image_url); // URL absoluta do Supabase
@@ -134,6 +137,7 @@ const ProductDetail = () => {
   
   // LOG E: O que está a ser passado para o SEO?
   console.log('[DEBUG E] URL final passado para SEO:', seoImage);
+  console.log('[DEBUG F] URL Canônica passada para SEO:', productUrl);
   // --- FIM DADOS DINÂMICOS PARA SEO ---
 
 
