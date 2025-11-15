@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { ReviewWithUser } from '../types/product'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Star, User, Clock, MessageCircle, Loader2, AlertTriangle } from 'lucide-react'
-import LoadingSpinner from './LoadingSpinner'
+import LoadingSpinner from '../components/LoadingSpinner'
 import { Separator } from './ui/separator'
 import { Button } from './ui/button'
 
@@ -21,12 +21,13 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
     setLoading(true)
     setError(null)
     try {
-      // Usando a sintaxe de join explícita para garantir que a relação user_id seja resolvida
+      // CORREÇÃO: Usando o nome da chave estrangeira explícita (product_reviews_user_id_fkey)
+      // para garantir que o PostgREST encontre a relação correta com a tabela profiles.
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
           *,
-          user:profiles!inner (
+          user:profiles!product_reviews_user_id_fkey (
             email,
             store_name
           )

@@ -23,30 +23,35 @@ function isAbsoluteUrl(input: string) {
 function ensureAbsoluteUrl(input?: string) {
   if (!input) return DEFAULT_IMAGE_PATH // Retorna o fallback externo
   
-  // 1. Se a URL já for absoluta, retorne-a diretamente.
-  if (isAbsoluteUrl(input)) {
-    return input
-  }
-  
-  // 2. CORREÇÃO: Se o input for uma string que parece ser o JSON não processado (ex: '["url"]'),
+  let processedInput = input;
+
+  // 1. CORREÇÃO: Se o input for uma string que parece ser o JSON não processado (ex: '["url"]'),
   // tentamos extrair a URL correta.
   if (input.startsWith('[') && input.endsWith(']')) {
     const extractedUrl = getFirstImageUrl(input);
-    if (extractedUrl && isAbsoluteUrl(extractedUrl)) {
-        console.log(`[SEO DEBUG] Imagem JSON extraída e corrigida: ${extractedUrl}`);
-        return extractedUrl;
+    if (extractedUrl) {
+        processedInput = extractedUrl;
     }
   }
   
-  // 3. Se for um caminho relativo, prefixe com o BASE_URL.
-  if (input.startsWith('/')) {
-    const finalUrl = `${BASE_URL}${input}`
+  // 2. Lógica de limpeza de URL duplicada (para produtos antigos)
+  // Remove a duplicação de '/public/public/' se existir
+  processedInput = processedInput.replace('/product-images/public/public/', '/product-images/public/');
+  
+  // 3. Se a URL já for absoluta, retorne-a.
+  if (isAbsoluteUrl(processedInput)) {
+    return processedInput
+  }
+  
+  // 4. Se for um caminho relativo, prefixe com o BASE_URL.
+  if (processedInput.startsWith('/')) {
+    const finalUrl = `${BASE_URL}${processedInput}`
     console.log(`[SEO DEBUG] Imagem relativa convertida para: ${finalUrl}`)
     return finalUrl
   }
   
-  // 4. Fallback final (para strings que não são URLs absolutas nem relativas, mas não são nulas)
-  const finalUrl = `${BASE_URL}/${input}`
+  // 5. Fallback final
+  const finalUrl = `${BASE_URL}/${processedInput}`
   console.log(`[SEO DEBUG] Imagem fallback convertida para: ${finalUrl}`)
   return finalUrl
 }
