@@ -55,7 +55,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="description" content={description} />
       <link rel="canonical" href={absoluteUrl} />
 
-      {/* Open Graph */}
+      {/* Open Graph (OG) Tags Essenciais */}
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
@@ -66,6 +66,15 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:url" content={absoluteUrl} />
       <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
+      
+      {/* Tags Específicas para Produtos (Passo 4) */}
+      {type === 'product' && (
+        <>
+          <meta property="product:brand" content={DEFAULT_SITE} />
+          <meta property="product:price:currency" content="MZN" />
+          {/* O preço e a disponibilidade serão injetados via JSON-LD (generateProductSchema) */}
+        </>
+      )}
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -158,6 +167,7 @@ export const generateLocalBusinessSchema = () => {
 
 export const generateProductSchema = (product: ProductWithSeller, storeName: string) => {
   const productUrl = `${BASE_URL}/produto/${product.id}`
+  const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price).replace('MZN', '').trim();
 
   return {
     '@context': 'https://schema.org/',
@@ -168,7 +178,7 @@ export const generateProductSchema = (product: ProductWithSeller, storeName: str
     url: productUrl,
     offers: {
       '@type': 'Offer',
-      price: product.price,
+      price: formatPrice(product.price), // Preço sem o símbolo MZN
       priceCurrency: 'MZN',
       availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       seller: {

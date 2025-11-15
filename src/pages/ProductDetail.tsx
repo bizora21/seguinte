@@ -119,18 +119,22 @@ const ProductDetail = () => {
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
   
-  // CORREÇÃO: Garantir que a imagem passada para o SEO é a URL da imagem principal
   const seoImage = getFirstImageUrl(product.image_url) || undefined;
+  
+  // Título e Descrição Otimizados para OG
+  const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
+  const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
+
 
   return (
     <>
       {product && (
         <SEO
-          title={`${product.name} | ${storeName} | LojaRápida`}
-          description={`${product.description || `Compre ${product.name} na LojaRápida. Preço: ${formatPrice(product.price)}. Frete grátis em Moçambique.`} ${product.stock > 0 ? 'Disponível para entrega.' : 'Produto temporariamente indisponível.'}`}
-          image={seoImage} // Usar a imagem extraída
+          title={ogTitle}
+          description={ogDescription}
+          image={seoImage}
           url={productUrl}
-          type="product"
+          type="product" // Usar o tipo 'product' para OG
           jsonLd={[productSchema, breadcrumbSchema]}
         />
       )}
