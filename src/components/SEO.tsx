@@ -50,12 +50,15 @@ export const SEO: React.FC<SEOProps> = ({
   const absoluteImage = ensureAbsoluteUrl(finalImage)
   // --- Fim Lógica Original Restaurada ---
   
+  // Garante que a URL canônica é sempre absoluta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
 
   return (
     <Helmet>
       <title>{title}</title>
       <meta name="description" content={description} />
+      
+      {/* A URL canônica deve ser a URL da página atual, sem parâmetros de consulta de cache-busting */}
       <link rel="canonical" href={absoluteUrl} />
 
       {/* Open Graph (OG) Tags Essenciais */}
