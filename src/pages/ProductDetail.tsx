@@ -111,6 +111,12 @@ const ProductDetail = () => {
   const productImages = getAllImageUrls(product.image_url || null);
   const storeName = product.seller?.store_name || 'Loja do Vendedor';
   const productUrl = `https://lojarapidamz.com/produto/${productId}`;
+  
+  // --- DADOS DINÂMICOS PARA SEO ---
+  const seoImage = getFirstImageUrl(product.image_url); // URL absoluta do Supabase
+  const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
+  const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
+  
   const productSchema = generateProductSchema(product as any, storeName);
   const breadcrumbs = [
     { name: 'Início', url: '/' },
@@ -118,12 +124,7 @@ const ProductDetail = () => {
     { name: product.name, url: productUrl }
   ];
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
-  
-  const seoImage = getFirstImageUrl(product.image_url) || undefined;
-  
-  // Título e Descrição Otimizados para OG
-  const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
-  const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
+  // --- FIM DADOS DINÂMICOS PARA SEO ---
 
 
   return (
@@ -132,9 +133,9 @@ const ProductDetail = () => {
         <SEO
           title={ogTitle}
           description={ogDescription}
-          image={seoImage}
+          image={seoImage || undefined} // Passa o URL do produto ou undefined
           url={productUrl}
-          type="product" // Usar o tipo 'product' para OG
+          type="product"
           jsonLd={[productSchema, breadcrumbSchema]}
         />
       )}
