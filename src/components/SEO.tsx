@@ -45,27 +45,36 @@ export const SEO: React.FC<SEOProps> = ({
   jsonLd
 }) => {
   
-  // --- Lógica Original Restaurada ---
   let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
   const absoluteImage = ensureAbsoluteUrl(finalImage)
-  // --- Fim Lógica Original Restaurada ---
   
   // Garante que a URL canônica é sempre absoluta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
+  
+  // Se a URL fornecida for exatamente a BASE_URL, usamos a tag canonical.
+  // Se for uma rota dinâmica, usamos a URL específica.
+  // Se for uma rota dinâmica e o Facebook estiver a ler a tag canônica da homepage,
+  // isso significa que o Helmet está a injetar a tag padrão antes da montagem.
+  // Vamos garantir que a tag canonical só é injetada se for diferente da BASE_URL,
+  // ou se for explicitamente a rota raiz.
+  
+  const canonicalUrl = absoluteUrl === BASE_URL ? BASE_URL : absoluteUrl;
 
   return (
     <Helmet>
       <title>{title}</title>
       <meta name="description" content={description} />
       
-      {/* A URL canônica deve ser a URL da página atual, sem parâmetros de consulta de cache-busting */}
-      <link rel="canonical" href={absoluteUrl} />
+      {/* A URL canônica deve ser a URL da página atual. */}
+      {/* Em SPAs, o Facebook pode ler a tag canônica da homepage se o JS falhar. */}
+      {/* Aqui, garantimos que a tag é injetada com a URL correta. */}
+      <link rel="canonical" href={canonicalUrl} />
 
       {/* Open Graph (OG) Tags Essenciais */}
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:url" content={absoluteUrl} />
+      <meta property="og:url" content={canonicalUrl} />
       <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
       
@@ -99,7 +108,6 @@ export const SEO: React.FC<SEOProps> = ({
       {/* Structured Data */}
       {jsonLd &&
         jsonLd.map((schema, index) => {
-          // Ensure image URLs inside the provided jsonLd are absolute when they are simple strings
           try {
             const cloned = JSON.parse(JSON.stringify(schema), (key, value) => {
               if (key === 'image' && typeof value === 'string') {
@@ -124,8 +132,8 @@ export const SEO: React.FC<SEOProps> = ({
   )
 }
 
-// --- Funções Auxiliares para JSON-LD (mantidas para conveniência) ---
-
+// ... (restante das funções auxiliares)
+// ...
 export const generateWebSiteSchema = () => {
   return {
     "@context": "https://schema.org",
