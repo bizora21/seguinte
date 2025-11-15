@@ -1,5 +1,6 @@
 import { Helmet } from 'react-helmet-async'
 import { ProductWithSeller } from '../types/product'
+import { getFirstImageUrl } from '../utils/images' // Importando getFirstImageUrl
 
 interface SEOProps {
   title: string
@@ -22,19 +23,29 @@ function isAbsoluteUrl(input: string) {
 function ensureAbsoluteUrl(input?: string) {
   if (!input) return DEFAULT_IMAGE_PATH // Retorna o fallback externo
   
-  // Se a URL já for absoluta (como as do Supabase Storage ou o fallback externo), retorne-a diretamente.
+  // 1. Se a URL já for absoluta, retorne-a diretamente.
   if (isAbsoluteUrl(input)) {
     return input
   }
   
-  // Se for um caminho relativo, prefixe com o BASE_URL.
+  // 2. CORREÇÃO: Se o input for uma string que parece ser o JSON não processado (ex: '["url"]'),
+  // tentamos extrair a URL correta.
+  if (input.startsWith('[') && input.endsWith(']')) {
+    const extractedUrl = getFirstImageUrl(input);
+    if (extractedUrl && isAbsoluteUrl(extractedUrl)) {
+        console.log(`[SEO DEBUG] Imagem JSON extraída e corrigida: ${extractedUrl}`);
+        return extractedUrl;
+    }
+  }
+  
+  // 3. Se for um caminho relativo, prefixe com o BASE_URL.
   if (input.startsWith('/')) {
     const finalUrl = `${BASE_URL}${input}`
     console.log(`[SEO DEBUG] Imagem relativa convertida para: ${finalUrl}`)
     return finalUrl
   }
   
-  // fallback
+  // 4. Fallback final (para strings que não são URLs absolutas nem relativas, mas não são nulas)
   const finalUrl = `${BASE_URL}/${input}`
   console.log(`[SEO DEBUG] Imagem fallback convertida para: ${finalUrl}`)
   return finalUrl
