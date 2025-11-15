@@ -63,6 +63,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:image:secure_url" content={absoluteImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:type" content="image/jpeg" /> {/* Adicionado tipo explícito */}
       <meta property="og:url" content={absoluteUrl} />
       <meta property="og:site_name" content={DEFAULT_SITE} />
       <meta property="og:locale" content="pt_MZ" />
