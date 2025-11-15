@@ -132,6 +132,10 @@ const ProductDetail = () => {
   const productUrl = `${BASE_URL}/produto/${productId}`;
   
   const seoImage = getFirstImageUrl(product.image_url);
+  
+  // DEBUG LOG: Verificar qual imagem está a ser passada para o SEO
+  console.log(`[SEO DEBUG] Imagem do Produto para SEO: ${seoImage}`);
+  
   const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
   const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
   
