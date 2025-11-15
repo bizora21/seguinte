@@ -47,6 +47,16 @@ const ensureAbsoluteUrl = (input?: string) => {
 }
 
 // @ts-ignore
+const cleanDescription = (description: string | undefined | null): string => {
+  if (!description) return '';
+  // Remove Markdown (**, #, ---, etc.) e quebras de linha excessivas
+  let cleaned = description.replace(/(\*\*|__|\*|#|---|\[.*?\]\(.*?\))/g, '').replace(/\n/g, ' ').trim();
+  // Reduz múltiplos espaços para um único espaço
+  cleaned = cleaned.replace(/\s\s+/g, ' ');
+  return cleaned;
+}
+
+// @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -81,8 +91,11 @@ serve(async (req) => {
     const seoImage = getFirstImageUrl(product.image_url);
     const absoluteImage = ensureAbsoluteUrl(seoImage);
     
+    const cleanedDescription = cleanDescription(product.description);
+    const ogDescription = `${cleanedDescription.substring(0, 300) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'}`;
+    
+    // Título mais descritivo para o OG
     const ogTitle = `${product.name} | ${priceFormatted} - ${storeName}`;
-    const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'}`;
 
     // 2. Gerar o HTML mínimo com as meta tags
     const html = `
@@ -99,7 +112,7 @@ serve(async (req) => {
         <meta property="og:image" content="${absoluteImage}" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:type" content="image/jpeg" /> <!-- Adicionado tipo de imagem -->
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:url" content="${productUrl}" />
         <meta property="og:type" content="product" />
         <meta property="og:site_name" content="LojaRápida" />
