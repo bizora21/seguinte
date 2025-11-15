@@ -8,6 +8,7 @@ interface SEOProps {
   url?: string
   type?: string
   jsonLd?: object[]
+  siteName?: string // Adicionado
 }
 
 const DEFAULT_SITE = 'LojaRápida'
@@ -41,7 +42,8 @@ export const SEO: React.FC<SEOProps> = ({
   image,
   url,
   type = 'website',
-  jsonLd
+  jsonLd,
+  siteName = DEFAULT_SITE // Usando o novo prop
 }) => {
   // Usar a imagem do produto se fornecida, caso contrário, a imagem padrão.
   const finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
@@ -55,7 +57,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="description" content={description} />
       <link rel="canonical" href={absoluteUrl} />
 
-      {/* Open Graph */}
+      {/* Open Graph (OG) - Essenciais para WhatsApp/Facebook */}
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
@@ -64,7 +66,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:url" content={absoluteUrl} />
-      <meta property="og:site_name" content={DEFAULT_SITE} />
+      <meta property="og:site_name" content={siteName} />
       <meta property="og:locale" content="pt_MZ" />
 
       {/* Twitter */}
