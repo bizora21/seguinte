@@ -2,6 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/produto/:id",
+      "destination": "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/product-ssr?id=$id",
+      "headers": [
+        {
+          "key": "User-Agent",
+          "value": "(facebookexternalhit|twitterbot|pinterest|googlebot|linkedinbot|slackbot)"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
