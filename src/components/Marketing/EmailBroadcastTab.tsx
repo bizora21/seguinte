@@ -74,7 +74,7 @@ const EmailBroadcastTab: React.FC = () => {
     }
 
     setSubmitting(true)
-    const toastId = showLoading('Iniciando orquestração de envio em massa...')
+    const toastId = showLoading('Iniciando envio em massa. Por favor, não feche esta página...')
 
     try {
       // 1. Buscar a lista de perfis do público-alvo
@@ -93,37 +93,54 @@ const EmailBroadcastTab: React.FC = () => {
         return
       }
 
-      // 2. Preparar o envio (Simulação de envio individualizado)
-      
-      const testProfile = targetProfiles[0]
-      
-      // Determinar o nome do destinatário para personalização
-      const getRecipientNameForSend = (profile: Pick<Profile, 'email' | 'store_name'>) => {
-        if (profile.store_name && targetAudience === 'vendedor') {
-          return profile.store_name
-        }
-        return profile.email.split('@')[0]
+      // 2. Obter o token de sessão do administrador para autenticar a Edge Function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !session?.access_token) {
+        dismissToast(toastId)
+        throw new Error('Sessão de administrador expirada. Faça login novamente.')
       }
-      
-      const recipientName = getRecipientNameForSend(testProfile)
+      const adminToken = session.access_token
 
-      // 3. Renderizar o template completo para o envio
-      const htmlContent = generateFullHtmlPreview(recipientName)
-
-      // 4. Chamar a Edge Function para enviar o e-mail (Simulação)
+      let successCount = 0
+      let failureCount = 0
       
-      const { error: sendError } = await supabase.functions.invoke('email-sender', {
-        body: {
-          to: testProfile.email, // Enviando apenas para o primeiro para simulação de teste
-          subject: subject,
-          html: htmlContent,
+      // 3. Iterar sobre todos os perfis e enviar individualmente
+      for (const profile of targetProfiles) {
+        const recipientName = getRecipientName(profile)
+        const htmlContent = generateFullHtmlPreview(recipientName)
+
+        try {
+          const { error: sendError } = await supabase.functions.invoke('email-sender', {
+            method: 'POST', // Adicionado método POST
+            body: {
+              to: profile.email,
+              subject: subject,
+              html: htmlContent,
+            },
+            headers: { // Headers movidos para o nível superior
+              'Authorization': `Bearer ${adminToken}` // Usar o token do admin para autenticar
+            }
+          })
+
+          if (sendError) {
+            console.error(`Falha ao enviar para ${profile.email}:`, sendError)
+            failureCount++
+          } else {
+            successCount++
+          }
+        } catch (e) {
+          console.error(`Erro de rede ao enviar para ${profile.email}:`, e)
+          failureCount++
         }
-      })
-
-      if (sendError) throw sendError
+      }
 
       dismissToast(toastId)
-      showSuccess(`Envio em massa orquestrado com sucesso! (Teste enviado para ${recipientName} em ${testProfile.email})`)
+      
+      if (failureCount > 0) {
+        showError(`Envio concluído com ${successCount} sucesso(s) e ${failureCount} falha(s). Verifique o console para detalhes.`)
+      } else {
+        showSuccess(`Campanha enviada com sucesso para ${successCount} destinatário(s)!`)
+      }
       
       // Limpar formulário
       setSubject('')
@@ -134,7 +151,7 @@ const EmailBroadcastTab: React.FC = () => {
     } catch (error: any) {
       dismissToast(toastId)
       console.error('Broadcast error:', error)
-      showError('Falha ao enviar e-mail em massa: ' + error.message)
+      showError('Falha crítica ao iniciar o envio: ' + error.message)
     } finally {
       setSubmitting(false)
     }
