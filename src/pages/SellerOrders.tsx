@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown, Loader2 } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import toast from 'react-hot-toast'
@@ -75,7 +75,7 @@ const SellerOrders = () => {
       }
     )
 
-    // Ouvir por ATUALIZAÇÕES DE STATUS (ex: cancelamento pelo cliente)
+    // Ouvir por ATUALIZAÇÕES DE STATUS (ex: cancelamento pelo cliente ou atualização do admin)
     channel.on(
       'postgres_changes',
       {
@@ -94,7 +94,15 @@ const SellerOrders = () => {
             const oldStatus = prevOrders[orderIndex].status;
             if (oldStatus !== updatedOrder.status) {
               const statusInfo = getStatusInfo(updatedOrder.status);
-              toast.success(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`);
+              
+              // Notificação mais detalhada para o vendedor
+              if (updatedOrder.status === 'cancelled') {
+                toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} CANCELADO pelo cliente.`, { duration: 6000 });
+              } else if (updatedOrder.status === 'completed') {
+                toast.success(`✅ Pedido #${updatedOrder.id.slice(0, 8)} CONCLUÍDO (Pagamento confirmado pelo Admin).`, { duration: 6000 });
+              } else {
+                toast.success(`🔄 Pedido #${updatedOrder.id.slice(0, 8)} atualizado para: ${statusInfo.label}`);
+              }
             }
             
             const newOrders = [...prevOrders];
@@ -175,8 +183,7 @@ const SellerOrders = () => {
         throw error
       }
       
-      // A atualização do estado local agora é tratada pelo subscription em tempo real,
-      // garantindo que a UI reflita o estado real do banco de dados.
+      // A atualização do estado local é tratada pelo subscription em tempo real.
       dismissToast(toastId)
       // A notificação de sucesso será exibida pelo listener do realtime.
 
@@ -244,8 +251,8 @@ const SellerOrders = () => {
               <p className="text-gray-600 mt-2">Gerencie o status dos seus pedidos em tempo real</p>
             </div>
             <div className="flex space-x-2 mt-4 sm:mt-0">
-              <Button variant="outline" onClick={fetchOrders} className="flex items-center">
-                <RefreshCw className="w-4 h-4 mr-2" /> Atualizar
+              <Button variant="outline" onClick={fetchOrders} className="flex items-center" disabled={loading}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
               </Button>
             </div>
           </div>
@@ -328,8 +335,17 @@ const SellerOrders = () => {
                             disabled={updatingStatus === order.id}
                           >
                             <SelectTrigger className="w-full sm:w-32">
-                              <SelectValue placeholder="Atualizar" />
-                              <ChevronDown className="w-4 h-4 opacity-50 ml-1" />
+                              {updatingStatus === order.id ? (
+                                <div className="flex items-center">
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  <span className="text-sm">Aguarde...</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <SelectValue placeholder="Atualizar" />
+                                  <ChevronDown className="w-4 h-4 opacity-50 ml-1" />
+                                </>
+                              )}
                             </SelectTrigger>
                             <SelectContent>
                               {nextStatuses.map((status) => (

@@ -74,11 +74,14 @@ const CustomerOrders = () => {
         },
         (payload) => {
           const updatedOrder = payload.new as OrderWithItems;
+          
+          // Atualiza o estado local imediatamente
           setOrders(prev => prev.map(order => 
             order.id === updatedOrder.id 
               ? { ...order, status: updatedOrder.status, updated_at: updatedOrder.updated_at }
               : order
           ))
+          
           const statusInfo = getStatusInfo(updatedOrder.status)
           showSuccess(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`)
         }
@@ -98,8 +101,9 @@ const CustomerOrders = () => {
       if (error) throw error
 
       dismissToast(toastId)
+      // A atualização do estado será tratada pelo Realtime, mas forçamos o sucesso aqui
       showSuccess('Pedido cancelado com sucesso.')
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+      // O Realtime irá atualizar o status para 'cancelled'
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao cancelar pedido: ' + error.message)
