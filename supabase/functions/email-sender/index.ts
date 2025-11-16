@@ -14,7 +14,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 const FROM_EMAIL = 'LojaRapida <contato@lojarapidamz.com>'
 // @ts-ignore
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com' // Definido localmente
 
 // Helper de log para diagnóstico
 // @ts-ignore
@@ -40,12 +40,12 @@ serve(async (req) => {
 
   let isAuthorized = false
 
-  // Verificação 1: É a chave de serviço?
+  // Verificação 1: É a chave de serviço? (Para chamadas PL/pgSQL)
   if (token === SERVICE_ROLE_KEY) {
     isAuthorized = true
     log("Authorization successful: Service Role Key used.");
   } else {
-    // Verificação 2: É um token de usuário do administrador?
+    // Verificação 2: É um token de usuário do administrador? (Para chamadas do frontend)
     log("Attempting to verify user token...");
     const supabaseClient = createClient(
       // @ts-ignore
@@ -59,11 +59,9 @@ serve(async (req) => {
     if (authError) {
       log("Auth error:", authError);
     }
-    if (!user) {
-      log("User not found for token.");
-    }
-
-    if (user && user.email === ADMIN_EMAIL) {
+    
+    // Verifica se o usuário existe e se é o administrador
+    if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       isAuthorized = true
       log("Authorization successful: Admin user verified.", { userEmail: user.email });
     } else {
@@ -110,7 +108,7 @@ serve(async (req) => {
     log("Resend API response status:", resendResponse.status);
 
     if (!resendResponse.ok) {
-      log("Resend API Error:", data);
+      log("Resend API Error (Details):", data); // Log mais detalhado
       throw new Error(data.message || 'Failed to send email')
     }
 
