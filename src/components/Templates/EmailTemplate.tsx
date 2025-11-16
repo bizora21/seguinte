@@ -7,6 +7,8 @@ interface EmailTemplateProps {
   recipientName?: string
 }
 
+const BASE_URL = 'https://lojarapidamz.com' // Hardcoded para garantir que a imagem seja absoluta
+
 const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewText, recipientName }) => {
   return (
     <html lang="pt-MZ">
@@ -63,31 +65,18 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
           <div className="container">
             <div className="header">
               <div className="logo-container">
-                {/* SVG do Logotipo (40x40) */}
-                <svg
+                {/* Usando tag <img> para melhor compatibilidade com clientes de e-mail */}
+                <img
+                  src={`${BASE_URL}/favicon.svg`}
+                  alt="LojaRápida Logo"
                   width="40"
                   height="40"
-                  viewBox="0 0 40 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  style={{ display: 'block' }}
-                >
-                  {/* Fundo Azul Profundo (#0A2540) - Já é a cor do header, mas mantemos para o SVG */}
-                  <rect width="40" height="40" rx="8" fill="#0A2540"/>
-                  
-                  {/* Sacola de Compras (Branco) */}
-                  <path d="M13 15H27L25 30H15L13 15Z" fill="white"/>
-                  <path d="M16 15V13C16 11.3431 17.3431 10 19 10H21C22.6569 10 24 11.3431 24 13V15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  
-                  {/* Raio (Flash) Verde Vibrante (#00D4AA) */}
-                  <path d="M20 20L18 25H22L20 30" stroke="#00D4AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M20 20L22 25H18L20 30" fill="#00D4AA"/>
-                </svg>
+                  style={{ display: 'block', width: '40px', height: '40px' }}
+                />
                 <span className="logo-text">LojaRápida</span>
               </div>
             </div>
             <div className="content">
-              {/* Removido o h2 aqui, pois o template específico (WelcomeSellerEmail) já o inclui */}
               {children}
             </div>
             <div className="footer">
