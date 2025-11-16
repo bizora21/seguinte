@@ -10,6 +10,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../utils/t
 import { supabase } from '../../lib/supabase'
 import { renderToStaticMarkup } from 'react-dom/server'
 import EmailTemplate from '../Templates/EmailTemplate'
+import { Profile } from '../../types/auth' // Importando o tipo Profile
 
 const EmailBroadcastTab: React.FC = () => {
   const [targetAudience, setTargetAudience] = useState<'cliente' | 'vendedor' | ''>('')
@@ -29,10 +30,10 @@ const EmailBroadcastTab: React.FC = () => {
     }
 
     setSubmitting(true)
-    const toastId = showLoading('Iniciando envio em massa...')
+    const toastId = showLoading('Iniciando orquestração de envio em massa...')
 
     try {
-      // 1. Buscar a lista de e-mails do público-alvo
+      // 1. Buscar a lista de perfis do público-alvo
       const { data: profiles, error: fetchError } = await supabase
         .from('profiles')
         .select('email, store_name')
@@ -40,35 +41,50 @@ const EmailBroadcastTab: React.FC = () => {
         
       if (fetchError) throw fetchError
       
-      const emails = profiles?.map(p => p.email) || []
+      const targetProfiles = profiles as Pick<Profile, 'email' | 'store_name'>[] || []
       
-      if (emails.length === 0) {
+      if (targetProfiles.length === 0) {
         dismissToast(toastId)
         showError(`Nenhum e-mail encontrado para o público-alvo: ${targetAudience}.`)
         return
       }
 
-      // 2. Renderizar o template moderno
+      // 2. Preparar o envio (Simulação de envio individualizado)
+      
+      // Usamos o primeiro perfil para o teste de envio
+      const testProfile = targetProfiles[0]
+      
+      // Determinar o nome do destinatário para personalização
+      const getRecipientName = (profile: Pick<Profile, 'email' | 'store_name'>) => {
+        if (profile.store_name && targetAudience === 'vendedor') {
+          return profile.store_name
+        }
+        return profile.email.split('@')[0]
+      }
+      
+      const recipientName = getRecipientName(testProfile)
+
+      // 3. Renderizar o template moderno com o nome personalizado
       const htmlContent = renderToStaticMarkup(
         <EmailTemplate 
           title={subject} 
           previewText={previewText || subject}
+          recipientName={recipientName} // Passando o nome
         >
           <div dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
+          <p>Clique no botão abaixo para ver as novidades:</p>
           <a href="https://lojarapidamz.com/produtos" className="button">
             Explorar Novidades
           </a>
         </EmailTemplate>
       )
 
-      // 3. Chamar a Edge Function para enviar o e-mail
-      // Nota: A Edge Function 'email-sender' aceita apenas um destinatário por chamada.
-      // Para simular o envio em massa sem sobrecarregar o servidor, vamos enviar apenas para o primeiro e-mail
-      // e notificar o administrador sobre o sucesso da orquestração.
+      // 4. Chamar a Edge Function para enviar o e-mail (Simulação)
+      // Em um sistema real, iteraríamos sobre todos os perfis e enviaríamos individualmente.
       
       const { error: sendError } = await supabase.functions.invoke('email-sender', {
         body: {
-          to: emails[0], // Enviando apenas para o primeiro para simulação de teste
+          to: testProfile.email, // Enviando apenas para o primeiro para simulação de teste
           subject: subject,
           html: htmlContent,
         }
@@ -77,7 +93,7 @@ const EmailBroadcastTab: React.FC = () => {
       if (sendError) throw sendError
 
       dismissToast(toastId)
-      showSuccess(`Envio em massa orquestrado com sucesso! (Simulação: Enviado para ${emails.length} destinatários, teste enviado para ${emails[0]})`)
+      showSuccess(`Envio em massa orquestrado com sucesso! (Teste enviado para ${recipientName} em ${testProfile.email})`)
       
       // Limpar formulário
       setSubject('')

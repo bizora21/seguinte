@@ -4,9 +4,10 @@ interface EmailTemplateProps {
   title: string
   children: ReactNode
   previewText: string
+  recipientName?: string // NOVO: Nome do destinatário
 }
 
-const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewText }) => {
+const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewText, recipientName }) => {
   return (
     <html lang="pt-MZ">
       <head>
@@ -58,6 +59,7 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
               </div>
             </div>
             <div className="content">
+              {recipientName && <h2 style={{ color: '#0A2540', fontSize: '22px', marginTop: '0' }}>Olá, {recipientName}!</h2>}
               {children}
             </div>
             <div className="footer">
