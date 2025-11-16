@@ -30,6 +30,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // --- VERIFICAÇÃO DE CHAVES CRÍTICAS ---
+  if (!RESEND_API_KEY) {
+    log("Configuration error: RESEND_API_KEY not found in secrets.");
+    return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), { status: 500, headers: corsHeaders })
+  }
+  log("RESEND_API_KEY found.");
+
   // --- BLOCO DE AUTENTICAÇÃO ---
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
@@ -47,6 +54,8 @@ serve(async (req) => {
   } else {
     // Verificação 2: É um token de usuário do administrador? (Para chamadas do frontend)
     log("Attempting to verify user token...");
+    
+    // Usamos o cliente anon para verificar o token JWT
     const supabaseClient = createClient(
       // @ts-ignore
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -54,10 +63,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: `Bearer ${token}` } } }
     )
+    
+    // Tenta obter o usuário
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     
     if (authError) {
-      log("Auth error:", authError);
+      log("Auth error during user verification:", authError);
     }
     
     // Verifica se o usuário existe e se é o administrador
@@ -73,12 +84,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
   }
   // --- FIM DO BLOCO DE AUTENTICAÇÃO ---
-
-  if (!RESEND_API_KEY) {
-    log("Configuration error: RESEND_API_KEY not found in secrets.");
-    return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), { status: 500, headers: corsHeaders })
-  }
-  log("RESEND_API_KEY found.");
 
   try {
     const { to, subject, html } = await req.json()
@@ -108,14 +113,16 @@ serve(async (req) => {
     log("Resend API response status:", resendResponse.status);
 
     if (!resendResponse.ok) {
-      log("Resend API Error (Details):", data); // Log mais detalhado
-      throw new Error(data.message || 'Failed to send email')
+      log("Resend API Error (Details):", data);
+      // Lança um erro para ser capturado pelo bloco catch
+      throw new Error(data.message || `Failed to send email with status ${resendResponse.status}`)
     }
 
     log("Email sent successfully via Resend.");
     return new Response(JSON.stringify({ success: true, data }), { headers: corsHeaders, status: 200 })
 
   } catch (error) {
+    // Captura o erro e retorna um 500 com a mensagem de erro
     log("Edge Function execution error:", error);
     return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { headers: corsHeaders, status: 500 })
   }
