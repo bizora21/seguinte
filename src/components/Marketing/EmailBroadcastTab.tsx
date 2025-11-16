@@ -11,13 +11,14 @@ import { supabase } from '../../lib/supabase'
 import { renderToStaticMarkup } from 'react-dom/server'
 import EmailTemplate from '../Templates/EmailTemplate'
 import { Profile } from '../../types/auth' // Importando o tipo Profile
+import EmailEditor from './EmailEditor' // NOVO IMPORT
 
 const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/BpqBKP5aUnS0U195dvM52p?mode=wwt'
 
 const EmailBroadcastTab: React.FC = () => {
   const [targetAudience, setTargetAudience] = useState<'cliente' | 'vendedor' | ''>('')
   const [subject, setSubject] = useState('')
-  const [bodyContent, setBodyContent] = useState('')
+  const [bodyContent, setBodyContent] = useState('') // Agora armazena HTML
   const [previewText, setPreviewText] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -29,9 +30,11 @@ const EmailBroadcastTab: React.FC = () => {
   }
 
   const generateFullHtmlPreview = (name: string) => {
+    // O bodyContent já é HTML do TipTap, então o passamos diretamente.
+    // Adicionamos os botões de CTA após o conteúdo principal.
     const contentWithButtons = (
       <>
-        <div dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
+        <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
         
         <div className="button-container">
           <a 
@@ -111,14 +114,14 @@ const EmailBroadcastTab: React.FC = () => {
 
         try {
           const { error: sendError } = await supabase.functions.invoke('email-sender', {
-            method: 'POST', // Adicionado método POST
+            method: 'POST',
             body: {
               to: profile.email,
               subject: subject,
               html: htmlContent,
             },
-            headers: { // Headers movidos para o nível superior
-              'Authorization': `Bearer ${adminToken}` // Usar o token do admin para autenticar
+            headers: {
+              'Authorization': `Bearer ${adminToken}`
             }
           })
 
@@ -213,18 +216,15 @@ const EmailBroadcastTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Conteúdo do Corpo */}
+        {/* Conteúdo do Corpo - NOVO EDITOR */}
         <div className="space-y-2">
-          <Label htmlFor="bodyContent" className="font-medium flex items-center">
+          <Label className="font-medium flex items-center">
             <FileText className="w-4 h-4 mr-2" />
-            Conteúdo do Corpo (HTML Simples / Texto) *
+            Conteúdo do Corpo (Use o editor para formatar e adicionar links) *
           </Label>
-          <Textarea
-            id="bodyContent"
-            value={bodyContent}
-            onChange={(e) => setBodyContent(e.target.value)}
-            placeholder="Escreva sua mensagem promocional aqui. Use quebras de linha para parágrafos."
-            rows={8}
+          <EmailEditor
+            initialContent={bodyContent}
+            onChange={setBodyContent}
             disabled={submitting}
           />
           <p className="text-xs text-gray-500">O conteúdo será automaticamente formatado em um template moderno.</p>
