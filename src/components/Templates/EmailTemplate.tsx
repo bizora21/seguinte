@@ -19,7 +19,7 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
         <style>
           {`
             body { font-family: Arial, sans-serif; background-color: #f7f9fa; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-            .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+            .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0 0 0 / 0.05); }
             .header { background-color: #0A2540; color: #ffffff; padding: 20px; text-align: center; }
             .content { padding: 30px; color: #333333; line-height: 1.6; }
             .footer { background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
@@ -65,7 +65,7 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
           <div className="container">
             <div className="header">
               <div className="logo-container">
-                {/* Usando tag <img> para melhor compatibilidade com clientes de e-mail */}
+                {/* CORREÇÃO: Usando tag <img> com URL ABSOLUTA para o favicon.svg */}
                 <img
                   src={`${BASE_URL}/favicon.svg`}
                   alt="LojaRápida Logo"
