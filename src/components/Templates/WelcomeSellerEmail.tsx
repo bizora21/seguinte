@@ -26,10 +26,18 @@ const WelcomeSellerEmail: React.FC<WelcomeSellerEmailProps> = ({ storeName, sell
       <p>Estamos aqui para ajudar você a crescer. Acesse sua área de gestão ou veja como sua loja aparece para os clientes:</p>
       
       <div className="button-container">
-        <a href="https://lojarapidamz.com/dashboard/seller" className="button button-primary">
+        <a 
+          href="https://lojarapidamz.com/dashboard/seller" 
+          className="button button-primary"
+          style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA' }}
+        >
           Ir para o Dashboard
         </a>
-        <a href={`https://lojarapidamz.com/loja/${sellerId}`} className="button button-secondary">
+        <a 
+          href={`https://lojarapidamz.com/loja/${sellerId}`} 
+          className="button button-secondary"
+          style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540' }}
+        >
           Ver Minha Loja
         </a>
       </div>
