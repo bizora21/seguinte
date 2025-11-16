@@ -23,6 +23,8 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
             .footer { background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
             .button { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #00D4AA; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
             .preview-text { display: none !important; max-height: 0; overflow: hidden; }
+            .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+            .logo-text { font-size: 24px; font-weight: bold; color: #ffffff; margin-left: 8px; }
           `}
         </style>
       </head>
@@ -31,7 +33,29 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
         <div style={{ backgroundColor: '#f7f9fa', padding: '20px 0' }}>
           <div className="container">
             <div className="header">
-              <h1>LojaRápida</h1>
+              <div className="logo-container">
+                {/* SVG do Logotipo (40x40) */}
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 40 40"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ display: 'block' }}
+                >
+                  {/* Fundo Azul Profundo (#0A2540) - Já é a cor do header, mas mantemos para o SVG */}
+                  <rect width="40" height="40" rx="8" fill="#0A2540"/>
+                  
+                  {/* Sacola de Compras (Branco) */}
+                  <path d="M13 15H27L25 30H15L13 15Z" fill="white"/>
+                  <path d="M16 15V13C16 11.3431 17.3431 10 19 10H21C22.6569 10 24 11.3431 24 13V15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  
+                  {/* Raio (Flash) Verde Vibrante (#00D4AA) */}
+                  <path d="M20 20L18 25H22L20 30" stroke="#00D4AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 20L22 25H18L20 30" fill="#00D4AA"/>
+                </svg>
+                <span className="logo-text">LojaRápida</span>
+              </div>
             </div>
             <div className="content">
               {children}
