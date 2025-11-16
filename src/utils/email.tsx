@@ -1,3 +1,4 @@
+import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { supabase } from '../lib/supabase'
 import { showError } from './toast'
@@ -5,7 +6,7 @@ import WelcomeClientEmail from '../components/Templates/WelcomeClientEmail'
 import WelcomeSellerEmail from '../components/Templates/WelcomeSellerEmail'
 
 // Mapeamento de templates
-const TEMPLATE_MAP = {
+const TEMPLATE_MAP: Record<string, React.FC<any>> = {
   'welcome_client': WelcomeClientEmail,
   'welcome_seller': WelcomeSellerEmail,
   // Adicionar outros templates aqui
