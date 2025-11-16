@@ -87,7 +87,7 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
               </div>
             </div>
             <div className="content">
-              {recipientName && <h2 style={{ color: '#0A2540', fontSize: '22px', marginTop: '0' }}>Olá, {recipientName}!</h2>}
+              {/* Removido o h2 aqui, pois o template específico (WelcomeSellerEmail) já o inclui */}
               {children}
             </div>
             <div className="footer">

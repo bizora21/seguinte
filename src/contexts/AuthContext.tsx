@@ -284,7 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             to: email,
             subject: `Parabéns, sua loja ${storeName} está online!`,
             template: 'welcome_seller',
-            props: { storeName }
+            props: { storeName, sellerId: data.user.id } // Passando sellerId
           })
         }
         // --- FIM NOVO ---

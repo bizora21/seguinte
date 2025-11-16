@@ -19,7 +19,7 @@ const TEMPLATE_PREVIEWS = [
   {
     id: 'welcome_seller',
     name: 'Boas-Vindas (Vendedor)',
-    component: <WelcomeSellerEmail storeName="[Nome da Loja]" />,
+    component: <WelcomeSellerEmail storeName="[Nome da Loja]" sellerId="placeholder-seller-id" />,
     description: 'Enviado automaticamente após o cadastro de um novo vendedor.'
   },
   {
