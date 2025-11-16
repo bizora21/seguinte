@@ -11,7 +11,8 @@ import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsT
 import ContentManagerTab from '../components/Marketing/ContentManagerTab'
 import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
 import LeadsListTab from '../components/Marketing/LeadsListTab'
-import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab' // NOVO IMPORT
+import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab'
+import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab' // NOVO IMPORT
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ const AdminMarketingCenter = () => {
         </div>
 
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 h-auto p-1">
             <TabsTrigger value="content" className="py-2 text-xs sm:text-sm flex items-center">
               <FileText className="w-4 h-4 mr-1" /> Conteúdo & SEO
             </TabsTrigger>
@@ -52,6 +53,9 @@ const AdminMarketingCenter = () => {
             </TabsTrigger>
             <TabsTrigger value="templates" className="py-2 text-xs sm:text-sm flex items-center">
               <Mail className="w-4 h-4 mr-1" /> Templates & Listas
+            </TabsTrigger>
+            <TabsTrigger value="broadcast" className="py-2 text-xs sm:text-sm flex items-center">
+              <Send className="w-4 h-4 mr-1" /> Broadcast
             </TabsTrigger>
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
               <Share2 className="w-4 h-4 mr-1" /> Social & Email
@@ -78,6 +82,10 @@ const AdminMarketingCenter = () => {
           
           <TabsContent value="templates">
             <EmailTemplateManagerTab />
+          </TabsContent>
+          
+          <TabsContent value="broadcast">
+            <EmailBroadcastTab />
           </TabsContent>
 
           <TabsContent value="social">
