@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { ReviewWithUser } from '../types/product'
+import { ReviewWithUser, ProductReview } from '../types/product'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Star, User, Clock, MessageCircle, Loader2, AlertTriangle } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -21,27 +21,47 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
     setLoading(true)
     setError(null)
     try {
-      // Usando a sintaxe de inner join padrão. Isso deve funcionar agora que a FK está garantida no banco.
-      const { data, error } = await supabase
+      // PASSO 1: Buscar reviews sem o JOIN problemático
+      const { data: reviewsData, error: reviewsError } = await supabase
         .from('product_reviews')
-        .select(`
-          *,
-          user:profiles!inner (
-            email,
-            store_name
-          )
-        `)
+        .select(`*`)
         .eq('product_id', productId)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (reviewsError) throw reviewsError
       
-      setReviews(data as ReviewWithUser[] || [])
-      onReviewsLoaded(data?.length || 0)
+      const rawReviews = reviewsData as ProductReview[] || []
+      onReviewsLoaded(rawReviews.length)
+
+      if (rawReviews.length === 0) {
+        setReviews([])
+        return
+      }
+
+      // PASSO 2: Coletar IDs de usuários únicos
+      const userIds = [...new Set(rawReviews.map(r => r.user_id))]
+      
+      // PASSO 3: Buscar perfis correspondentes
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, store_name')
+        .in('id', userIds)
+        
+      if (profilesError) throw profilesError
+      
+      const profileMap = new Map(profilesData?.map(p => [p.id, p]))
+
+      // PASSO 4: Combinar reviews com perfis
+      const combinedReviews: ReviewWithUser[] = rawReviews.map(review => ({
+        ...review,
+        user: profileMap.get(review.user_id) || { email: 'Desconhecido', store_name: null }
+      }))
+
+      setReviews(combinedReviews)
+
     } catch (e: any) {
       console.error('Error fetching reviews:', e)
-      // Se o erro persistir, exibimos uma mensagem genérica.
-      setError('Erro ao carregar avaliações. (Verifique a configuração da chave estrangeira no Supabase).')
+      setError('Erro ao carregar avaliações. Por favor, tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -100,7 +120,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, onReviewsLoa
                 <div className="flex items-center space-x-2">
                   <User className="w-4 h-4 text-gray-500" />
                   <span className="font-semibold text-gray-800">
-                    {/* Se a relação falhar, o campo 'user' será undefined. Usamos um fallback. */}
+                    {/* Usamos o fallback defensivo */}
                     {review.user?.store_name || review.user?.email?.split('@')[0] || 'Usuário'}
                   </span>
                 </div>
