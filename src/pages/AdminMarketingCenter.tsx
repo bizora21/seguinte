@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Tag } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Tag, Mail } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
@@ -10,7 +10,8 @@ import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
 import ContentManagerTab from '../components/Marketing/ContentManagerTab'
 import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
-import LeadsListTab from '../components/Marketing/LeadsListTab' // NOVO IMPORT
+import LeadsListTab from '../components/Marketing/LeadsListTab'
+import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab' // NOVO IMPORT
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
@@ -39,7 +40,7 @@ const AdminMarketingCenter = () => {
         </div>
 
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto p-1">
             <TabsTrigger value="content" className="py-2 text-xs sm:text-sm flex items-center">
               <FileText className="w-4 h-4 mr-1" /> Conteúdo & SEO
             </TabsTrigger>
@@ -48,6 +49,9 @@ const AdminMarketingCenter = () => {
             </TabsTrigger>
             <TabsTrigger value="leads" className="py-2 text-xs sm:text-sm flex items-center">
               <Users className="w-4 h-4 mr-1" /> Leads & Pop-up
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="py-2 text-xs sm:text-sm flex items-center">
+              <Mail className="w-4 h-4 mr-1" /> Templates & Listas
             </TabsTrigger>
             <TabsTrigger value="social" className="py-2 text-xs sm:text-sm flex items-center">
               <Share2 className="w-4 h-4 mr-1" /> Social & Email
@@ -70,6 +74,10 @@ const AdminMarketingCenter = () => {
               <LeadCaptureTab />
               <LeadsListTab />
             </div>
+          </TabsContent>
+          
+          <TabsContent value="templates">
+            <EmailTemplateManagerTab />
           </TabsContent>
 
           <TabsContent value="social">
