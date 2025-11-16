@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Tag, Mail } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Tag, Mail, Send } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
@@ -12,7 +12,7 @@ import ContentManagerTab from '../components/Marketing/ContentManagerTab'
 import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
 import LeadsListTab from '../components/Marketing/LeadsListTab'
 import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab'
-import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab' // NOVO IMPORT
+import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
