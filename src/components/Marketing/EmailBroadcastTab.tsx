@@ -96,7 +96,16 @@ const EmailBroadcastTab: React.FC = () => {
       // 2. Preparar o envio (Simulação de envio individualizado)
       
       const testProfile = targetProfiles[0]
-      const recipientName = getRecipientName(testProfile)
+      
+      // Determinar o nome do destinatário para personalização
+      const getRecipientNameForSend = (profile: Pick<Profile, 'email' | 'store_name'>) => {
+        if (profile.store_name && targetAudience === 'vendedor') {
+          return profile.store_name
+        }
+        return profile.email.split('@')[0]
+      }
+      
+      const recipientName = getRecipientNameForSend(testProfile)
 
       // 3. Renderizar o template completo para o envio
       const htmlContent = generateFullHtmlPreview(recipientName)
@@ -132,7 +141,7 @@ const EmailBroadcastTab: React.FC = () => {
   }
 
   // Nome de placeholder para o preview
-  const previewName = targetAudience === 'vendedor' ? '[Nome da Loja]' : '[Nome do Cliente]'
+  const previewName = targetAudience === 'vendedor' ? '[NOME DA LOJA]' : '[NOME DO CLIENTE]'
   const fullHtmlPreview = generateFullHtmlPreview(previewName)
 
   return (
@@ -210,7 +219,7 @@ const EmailBroadcastTab: React.FC = () => {
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center text-blue-800">
                         <Eye className="w-4 h-4 mr-2" />
-                        Preview Completo do E-mail
+                        Preview Completo do E-mail (Olá, {previewName}!)
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
