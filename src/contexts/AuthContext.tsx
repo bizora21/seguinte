@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
+import { sendTemplatedEmail } from '../utils/email' // NOVO IMPORT
 
 const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
 
@@ -268,6 +269,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (profileError) {
           return { error: 'Erro ao criar perfil do usuário' }
         }
+        
+        // --- NOVO: Envio de E-mail de Boas-Vindas ---
+        if (role === 'cliente') {
+          const name = email.split('@')[0]
+          sendTemplatedEmail({
+            to: email,
+            subject: `Bem-vindo(a) à LojaRápida, ${name}!`,
+            template: 'welcome_client',
+            props: { name }
+          })
+        } else if (role === 'vendedor' && storeName) {
+          sendTemplatedEmail({
+            to: email,
+            subject: `Parabéns, sua loja ${storeName} está online!`,
+            template: 'welcome_seller',
+            props: { storeName }
+          })
+        }
+        // --- FIM NOVO ---
         
         return { error: null }
       }
