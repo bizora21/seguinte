@@ -4,7 +4,7 @@ interface EmailTemplateProps {
   title: string
   children: ReactNode
   previewText: string
-  recipientName?: string // NOVO: Nome do destinatário
+  recipientName?: string
 }
 
 const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewText, recipientName }) => {
@@ -16,16 +16,44 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
         <title>{title}</title>
         <style>
           {`
-            body { font-family: Arial, sans-serif; background-color: #f7f9fa; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; background-color: #f7f9fa; margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
             .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
             .header { background-color: #0A2540; color: #ffffff; padding: 20px; text-align: center; }
-            .header h1 { margin: 0; font-size: 24px; }
             .content { padding: 30px; color: #333333; line-height: 1.6; }
             .footer { background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
-            .button { display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #00D4AA; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; }
             .preview-text { display: none !important; max-height: 0; overflow: hidden; }
             .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
             .logo-text { font-size: 24px; font-weight: bold; color: #ffffff; margin-left: 8px; }
+            
+            /* Estilos dos Botões */
+            .button-container { text-align: center; margin-top: 25px; margin-bottom: 25px; }
+            .button { 
+              display: inline-block; 
+              padding: 12px 25px; 
+              margin: 5px;
+              text-decoration: none; 
+              border-radius: 8px; 
+              font-weight: bold; 
+              font-size: 16px;
+              line-height: 1.2;
+              transition: background-color 0.3s;
+            }
+            .button-primary {
+              background-color: #00D4AA; /* Verde Vibrante */
+              color: #ffffff;
+              border: 1px solid #00D4AA;
+            }
+            .button-secondary {
+              background-color: #ffffff;
+              color: #0A2540; /* Azul Escuro */
+              border: 1px solid #0A2540;
+            }
+            
+            /* Responsividade básica */
+            @media only screen and (max-width: 600px) {
+              .content { padding: 20px; }
+              .button { display: block; margin: 10px auto; }
+            }
           `}
         </style>
       </head>

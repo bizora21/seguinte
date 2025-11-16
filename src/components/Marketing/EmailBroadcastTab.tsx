@@ -12,6 +12,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import EmailTemplate from '../Templates/EmailTemplate'
 import { Profile } from '../../types/auth' // Importando o tipo Profile
 
+const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/BpqBKP5aUnS0U195dvM52p?mode=wwt'
+
 const EmailBroadcastTab: React.FC = () => {
   const [targetAudience, setTargetAudience] = useState<'cliente' | 'vendedor' | ''>('')
   const [subject, setSubject] = useState('')
@@ -64,23 +66,36 @@ const EmailBroadcastTab: React.FC = () => {
       
       const recipientName = getRecipientName(testProfile)
 
-      // 3. Renderizar o template moderno com o nome personalizado
+      // 3. Renderizar o template moderno com o nome personalizado e os botões
       const htmlContent = renderToStaticMarkup(
         <EmailTemplate 
           title={subject} 
           previewText={previewText || subject}
-          recipientName={recipientName} // Passando o nome
+          recipientName={recipientName}
         >
           <div dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
-          <p>Clique no botão abaixo para ver as novidades:</p>
-          <a href="https://lojarapidamz.com/produtos" className="button">
-            Explorar Novidades
-          </a>
+          
+          <div className="button-container">
+            <a 
+              href="https://lojarapidamz.com/produtos" 
+              className="button button-primary"
+              style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA' }}
+            >
+              🛒 Explorar Produtos Agora
+            </a>
+            <a 
+              href={WHATSAPP_GROUP_LINK} 
+              className="button button-secondary"
+              style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540' }}
+            >
+              💬 Entrar no Grupo WhatsApp
+            </a>
+          </div>
+          
         </EmailTemplate>
       )
 
       // 4. Chamar a Edge Function para enviar o e-mail (Simulação)
-      // Em um sistema real, iteraríamos sobre todos os perfis e enviaríamos individualmente.
       
       const { error: sendError } = await supabase.functions.invoke('email-sender', {
         body: {
@@ -190,10 +205,22 @@ const EmailBroadcastTab: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
-                    <Button size="sm" className="mt-3 bg-primary hover:bg-green-700">
-                        <ArrowRight className="w-4 h-4 mr-2" />
-                        Explorar Novidades (CTA)
-                    </Button>
+                    <div className="button-container" style={{ textAlign: 'left' }}>
+                        <a 
+                            href="https://lojarapidamz.com/produtos" 
+                            className="button button-primary"
+                            style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA', display: 'inline-block' }}
+                        >
+                            🛒 Explorar Produtos Agora
+                        </a>
+                        <a 
+                            href={WHATSAPP_GROUP_LINK} 
+                            className="button button-secondary"
+                            style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540', display: 'inline-block' }}
+                        >
+                            💬 Entrar no Grupo WhatsApp
+                        </a>
+                    </div>
                 </CardContent>
             </Card>
         )}
