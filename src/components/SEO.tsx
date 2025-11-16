@@ -25,8 +25,8 @@ function ensureAbsoluteUrl(input?: string) {
   
   let processedInput = input;
 
-  // 1. CORREÇÃO: Se o input for uma string que parece ser o JSON não processado (ex: '["url"]'),
-  // tentamos extrair a URL correta.
+  // 1. Se o input for uma string que parece ser o JSON não processado,
+  // tentamos extrair a URL correta (que já está limpa pelo getFirstImageUrl).
   if (input.startsWith('[') && input.endsWith(']')) {
     const extractedUrl = getFirstImageUrl(input);
     if (extractedUrl) {
@@ -34,23 +34,19 @@ function ensureAbsoluteUrl(input?: string) {
     }
   }
   
-  // 2. Lógica de limpeza de URL duplicada (para produtos antigos)
-  // Remove a duplicação de '/public/public/' se existir
-  processedInput = processedInput.replace('/product-images/public/public/', '/product-images/public/');
-  
-  // 3. Se a URL já for absoluta, retorne-a.
+  // 2. Se a URL já for absoluta, retorne-a.
   if (isAbsoluteUrl(processedInput)) {
     return processedInput
   }
   
-  // 4. Se for um caminho relativo, prefixe com o BASE_URL.
+  // 3. Se for um caminho relativo, prefixe com o BASE_URL.
   if (processedInput.startsWith('/')) {
     const finalUrl = `${BASE_URL}${processedInput}`
     console.log(`[SEO DEBUG] Imagem relativa convertida para: ${finalUrl}`)
     return finalUrl
   }
   
-  // 5. Fallback final
+  // 4. Fallback final
   const finalUrl = `${BASE_URL}/${processedInput}`
   console.log(`[SEO DEBUG] Imagem fallback convertida para: ${finalUrl}`)
   return finalUrl

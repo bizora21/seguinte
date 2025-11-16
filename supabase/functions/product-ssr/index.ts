@@ -24,17 +24,24 @@ const supabaseServiceRole = createClient(
 // @ts-ignore
 const getFirstImageUrl = (imageField: string | null | undefined): string | null => {
   if (!imageField) return null;
+  let url: string | null = null;
+  
   try {
     const parsed = JSON.parse(imageField);
     if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-      // Apenas retorna a primeira URL, sem manipulação de parâmetros
-      return parsed[0] as string;
+      url = parsed[0] as string;
     }
   } catch {
     if (typeof imageField === 'string' && imageField.trim().length > 0) {
-      return imageField;
+      url = imageField;
     }
   }
+  
+  if (url) {
+    // Limpeza agressiva de caminhos duplicados comuns no Supabase
+    return url.replace('/product-images/public/public/', '/product-images/public/');
+  }
+  
   return null;
 };
 
@@ -52,10 +59,8 @@ const cleanDescription = (description: string | undefined | null): string => {
 const sanitizeImageUrl = (url: string | null): string => {
     if (!url) return DEFAULT_IMAGE_PATH;
     
-    // CORREÇÃO: Remove a duplicação de '/public/public/' se existir
-    const sanitized = url.replace('/product-images/public/public/', '/product-images/public/');
-    
-    return sanitized;
+    // CORREÇÃO: A limpeza agora é feita em getFirstImageUrl, mas garantimos o fallback
+    return url;
 }
 
 // @ts-ignore
@@ -90,9 +95,9 @@ serve(async (req) => {
     const productUrl = `${BASE_URL}/produto/${product.id}`;
     const priceFormatted = new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(product.price);
     
-    // 2. Extrair e garantir a URL da imagem
+    // 2. Extrair e garantir a URL da imagem (usando a função atualizada)
     const rawImage = getFirstImageUrl(product.image_url);
-    const seoImage = sanitizeImageUrl(rawImage); // Aplicar a limpeza aqui
+    const seoImage = rawImage; // A limpeza já foi feita em getFirstImageUrl
     const absoluteImage = seoImage || DEFAULT_IMAGE_PATH; 
     
     const cleanedDescription = cleanDescription(product.description);
