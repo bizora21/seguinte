@@ -38,7 +38,8 @@ export const IMAGE_OPTIMIZER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.c
 
 
 // Credenciais (Lidas do .env.local do Vite)
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || '' 
+// Adicionando um valor de fallback seguro para evitar que o frontend quebre
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FACEBOOK_ID' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '' 
 
 /**
@@ -48,8 +49,8 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
   
   if (platform === 'facebook') {
-    if (!FACEBOOK_APP_ID || FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
-      showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local')
+    if (FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
+      showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local. Por favor, adicione-o para iniciar o OAuth.')
       return ''
     }
     
