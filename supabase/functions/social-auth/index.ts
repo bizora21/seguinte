@@ -99,21 +99,19 @@ serve(async (req) => {
     let tokenType: string = 'user_token';
     
     // A URI de redirecionamento DEVE ser a URL desta Edge Function
-    const redirectUri = `${url.origin}${url.pathname}`; 
-    const encodedRedirectUri = encodeURIComponent(redirectUri);
+    let redirectUri = `${url.origin}${url.pathname}`; 
 
     if (platform === 'facebook') {
         // --- Lógica Facebook ---
+        // Para o Facebook, o redirect_uri deve incluir o parâmetro 'platform' para corresponder ao que foi enviado na autorização.
+        redirectUri = `${url.origin}${url.pathname}?platform=facebook`;
+        
         // @ts-ignore
         const appId = Deno.env.get('FACEBOOK_APP_ID');
         // @ts-ignore
         const appSecret = Deno.env.get('FACEBOOK_APP_SECRET');
         
-        // O Facebook exige que o parâmetro 'platform' esteja no redirect_uri para a troca de código
-        const facebookRedirectUri = `${url.origin}${url.pathname}?platform=facebook`;
-        const encodedFacebookRedirectUri = encodeURIComponent(facebookRedirectUri);
-
-        const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodedFacebookRedirectUri}&code=${code}`);
+        const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         
         const tokenData = await tokenResponse.json();
         if (!tokenResponse.ok || tokenData.error) {
@@ -126,6 +124,8 @@ serve(async (req) => {
         
     } else if (platform.startsWith('google_')) {
         // --- Lógica Google (Analytics / Search Console) ---
+        // Para o Google, o redirect_uri é apenas a URL base da função.
+        
         // @ts-ignore
         const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
         // @ts-ignore

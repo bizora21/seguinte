@@ -46,14 +46,18 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
  * O redirect_uri deve ser a URL da Edge Function.
  */
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
-  const redirectUri = `${OAUTH_HANDLER_BASE_URL}?platform=${platform}`
-  const encodedRedirectUri = encodeURIComponent(redirectUri)
   
   if (platform === 'facebook') {
     if (!FACEBOOK_APP_ID || FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
       showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local')
       return ''
     }
+    
+    // O Facebook exige que o redirect_uri na URL de autorização seja o mesmo que o usado na troca de token.
+    // A Edge Function usa: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth?platform=facebook
+    const redirectUri = `${OAUTH_HANDLER_BASE_URL}?platform=facebook`
+    const encodedRedirectUri = encodeURIComponent(redirectUri)
+    
     // Escopos necessários para gerenciar páginas e publicar conteúdo
     const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_comments,instagram_manage_insights'
     
@@ -65,6 +69,10 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       showError('Erro: VITE_GOOGLE_CLIENT_ID não configurado no .env.local')
       return ''
     }
+    
+    // Para o Google, o redirect_uri é apenas a URL base da função, sem parâmetros de query
+    const redirectUri = OAUTH_HANDLER_BASE_URL
+    const encodedRedirectUri = encodeURIComponent(redirectUri)
     
     const scope = platform === 'google_analytics' 
       ? 'https://www.googleapis.com/auth/analytics.readonly'
