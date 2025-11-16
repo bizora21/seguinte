@@ -10,7 +10,8 @@ import { showError } from '../utils/toast'
 import DeliveredOrdersCard from '../components/Admin/DeliveredOrdersCard'
 import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
 import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab'
-import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard' // NOVO IMPORT
+import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard'
+import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard' // NOVO IMPORT
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -132,11 +133,12 @@ const AdminDashboard = () => {
           <div className="lg:col-span-2 space-y-8">
             <AdminPaymentManagementTab />
             <DeliveredOrdersCard onUpdate={fetchDashboardData} />
-            <CancelledOrdersCard /> {/* NOVO COMPONENTE ADICIONADO */}
+            <CancelledOrdersCard />
           </div>
 
-          {/* Coluna Lateral (Histórico) */}
-          <div className="lg:col-span-1">
+          {/* Coluna Lateral (Histórico e Pendências) */}
+          <div className="lg:col-span-1 space-y-8">
+            <PendingCommissionsCard /> {/* NOVO CARTÃO */}
             <CommissionsHistoryCard lastUpdated={lastUpdated} />
           </div>
         </div>
