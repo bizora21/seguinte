@@ -21,9 +21,15 @@ const WelcomeClientEmail: React.FC<WelcomeClientEmailProps> = ({ name }) => {
       
       <p>Explore milhares de produtos de vendedores locais em Moçambique. Lembre-se: você só paga na entrega!</p>
       
-      <a href="https://lojarapidamz.com/produtos" className="button">
-        Começar a Comprar
-      </a>
+      <div className="button-container">
+        <a 
+          href="https://lojarapidamz.com/produtos" 
+          className="button button-primary"
+          style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA' }}
+        >
+          Começar a Comprar
+        </a>
+      </div>
       
       <p style={{ marginTop: '30px' }}>Boas compras!</p>
     </EmailTemplate>
