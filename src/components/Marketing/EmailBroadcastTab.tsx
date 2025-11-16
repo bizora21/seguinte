@@ -21,6 +21,48 @@ const EmailBroadcastTab: React.FC = () => {
   const [previewText, setPreviewText] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const getRecipientName = (profile: Pick<Profile, 'email' | 'store_name'>) => {
+    if (profile.store_name && targetAudience === 'vendedor') {
+      return profile.store_name
+    }
+    return profile.email.split('@')[0]
+  }
+
+  const generateFullHtmlPreview = (name: string) => {
+    const contentWithButtons = (
+      <>
+        <div dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
+        
+        <div className="button-container">
+          <a 
+            href="https://lojarapidamz.com/produtos" 
+            className="button button-primary"
+            style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA' }}
+          >
+            🛒 Explorar Produtos Agora
+          </a>
+          <a 
+            href={WHATSAPP_GROUP_LINK} 
+            className="button button-secondary"
+            style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540' }}
+          >
+            💬 Entrar no Grupo WhatsApp
+          </a>
+        </div>
+      </>
+    )
+
+    return renderToStaticMarkup(
+      <EmailTemplate 
+        title={subject || 'Preview'} 
+        previewText={previewText || subject}
+        recipientName={name}
+      >
+        {contentWithButtons}
+      </EmailTemplate>
+    )
+  }
+
   const handleSendBroadcast = async () => {
     if (!targetAudience || !subject.trim() || !bodyContent.trim()) {
       showError('Selecione o público-alvo, o assunto e o conteúdo do e-mail.')
@@ -53,47 +95,11 @@ const EmailBroadcastTab: React.FC = () => {
 
       // 2. Preparar o envio (Simulação de envio individualizado)
       
-      // Usamos o primeiro perfil para o teste de envio
       const testProfile = targetProfiles[0]
-      
-      // Determinar o nome do destinatário para personalização
-      const getRecipientName = (profile: Pick<Profile, 'email' | 'store_name'>) => {
-        if (profile.store_name && targetAudience === 'vendedor') {
-          return profile.store_name
-        }
-        return profile.email.split('@')[0]
-      }
-      
       const recipientName = getRecipientName(testProfile)
 
-      // 3. Renderizar o template moderno com o nome personalizado e os botões
-      const htmlContent = renderToStaticMarkup(
-        <EmailTemplate 
-          title={subject} 
-          previewText={previewText || subject}
-          recipientName={recipientName}
-        >
-          <div dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
-          
-          <div className="button-container">
-            <a 
-              href="https://lojarapidamz.com/produtos" 
-              className="button button-primary"
-              style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA' }}
-            >
-              🛒 Explorar Produtos Agora
-            </a>
-            <a 
-              href={WHATSAPP_GROUP_LINK} 
-              className="button button-secondary"
-              style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540' }}
-            >
-              💬 Entrar no Grupo WhatsApp
-            </a>
-          </div>
-          
-        </EmailTemplate>
-      )
+      // 3. Renderizar o template completo para o envio
+      const htmlContent = generateFullHtmlPreview(recipientName)
 
       // 4. Chamar a Edge Function para enviar o e-mail (Simulação)
       
@@ -124,6 +130,10 @@ const EmailBroadcastTab: React.FC = () => {
       setSubmitting(false)
     }
   }
+
+  // Nome de placeholder para o preview
+  const previewName = targetAudience === 'vendedor' ? '[Nome da Loja]' : '[Nome do Cliente]'
+  const fullHtmlPreview = generateFullHtmlPreview(previewName)
 
   return (
     <Card>
@@ -194,33 +204,22 @@ const EmailBroadcastTab: React.FC = () => {
           <p className="text-xs text-gray-500">O conteúdo será automaticamente formatado em um template moderno.</p>
         </div>
         
-        {/* Preview Simples */}
+        {/* Preview Completo usando iframe */}
         {bodyContent.trim() && (
             <Card className="border-blue-200 bg-blue-50">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base flex items-center text-blue-800">
                         <Eye className="w-4 h-4 mr-2" />
-                        Preview do Conteúdo
+                        Preview Completo do E-mail
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: bodyContent.replace(/\n/g, '<br/>') }} />
-                    <div className="button-container" style={{ textAlign: 'left' }}>
-                        <a 
-                            href="https://lojarapidamz.com/produtos" 
-                            className="button button-primary"
-                            style={{ backgroundColor: '#00D4AA', color: '#ffffff', border: '1px solid #00D4AA', display: 'inline-block' }}
-                        >
-                            🛒 Explorar Produtos Agora
-                        </a>
-                        <a 
-                            href={WHATSAPP_GROUP_LINK} 
-                            className="button button-secondary"
-                            style={{ backgroundColor: '#ffffff', color: '#0A2540', border: '1px solid #0A2540', display: 'inline-block' }}
-                        >
-                            💬 Entrar no Grupo WhatsApp
-                        </a>
-                    </div>
+                <CardContent className="p-0">
+                    <iframe
+                        srcDoc={fullHtmlPreview}
+                        title="Email Preview"
+                        className="w-full border-0 rounded-b-lg"
+                        style={{ height: '400px' }}
+                    />
                 </CardContent>
             </Card>
         )}
