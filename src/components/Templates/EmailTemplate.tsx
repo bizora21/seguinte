@@ -24,8 +24,23 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
             .content { padding: 30px; color: #333333; line-height: 1.6; }
             .footer { background-color: #f0f0f0; padding: 20px; text-align: center; font-size: 12px; color: #666666; }
             .preview-text { display: none !important; max-height: 0; overflow: hidden; }
-            .logo-container { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-            .logo-text { font-size: 24px; font-weight: bold; color: #ffffff; margin-left: 8px; }
+            
+            /* Logo em CSS Puro para E-mail */
+            .logo-wrapper { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+            .logo-icon { 
+              background-color: #00D4AA; 
+              color: #0A2540; 
+              width: 36px; 
+              height: 36px; 
+              border-radius: 6px; 
+              display: inline-block; 
+              line-height: 36px; 
+              text-align: center; 
+              font-size: 20px; 
+              margin-right: 10px;
+              font-weight: bold;
+            }
+            .logo-text { font-size: 24px; font-weight: bold; color: #ffffff; vertical-align: middle; }
             
             /* Estilos dos Botões */
             .button-container { text-align: center; margin-top: 25px; margin-bottom: 25px; }
@@ -64,15 +79,9 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
         <div style={{ backgroundColor: '#f7f9fa', padding: '20px 0' }}>
           <div className="container">
             <div className="header">
-              <div className="logo-container">
-                {/* Usando favicon.svg pois é o arquivo que garantimos que existe */}
-                <img
-                  src={`${BASE_URL}/favicon.svg`}
-                  alt="LojaRápida"
-                  width="40"
-                  height="40"
-                  style={{ display: 'block', width: '40px', height: '40px', borderRadius: '8px' }}
-                />
+              <div className="logo-wrapper">
+                {/* Ícone Simulado com CSS (Sacola/Raio) */}
+                <div className="logo-icon">⚡</div>
                 <span className="logo-text">LojaRápida</span>
               </div>
             </div>
