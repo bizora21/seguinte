@@ -1,6 +1,5 @@
 import { Helmet } from 'react-helmet-async'
-import { ProductWithSeller } from '../types/product'
-import { getFirstImageUrl } from '../utils/images' // Importando getFirstImageUrl
+import { getFirstImageUrl } from '../utils/images'
 
 interface SEOProps {
   title: string
@@ -9,11 +8,11 @@ interface SEOProps {
   url?: string
   type?: string
   jsonLd?: object[]
+  noIndex?: boolean // Novo: Controle de indexação
 }
 
 const DEFAULT_SITE = 'LojaRápida'
-const BASE_URL = 'https://lojarapidamz.com' // domínio principal usado pelo site
-// Usando uma URL externa válida como fallback para contornar o problema do arquivo estático corrompido
+const BASE_URL = 'https://lojarapidamz.com'
 const DEFAULT_IMAGE_PATH = 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1200&h=630&fit=crop'
 
 function isAbsoluteUrl(input: string) {
@@ -21,12 +20,10 @@ function isAbsoluteUrl(input: string) {
 }
 
 function ensureAbsoluteUrl(input?: string) {
-  if (!input) return DEFAULT_IMAGE_PATH // Retorna o fallback externo
+  if (!input) return DEFAULT_IMAGE_PATH
   
   let processedInput = input;
 
-  // 1. Se o input for uma string que parece ser o JSON não processado,
-  // tentamos extrair a URL correta (que já está limpa pelo getFirstImageUrl).
   if (input.startsWith('[') && input.endsWith(']')) {
     const extractedUrl = getFirstImageUrl(input);
     if (extractedUrl) {
@@ -34,22 +31,15 @@ function ensureAbsoluteUrl(input?: string) {
     }
   }
   
-  // 2. Se a URL já for absoluta, retorne-a.
   if (isAbsoluteUrl(processedInput)) {
     return processedInput
   }
   
-  // 3. Se for um caminho relativo, prefixe com o BASE_URL.
   if (processedInput.startsWith('/')) {
-    const finalUrl = `${BASE_URL}${processedInput}`
-    console.log(`[SEO DEBUG] Imagem relativa convertida para: ${finalUrl}`)
-    return finalUrl
+    return `${BASE_URL}${processedInput}`
   }
   
-  // 4. Fallback final
-  const finalUrl = `${BASE_URL}/${processedInput}`
-  console.log(`[SEO DEBUG] Imagem fallback convertida para: ${finalUrl}`)
-  return finalUrl
+  return `${BASE_URL}/${processedInput}`
 }
 
 export const SEO: React.FC<SEOProps> = ({
@@ -58,66 +48,65 @@ export const SEO: React.FC<SEOProps> = ({
   image,
   url,
   type = 'website',
-  jsonLd
+  jsonLd,
+  noIndex = false
 }) => {
   
   let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
   const absoluteImage = ensureAbsoluteUrl(finalImage)
-  
-  // Garante que a URL canônica é sempre absoluta.
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
-  
   const canonicalUrl = absoluteUrl === BASE_URL ? BASE_URL : absoluteUrl;
 
   return (
     <Helmet>
+      {/* Meta Tags Básicas */}
       <title>{title}</title>
       <meta name="description" content={description} />
-      
-      {/* A URL canônica deve ser a URL da página atual. */}
       <link rel="canonical" href={canonicalUrl} />
+      
+      {/* Controle de Robôs (Indexação) */}
+      <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
 
-      {/* Open Graph (OG) Tags Essenciais */}
+      {/* Open Graph (Facebook, WhatsApp, LinkedIn) */}
+      <meta property="og:locale" content="pt_MZ" />
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:site_name" content={DEFAULT_SITE} />
-      <meta property="og:locale" content="pt_MZ" />
-      
-      {/* Tags de Imagem (Sempre incluídas e explícitas com dimensões fixas) */}
       <meta property="og:image" content={absoluteImage} />
       <meta property="og:image:secure_url" content={absoluteImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:type" content="image/jpeg" />
       
-      {/* Tags Específicas para Produtos */}
+      {/* Dados Específicos de Produto para OG */}
       {type === 'product' && (
         <>
           <meta property="product:brand" content={DEFAULT_SITE} />
           <meta property="product:price:currency" content="MZN" />
+          <meta property="product:availability" content="instock" />
         </>
       )}
 
-      {/* Twitter */}
+      {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={absoluteImage} />
 
-      {/* Generic / Discovery hints */}
-      <meta name="image" content={absoluteImage} />
+      {/* Outros */}
       <meta name="author" content={DEFAULT_SITE} />
-      <meta name="keywords" content="LojaRápida, marketplace, Moçambique, comprar online, vender online" />
-      <meta name="robots" content="index, follow" />
+      <meta name="geo.region" content="MZ" />
+      <meta name="geo.placename" content="Maputo" />
 
-      {/* Structured Data */}
-      {jsonLd &&
+      {/* Schema.org JSON-LD (Dados Estruturados para Google Rich Snippets) */}
+      {jsonLd && !noIndex &&
         jsonLd.map((schema, index) => {
           try {
+            // Sanitização de URLs dentro do JSON-LD
             const cloned = JSON.parse(JSON.stringify(schema), (key, value) => {
-              if (key === 'image' && typeof value === 'string') {
+              if ((key === 'image' || key === 'url') && typeof value === 'string') {
                 return ensureAbsoluteUrl(value)
               }
               return value
@@ -128,24 +117,21 @@ export const SEO: React.FC<SEOProps> = ({
               </script>
             )
           } catch {
-            return (
-              <script key={index} type="application/ld+json">
-                {JSON.stringify(schema)}
-              </script>
-            )
+            return null
           }
         })}
     </Helmet>
   )
 }
 
-// ... (restante das funções auxiliares)
-// ...
+// --- Geradores de Schema ---
+
 export const generateWebSiteSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "LojaRápida",
+    "alternateName": "Loja Rapida MZ",
     "url": `${BASE_URL}/`,
     "potentialAction": {
       "@type": "SearchAction",
@@ -158,55 +144,78 @@ export const generateWebSiteSchema = () => {
 export const generateLocalBusinessSchema = () => {
   return {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+    "@type": "Organization", // Alterado para Organization para ser mais genérico e aceito
     "name": "LojaRápida Marketplace",
-    "image": ensureAbsoluteUrl(DEFAULT_IMAGE_PATH),
     "url": `${BASE_URL}/`,
-    "telephone": "+258 86 318 1415",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Maputo",
-      "addressLocality": "Maputo",
-      "addressRegion": "Maputo",
-      "addressCountry": "MZ"
+    "logo": `${BASE_URL}/apple-touch-icon.png`,
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+258 86 318 1415",
+      "contactType": "customer service",
+      "areaServed": "MZ",
+      "availableLanguage": "Portuguese"
     },
-    "priceRange": "$$",
-    "openingHoursSpecification": [
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday"
-        ],
-        "opens": "08:00",
-        "closes": "18:00"
-      }
+    "sameAs": [
+      "https://www.facebook.com/lojarapidamz",
+      "https://www.instagram.com/lojarapidamz"
     ]
   }
 }
 
-export const generateProductSchema = (product: ProductWithSeller, storeName: string) => {
+export const generateProductSchema = (product: any, storeName: string) => {
   const productUrl = `${BASE_URL}/produto/${product.id}`
-  const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price).replace('MZN', '').trim();
+  const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price).replace('MZN', '').trim(); // Remover símbolo para schema
 
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
     description: product.description || `Compre ${product.name} na LojaRápida`,
-    image: ensureAbsoluteUrl(product.image_url || DEFAULT_IMAGE_PATH),
+    image: ensureAbsoluteUrl(getFirstImageUrl(product.image_url) || DEFAULT_IMAGE_PATH),
     url: productUrl,
+    sku: product.id,
     offers: {
       '@type': 'Offer',
-      price: formatPrice(product.price), // Preço sem o símbolo MZN
+      price: parseFloat(product.price), // Enviar número puro
       priceCurrency: 'MZN',
       availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: productUrl,
       seller: {
-        '@type': 'Store',
+        '@type': 'Organization',
         name: storeName
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 7,
+        "returnMethod": "https://schema.org/ReturnInStore"
+      },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": 0,
+          "currency": "MZN"
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "MZ"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 1,
+            "unitCode": "DAY"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 1,
+            "maxValue": 5,
+            "unitCode": "DAY"
+          }
+        }
       }
     },
     brand: {
@@ -216,7 +225,7 @@ export const generateProductSchema = (product: ProductWithSeller, storeName: str
     aggregateRating: {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "125"
+      "reviewCount": "12" // Idealmente dinâmico
     }
   }
 }
@@ -225,16 +234,14 @@ export const generateStoreSchema = (storeName: string, sellerId: string) => {
   const storeUrl = `${BASE_URL}/loja/${sellerId}`
   return {
     "@context": "https://schema.org",
-    "@type": "Store",
+    "@type": "Store", // Ou ProfilePage
     "name": storeName,
     "url": storeUrl,
     "image": ensureAbsoluteUrl(DEFAULT_IMAGE_PATH),
     "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
+    "telephone": "+258 86 318 1415",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Maputo",
-      "addressLocality": "Maputo",
-      "addressRegion": "Maputo",
       "addressCountry": "MZ"
     }
   }

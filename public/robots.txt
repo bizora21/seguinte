@@ -1,4 +1,13 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /carrinho
+Disallow: /checkout
+Disallow: /confirmar-encomenda/
+Disallow: /meus-pedidos/
+Disallow: /meus-chats/
+Disallow: /account/
 
-Sitemap: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap-generator
+# Sitemap Index
+Sitemap: https://lojarapidamz.com/sitemap.xml
