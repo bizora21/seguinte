@@ -5,7 +5,7 @@ import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
 import { Input } from '../components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Loader2, Search, ListFilter, ArrowUpDown, Package } from 'lucide-react'
+import { Search, ListFilter, ArrowUpDown, Package } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { motion } from 'framer-motion'
 import ProductCardSkeleton from '../components/ProductCardSkeleton'
@@ -65,6 +65,7 @@ const ProductsPage = () => {
   const { data: products, isLoading, isError, refetch } = useQuery<ProductWithSeller[], Error>({
     queryKey: ['products', debouncedSearchTerm, sortBy, category],
     queryFn: () => fetchProducts(debouncedSearchTerm, sortBy, category),
+    staleTime: 1000 * 60 * 5, // Cache por 5 minutos para performance
   })
 
   const categories = [
@@ -73,6 +74,8 @@ const ProductsPage = () => {
     { value: 'moda', label: 'Moda' },
     { value: 'casa', label: 'Casa e Decoração' },
     { value: 'esportes', label: 'Esportes' },
+    { value: 'acessorios', label: 'Acessórios' },
+    { value: 'beleza', label: 'Beleza' },
   ]
 
   const containerVariants = {
@@ -90,7 +93,7 @@ const ProductsPage = () => {
 
   if (isError) {
     return (
-      <div className="text-center p-8">
+      <div className="text-center p-8 min-h-[50vh] flex flex-col items-center justify-center">
         <h2 className="text-xl font-semibold text-red-600">Erro ao carregar produtos.</h2>
         <Button onClick={() => refetch()} className="mt-4">Tentar Novamente</Button>
       </div>
@@ -102,30 +105,33 @@ const ProductsPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Cabeçalho da Página */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Catálogo de Produtos</h1>
-          <p className="text-lg text-gray-600">Explore milhares de produtos de vendedores locais em todo Moçambique.</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Catálogo de Produtos</h1>
+          <p className="text-base sm:text-lg text-gray-600">Explore milhares de produtos de vendedores locais em todo Moçambique.</p>
         </div>
 
         {/* Filtros e Ordenação */}
-        <div className="mb-8 bg-white p-4 rounded-lg shadow-md sticky top-16 z-30">
+        <div className="mb-8 bg-white p-4 rounded-xl shadow-sm border border-gray-100 sticky top-16 z-30">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             {/* Busca */}
             <div className="relative md:col-span-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar produtos..."
+                placeholder="O que você procura?"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
               />
             </div>
 
             {/* Categoria e Ordenação */}
             <div className="md:col-span-2 flex flex-col sm:flex-row gap-4">
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="w-full">
-                  <ListFilter className="h-4 w-4 mr-2 text-gray-500" />
-                  <SelectValue placeholder="Categoria" />
+                <SelectTrigger className="w-full h-11">
+                  <div className="flex items-center text-gray-600">
+                    <ListFilter className="h-4 w-4 mr-2" />
+                    <span className="mr-2">Categoria:</span>
+                  </div>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -137,14 +143,17 @@ const ProductsPage = () => {
               </Select>
 
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full">
-                  <ArrowUpDown className="h-4 w-4 mr-2 text-gray-500" />
-                  <SelectValue placeholder="Ordenar por" />
+                <SelectTrigger className="w-full h-11">
+                  <div className="flex items-center text-gray-600">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    <span className="mr-2">Ordenar:</span>
+                  </div>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="newest">Mais Recentes</SelectItem>
-                  <SelectItem value="price_asc">Preço: Menor para Maior</SelectItem>
-                  <SelectItem value="price_desc">Preço: Maior para Menor</SelectItem>
+                  <SelectItem value="price_asc">Menor Preço</SelectItem>
+                  <SelectItem value="price_desc">Maior Preço</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -163,19 +172,30 @@ const ProductsPage = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
           >
             {products.map((product) => (
-              <motion.div key={product.id} variants={itemVariants}>
+              <motion.div key={product.id} variants={itemVariants} className="h-full">
                 <ProductCard product={product} />
               </motion.div>
             ))}
           </motion.div>
         ) : (
-          <div className="text-center p-16 bg-white rounded-lg shadow-md">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800">Nenhum produto encontrado</h3>
-            <p className="text-gray-600 mt-2">Tente ajustar seus filtros ou buscar por um termo diferente.</p>
+          <div className="text-center p-16 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900">Nenhum produto encontrado</h3>
+            <p className="text-gray-500 mt-2">Tente ajustar seus filtros ou buscar por um termo diferente.</p>
+            <Button 
+              variant="outline" 
+              className="mt-6"
+              onClick={() => {
+                setSearchTerm('')
+                setCategory('all')
+                setSortBy('newest')
+              }}
+            >
+              Limpar Filtros
+            </Button>
           </div>
         )}
       </div>

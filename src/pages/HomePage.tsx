@@ -48,7 +48,7 @@ const HomePage: React.FC = () => {
         `)
         .gt('stock', 0)
         .order('created_at', { ascending: false })
-        .limit(3)
+        .limit(6) // Aumentado para 6 para preencher melhor o grid
 
       if (error) throw error
       setFeaturedProducts(data || [])
@@ -352,6 +352,7 @@ const HomePage: React.FC = () => {
                       <motion.div
                         key={product.id}
                         variants={itemVariants}
+                        className="h-full" // Correção de altura
                       >
                         <ProductCard product={product} />
                       </motion.div>

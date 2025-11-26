@@ -11,7 +11,7 @@ import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { showSuccess } from '../utils/toast'
 import { SEO, generateStoreSchema, generateBreadcrumbSchema } from '../components/SEO'
-import StorePageSkeleton from '../components/StorePageSkeleton' // Importado
+import StorePageSkeleton from '../components/StorePageSkeleton'
 
 const StorePage = () => {
   const { sellerId } = useParams<{ sellerId: string }>()
@@ -143,9 +143,9 @@ const StorePage = () => {
         jsonLd={[storeSchema, breadcrumbSchema]}
       />
       <div className="min-h-screen bg-gray-50">
-        {/* Header da Loja - Reduzido o padding vertical */}
+        {/* Header da Loja */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10"> {/* Reduzido py-12/16 para py-8/10 */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
             <div className="mb-4">
               <Button
                 variant="ghost"
@@ -205,7 +205,7 @@ const StorePage = () => {
           </div>
         </div>
 
-        {/* Descrição da Loja (Novo Bloco) */}
+        {/* Descrição da Loja */}
         {seller.store_description && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-white shadow-md mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Sobre a Loja</h2>
@@ -241,10 +241,10 @@ const StorePage = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr"
             >
               {products.map((product) => (
-                <motion.div key={product.id} variants={itemVariants}>
+                <motion.div key={product.id} variants={itemVariants} className="h-full">
                   <ProductCard product={product} />
                 </motion.div>
               ))}
