@@ -7,7 +7,7 @@ interface EmailTemplateProps {
   recipientName?: string
 }
 
-const BASE_URL = 'https://lojarapidamz.com' // Hardcoded para garantir que a imagem seja absoluta
+const BASE_URL = 'https://lojarapidamz.com'
 
 const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewText, recipientName }) => {
   return (
@@ -65,9 +65,9 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
           <div className="container">
             <div className="header">
               <div className="logo-container">
-                {/* CORREÇÃO: Usando tag <img> com URL ABSOLUTA para o apple-touch-icon.png (PNG é melhor suportado que SVG em emails) */}
+                {/* Usando favicon.svg pois é o arquivo que garantimos que existe */}
                 <img
-                  src={`${BASE_URL}/apple-touch-icon.png`}
+                  src={`${BASE_URL}/favicon.svg`}
                   alt="LojaRápida"
                   width="40"
                   height="40"
