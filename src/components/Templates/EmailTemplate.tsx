@@ -65,13 +65,13 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
           <div className="container">
             <div className="header">
               <div className="logo-container">
-                {/* CORREÇÃO: Usando tag <img> com URL ABSOLUTA para o favicon.svg */}
+                {/* CORREÇÃO: Usando tag <img> com URL ABSOLUTA para o apple-touch-icon.png (PNG é melhor suportado que SVG em emails) */}
                 <img
-                  src={`${BASE_URL}/favicon.svg`}
-                  alt="LojaRápida Logo"
+                  src={`${BASE_URL}/apple-touch-icon.png`}
+                  alt="LojaRápida"
                   width="40"
                   height="40"
-                  style={{ display: 'block', width: '40px', height: '40px' }}
+                  style={{ display: 'block', width: '40px', height: '40px', borderRadius: '8px' }}
                 />
                 <span className="logo-text">LojaRápida</span>
               </div>
@@ -81,7 +81,7 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
             </div>
             <div className="footer">
               <p>Este e-mail foi enviado pela LojaRápida, o seu marketplace em Moçambique.</p>
-              <p>Se tiver dúvidas, responda a este e-mail ou visite nossa <a href="https://lojarapidamz.com/faq" style={{ color: '#0A2540', textDecoration: 'underline' }}>Central de Ajuda</a>.</p>
+              <p>Se tiver dúvidas, responda a este e-mail ou visite nossa <a href={`${BASE_URL}/faq`} style={{ color: '#0A2540', textDecoration: 'underline' }}>Central de Ajuda</a>.</p>
             </div>
           </div>
         </div>
