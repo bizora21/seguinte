@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
-import SocialMediaIntegrationTab from '../components/Marketing/SocialMediaIntegrationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
 import IntegrationSettingsTab from '../components/Marketing/IntegrationSettingsTab'
 import ContentManagerTab from '../components/Marketing/ContentManagerTab'
@@ -13,7 +12,8 @@ import BlogCategoryManager from '../components/Marketing/BlogCategoryManager'
 import LeadsListTab from '../components/Marketing/LeadsListTab'
 import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab'
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
-import MarketingOverview from '../components/Marketing/MarketingOverview' // Novo Componente
+import MarketingOverview from '../components/Marketing/MarketingOverview'
+import SocialContentGenerator from '../components/Marketing/SocialContentGenerator' // IMPORTADO
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
@@ -54,7 +54,7 @@ const AdminMarketingCenter = () => {
 
         <Tabs defaultValue={defaultTab} className="space-y-8">
           
-          {/* Navegação Principal - Estilo "Pílula" para modernidade */}
+          {/* Navegação Principal */}
           <div className="sticky top-0 z-20 bg-gray-50 pt-2 pb-4">
             <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border rounded-xl shadow-sm">
               <TabsTrigger value="overview" className="py-2.5 px-4 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
@@ -85,7 +85,6 @@ const AdminMarketingCenter = () => {
           
           <TabsContent value="overview" className="animate-in fade-in-50 duration-300">
             <MarketingOverview />
-            {/* Atalho rápido para o conteúdo recente */}
             <div className="mt-8">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Atalhos Rápidos</h3>
                 <ContentManagerTab />
@@ -105,8 +104,15 @@ const AdminMarketingCenter = () => {
           </TabsContent>
           
           <TabsContent value="social" className="animate-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-              <SocialMediaIntegrationTab />
+            <div className="space-y-8">
+              {/* O NOVO MOTOR ESTÁ AQUI */}
+              <SocialContentGenerator /> 
+              
+              {/* Configurações de Conexão abaixo */}
+              <div className="pt-8 border-t">
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">Configurações de Conexão (OAuth)</h3>
+                <IntegrationSettingsTab />
+              </div>
             </div>
           </TabsContent>
           
