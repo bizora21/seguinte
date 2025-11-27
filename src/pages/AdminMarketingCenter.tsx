@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
@@ -13,12 +13,48 @@ import LeadsListTab from '../components/Marketing/LeadsListTab'
 import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManagerTab'
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
-import SocialContentGenerator from '../components/Marketing/SocialContentGenerator' // IMPORTADO
+import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const defaultTab = searchParams.get('tab') || 'overview'
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Lógica inteligente para determinar a aba inicial
+  const getInitialTab = () => {
+    // 1. Prioridade: Se tem parâmetro 'tab' na URL
+    const tabParam = searchParams.get('tab')
+    if (tabParam) return tabParam
+    
+    // 2. Prioridade: Se está voltando do OAuth (tem 'code' e 'state')
+    const codeParam = searchParams.get('code')
+    const stateParam = searchParams.get('state')
+    
+    if (codeParam && stateParam) {
+        try {
+            const state = JSON.parse(decodeURIComponent(stateParam))
+            if (state.tab) return state.tab
+        } catch (e) {
+            console.error("Erro ao ler state do OAuth:", e)
+        }
+        // Fallback seguro se não conseguir ler o state
+        return 'settings'
+    }
+    
+    // 3. Padrão
+    return 'overview'
+  }
+
+  const [activeTab, setActiveTab] = useState(getInitialTab())
+
+  // Sincronizar URL quando a aba muda manualmente
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    
+    // Atualiza a URL sem recarregar a página (limpa code/state se existirem)
+    const newParams = new URLSearchParams()
+    newParams.set('tab', value)
+    navigate({ search: newParams.toString() }, { replace: true })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,7 +88,7 @@ const AdminMarketingCenter = () => {
           </div>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="space-y-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
           
           {/* Navegação Principal */}
           <div className="sticky top-0 z-20 bg-gray-50 pt-2 pb-4">
@@ -105,10 +141,7 @@ const AdminMarketingCenter = () => {
           
           <TabsContent value="social" className="animate-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-8">
-              {/* O NOVO MOTOR ESTÁ AQUI */}
               <SocialContentGenerator /> 
-              
-              {/* Configurações de Conexão abaixo */}
               <div className="pt-8 border-t">
                 <h3 className="text-lg font-semibold mb-4 text-gray-700">Configurações de Conexão (OAuth)</h3>
                 <IntegrationSettingsTab />
