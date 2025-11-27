@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
@@ -19,6 +19,9 @@ import {
   Headphones,
   Search,
   ShoppingBag,
+  TruckIcon,
+  CreditCardIcon,
+  MessageCircle,
   Star,
   Rocket
 } from 'lucide-react'
@@ -77,6 +80,102 @@ const HomePage: React.FC = () => {
     }
   }
 
+  // Seção de benefícios
+  const benefits = [
+    {
+      icon: <Shield className="w-8 h-8 text-green-600" />,
+      title: 'Compra 100% Segura',
+      description: 'Pagamento na entrega. Você só paga quando receber o produto.'
+    },
+    {
+      icon: <Truck className="w-8 h-8 text-blue-600" />,
+      title: 'Entrega Grátis',
+      description: 'Frete grátis para todo Moçambique. Entrega em 1 a 5 dias úteis.'
+    },
+    {
+      icon: <Store className="w-8 h-8 text-purple-600" />,
+      title: 'Apoie Vendedores Locais',
+      description: 'Conectamos você com os melhores vendedores de todo o país.'
+    },
+    {
+      icon: <CreditCard className="w-8 h-8 text-orange-600" />,
+      title: 'Pagamento Flexível',
+      description: 'Aceitamos M-Pesa, eMola, dinheiro e cartão na entrega.'
+    }
+  ]
+
+  // Passos de como funciona
+  const steps = [
+    {
+      icon: <Search className="w-6 h-6 text-green-600" />,
+      title: 'Busque e Escolha',
+      description: 'Navegue por milhares de produtos de vendedores locais.'
+    },
+    {
+      icon: <ShoppingBag className="w-6 h-6 text-blue-600" />,
+      title: 'Faça seu Pedido',
+      description: 'Selecione os produtos e confira seu carrinho.'
+    },
+    {
+      icon: <TruckIcon className="w-6 h-6 text-purple-600" />,
+      title: 'Receba em Casa',
+      description: 'Aguarde a entrega em 1 a 5 dias úteis e pague na hora.'
+    },
+    {
+      icon: <CreditCardIcon className="w-6 h-6 text-orange-600" />,
+      title: 'Avalie sua Experiência',
+      description: 'Compartilhe sua experiência e ajude outros clientes.'
+    }
+  ]
+
+  // Vantagens para clientes
+  const clientBenefits = [
+    {
+      icon: <CheckCircle className="w-5 h-5 text-green-600" />,
+      title: 'Segurança Garantida',
+      description: 'Pague apenas quando receber o produto.'
+    },
+    {
+      icon: <Truck className="w-5 h-5 text-blue-600" />,
+      title: 'Entrega Rápida',
+      description: 'Receba seus produtos em 1 a 5 dias úteis.'
+    },
+    {
+      icon: <MessageCircle className="w-5 h-5 text-purple-600" />,
+      title: 'Suporte Direto',
+      description: 'Converse diretamente com os vendedores.'
+    },
+    {
+      icon: <Star className="w-5 h-5 text-yellow-500" />,
+      title: 'Produtos Verificados',
+      description: 'Qualidade garantida por vendedores confiáveis.'
+    }
+  ]
+
+  // Vantagens para vendedores
+  const sellerBenefits = [
+    {
+      icon: <TrendingUp className="w-5 h-5 text-green-600" />,
+      title: 'Alcance Nacional',
+      description: 'Venda para clientes em todo Moçambique.'
+    },
+    {
+      icon: <Headphones className="w-5 h-5 text-blue-600" />,
+      title: 'Suporte Especializado',
+      description: 'Ajuda dedicada para crescer seu negócio.'
+    },
+    {
+      icon: <CreditCard className="w-5 h-5 text-purple-600" />,
+      title: 'Pagamento Seguro',
+      description: 'Receba seus pagamentos em meticais de forma segura.'
+    },
+    {
+      icon: <Users className="w-5 h-5 text-orange-600" />,
+      title: 'Plataforma Gratuita',
+      description: 'Comece a vender sem custos iniciais.'
+    }
+  ]
+
   return (
     <>
       <SEO
@@ -130,9 +229,8 @@ const HomePage: React.FC = () => {
                   </Button>
                   <Button 
                     onClick={() => navigate('/register')}
-                    variant="outline"
                     size="lg"
-                    className="w-full sm:w-auto h-14 px-8 text-lg font-bold text-white border-white/30 hover:bg-white/10 hover:text-white"
+                    className="w-full sm:w-auto h-14 px-8 text-lg font-bold bg-white text-[#0A2540] hover:bg-gray-100 border-0 shadow-lg transition-all hover:scale-105"
                   >
                     <Store className="w-5 h-5 mr-2" />
                     Quero Vender
