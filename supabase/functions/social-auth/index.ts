@@ -105,36 +105,58 @@ serve(async (req) => {
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
+        // Limpeza prévia: Remove duplicatas antigas para evitar erros de constraint, se existirem
+        await supabaseAdmin.from('integrations').delete().eq('platform', platform);
+
         const { error: insertError } = await supabaseAdmin
             .from('integrations')
-            .upsert({
+            .insert({
                 platform: platform,
                 access_token: accessToken,
                 refresh_token: refreshToken,
                 expires_at: expiresAt,
                 metadata: { ...metadata, token_type: tokenType },
                 updated_at: new Date().toISOString()
-            }, { onConflict: 'platform' });
+            });
 
-        if (insertError) throw new Error(insertError.message);
+        if (insertError) throw new Error("Erro ao salvar no banco: " + insertError.message);
 
         return new Response(JSON.stringify({ success: true, platform }), { headers: corsHeaders, status: 200 });
     }
 
-    // --- AÇÃO 2: SINCRONIZAR PÁGINAS (NOVO) ---
+    // --- AÇÃO 2: SINCRONIZAR PÁGINAS ---
     if (action === 'fetch_pages') {
-        const { data: integration } = await supabaseAdmin
+        // Busca a integração mais recente (caso haja duplicatas, pega a última)
+        const { data: integrations, error: dbError } = await supabaseAdmin
             .from('integrations')
             .select('*')
             .eq('platform', 'facebook')
-            .single();
+            .order('updated_at', { ascending: false })
+            .limit(1);
             
-        if (!integration) throw new Error('Nenhuma conta do Facebook conectada.');
+        if (dbError) {
+            console.error("DB Error:", dbError);
+            throw new Error('Erro ao consultar banco de dados.');
+        }
+
+        const integration = integrations?.[0];
+            
+        if (!integration) {
+            return new Response(JSON.stringify({ success: false, error: 'Nenhuma conta do Facebook conectada.' }), { headers: corsHeaders, status: 404 });
+        }
         
         const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
         const pagesData = await pagesResp.json();
         
-        if (pagesData.error) throw new Error(pagesData.error.message);
+        if (pagesData.error) {
+            console.error("FB API Error:", pagesData.error);
+            
+            if (pagesData.error.code === 190) {
+                 return new Response(JSON.stringify({ success: false, message: 'Seu token do Facebook expirou. Por favor, clique em "Reconectar Conta".' }), { headers: corsHeaders, status: 200 });
+            }
+            
+            return new Response(JSON.stringify({ success: false, message: `Erro do Facebook: ${pagesData.error.message}` }), { headers: corsHeaders, status: 200 });
+        }
         
         if (pagesData.data && pagesData.data.length > 0) {
              const page = pagesData.data[0];
@@ -147,11 +169,11 @@ serve(async (req) => {
              
              await supabaseAdmin.from('integrations')
                 .update({ metadata: updatedMeta })
-                .eq('platform', 'facebook');
+                .eq('id', integration.id); // Usa ID específico para evitar update múltiplo
                 
-             return new Response(JSON.stringify({ success: true, page_name: page.name }), { headers: corsHeaders });
+             return new Response(JSON.stringify({ success: true, page_name: page.name }), { headers: corsHeaders, status: 200 });
         } else {
-            return new Response(JSON.stringify({ success: false, message: 'Nenhuma Página do Facebook encontrada nesta conta. Crie uma página primeiro.' }), { headers: corsHeaders });
+            return new Response(JSON.stringify({ success: false, message: 'Nenhuma Página do Facebook encontrada nesta conta. Crie uma página no Facebook primeiro.' }), { headers: corsHeaders, status: 200 });
         }
     }
 
@@ -159,6 +181,7 @@ serve(async (req) => {
 
   } catch (err) {
     log("ERRO CRÍTICO:", err);
-    return new Response(JSON.stringify({ error: err.message }), { headers: corsHeaders, status: 500 });
+    // Retornar 200 com erro no corpo para que o frontend possa ler a mensagem
+    return new Response(JSON.stringify({ success: false, error: err.message || 'Erro interno no servidor' }), { headers: corsHeaders, status: 200 });
   }
 });
