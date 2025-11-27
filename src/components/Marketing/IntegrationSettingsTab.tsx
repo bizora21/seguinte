@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw, Trash2, Calendar, ShieldCheck } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -25,6 +25,7 @@ const IntegrationSettingsTab = () => {
   const fetchIntegrations = async () => {
     setLoading(true)
     try {
+      // Adicionando um timestamp para evitar cache
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
@@ -134,8 +135,7 @@ const IntegrationSettingsTab = () => {
         </CardHeader>
         <CardContent className="space-y-8">
           
-          {/* Alerta de Configuração */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-2">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3">
               <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração do Facebook Developers</h3>
               <p className="text-blue-700">
                   Adicione esta URL exata em "Login do Facebook &gt; Configurações &gt; URIs de redirecionamento do OAuth válidos":
@@ -244,22 +244,10 @@ const IntegrationSettingsTab = () => {
             </div>
           </div>
           
-          {/* Integração Google Analytics (Placeholder para futuro) */}
-          <div className="border rounded-xl overflow-hidden shadow-sm opacity-60">
-            <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <div className="bg-orange-500 p-2 rounded-lg text-white">
-                        <TrendingUp className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-gray-900">Google Analytics</h3>
-                        <p className="text-sm text-gray-500">Em breve</p>
-                    </div>
-                </div>
-                <Badge variant="outline">Em Breve</Badge>
-            </div>
-          </div>
-          
+          <Button onClick={fetchIntegrations} variant="ghost" size="sm" className="w-full text-gray-500">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Status de Conexão
+          </Button>
         </CardContent>
       </Card>
     </div>

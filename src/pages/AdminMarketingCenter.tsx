@@ -24,6 +24,8 @@ const AdminMarketingCenter = () => {
   // Lógica inteligente para determinar a aba inicial
   const getInitialTab = () => {
     const tabParam = searchParams.get('tab')
+    // Se tiver código, queremos ir para settings depois de processar
+    if (searchParams.get('code')) return 'settings'
     return tabParam || 'overview'
   }
 
@@ -43,12 +45,25 @@ const AdminMarketingCenter = () => {
   }
 
   const handleOAuthComplete = () => {
-    // Remove o código da URL e vai para a aba de configurações
-    const newParams = new URLSearchParams()
-    newParams.set('tab', 'settings')
-    navigate({ search: newParams.toString() }, { replace: true })
-    // Forçar atualização da aba
+    console.log("OAuth Concluído. Limpando URL...")
+    
+    // 1. Definir a aba ativa para settings
     setActiveTab('settings')
+    
+    // 2. Limpeza AGRESSIVA da URL usando History API do navegador
+    // Isso evita que o React Router entre em conflito ou demore a atualizar
+    const cleanUrl = new URL(window.location.href)
+    cleanUrl.searchParams.delete('code')
+    cleanUrl.searchParams.delete('state')
+    cleanUrl.searchParams.set('tab', 'settings')
+    
+    window.history.replaceState({}, '', cleanUrl.toString())
+    
+    // 3. Sincronizar o React Router (opcional mas boa prática)
+    setSearchParams({ tab: 'settings' })
+    
+    // 4. Forçar um pequeno reload do componente IntegrationSettings se necessário
+    // (O IntegrationSettingsTab vai detectar que não tem mais 'code' e fará o fetch)
   }
 
   // SE TIVER CÓDIGO, MOSTRA O PROCESSADOR E BLOQUEIA O RESTO

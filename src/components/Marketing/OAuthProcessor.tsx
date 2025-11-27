@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { Loader2, CheckCircle, XCircle, Facebook } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Facebook, ArrowRight } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../ui/button'
 
@@ -12,7 +11,6 @@ interface OAuthProcessorProps {
 }
 
 const OAuthProcessor: React.FC<OAuthProcessorProps> = ({ code, stateParam, onComplete }) => {
-  const navigate = useNavigate()
   const [step, setStep] = useState<'init' | 'exchanging' | 'syncing' | 'success' | 'error'>('init')
   const [logs, setLogs] = useState<string[]>([])
   const [errorDetails, setErrorDetails] = useState<string | null>(null)
@@ -72,10 +70,12 @@ const OAuthProcessor: React.FC<OAuthProcessorProps> = ({ code, stateParam, onCom
             body: { action: 'fetch_pages' }
         })
 
-        if (syncError) throw syncError
-        if (syncData?.error) throw new Error(syncData.error)
-        
-        if (syncData.success) {
+        if (syncError) {
+            // Não falha o processo todo se apenas a sincronização falhar
+            addLog(`Aviso na sincronização: ${syncError.message}`)
+        } else if (syncData?.error) {
+            addLog(`Aviso na sincronização: ${syncData.error}`)
+        } else if (syncData?.success) {
             addLog(`Página encontrada: ${syncData.page_name}`)
         } else {
             addLog('Nenhuma página encontrada. Token salvo, mas sem página ativa.')
@@ -83,9 +83,9 @@ const OAuthProcessor: React.FC<OAuthProcessorProps> = ({ code, stateParam, onCom
       }
 
       setStep('success')
-      addLog('Conexão finalizada!')
+      addLog('Conexão finalizada com sucesso!')
       
-      // Aguardar brevemente para usuário ver o sucesso
+      // Tenta redirecionar automaticamente após 2 segundos
       setTimeout(() => {
         onComplete()
       }, 2000)
@@ -98,76 +98,88 @@ const OAuthProcessor: React.FC<OAuthProcessorProps> = ({ code, stateParam, onCom
     }
   }
 
-  const handleRetry = () => {
-    // Limpar URL e recarregar
-    navigate('/dashboard/admin/marketing?tab=settings', { replace: true })
-    window.location.reload()
-  }
-
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-blue-600 animate-in zoom-in-95 duration-300">
+    <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl border-t-4 border-t-blue-600 animate-in zoom-in-95 duration-300 bg-white">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-xl flex flex-col items-center gap-2">
+          <CardTitle className="text-xl flex flex-col items-center gap-4">
             {step === 'error' ? (
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-2">
-                    <XCircle className="w-8 h-8 text-red-600" />
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center animate-pulse">
+                    <XCircle className="w-10 h-10 text-red-600" />
                 </div>
             ) : step === 'success' ? (
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center animate-bounce">
+                    <CheckCircle className="w-10 h-10 text-green-600" />
                 </div>
             ) : (
                 <div className="relative">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
-                        <Facebook className="w-6 h-6 text-blue-600" />
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Facebook className="w-8 h-8 text-blue-600" />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-lg border">
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
                     </div>
                 </div>
             )}
             
-            {step === 'error' ? 'Falha na Conexão' : step === 'success' ? 'Conectado!' : 'Conectando ao Facebook...'}
+            <div className="space-y-1">
+                <h3 className="font-bold text-gray-900">
+                    {step === 'error' ? 'Falha na Conexão' : step === 'success' ? 'Conectado com Sucesso!' : 'Processando Integração...'}
+                </h3>
+                <p className="text-sm font-normal text-gray-500">
+                    {step === 'init' && 'Recebendo autorização...'}
+                    {step === 'exchanging' && 'Validando credenciais...'}
+                    {step === 'syncing' && 'Sincronizando páginas...'}
+                    {step === 'success' && 'Tudo pronto para vender!'}
+                    {step === 'error' && 'Ocorreu um erro.'}
+                </p>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           
           {/* Timeline de Progresso */}
-          <div className="space-y-3">
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg border">
             <div className="flex items-center gap-3 text-sm">
-                <div className={`w-2 h-2 rounded-full ${step !== 'init' ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <span className={step === 'init' ? 'font-bold text-blue-600' : 'text-gray-600'}>Recebendo código de autorização</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${step !== 'init' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className={step === 'init' ? 'font-bold text-blue-600' : 'text-gray-600'}>1. Recebendo código</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
-                <div className={`w-2 h-2 rounded-full ${['syncing', 'success', 'error'].includes(step) ? 'bg-green-500' : step === 'exchanging' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} />
-                <span className={step === 'exchanging' ? 'font-bold text-blue-600' : 'text-gray-600'}>Validando credenciais de segurança</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${['syncing', 'success', 'error'].includes(step) ? 'bg-green-500' : step === 'exchanging' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} />
+                <span className={step === 'exchanging' ? 'font-bold text-blue-600' : 'text-gray-600'}>2. Gerando tokens seguros</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
-                <div className={`w-2 h-2 rounded-full ${step === 'success' ? 'bg-green-500' : step === 'syncing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} />
-                <span className={step === 'syncing' ? 'font-bold text-blue-600' : 'text-gray-600'}>Sincronizando Páginas do Facebook</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${step === 'success' ? 'bg-green-500' : step === 'syncing' ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} />
+                <span className={step === 'syncing' ? 'font-bold text-blue-600' : 'text-gray-600'}>3. Configurando páginas</span>
             </div>
           </div>
 
-          {/* Área de Logs/Erro */}
-          <div className="bg-gray-50 rounded-md p-3 text-xs font-mono text-gray-600 border h-32 overflow-y-auto">
-            {logs.map((log, i) => (
-                <div key={i} className="mb-1 border-b border-gray-100 last:border-0 pb-1">{`> ${log}`}</div>
-            ))}
-            {errorDetails && (
-                <div className="text-red-600 font-bold mt-2">{`ERROR: ${errorDetails}`}</div>
-            )}
-          </div>
+          {/* Área de Logs (Oculta se sucesso para limpar visual, expandir se erro) */}
+          {(step === 'error' || step === 'syncing') && (
+            <div className="bg-gray-900 rounded-md p-3 text-xs font-mono text-green-400 h-32 overflow-y-auto shadow-inner">
+                {logs.map((log, i) => (
+                    <div key={i} className="mb-1 border-b border-gray-800 last:border-0 pb-1 opacity-90">{`> ${log}`}</div>
+                ))}
+                {errorDetails && (
+                    <div className="text-red-400 font-bold mt-2 border-t border-red-900 pt-2">{`ERROR: ${errorDetails}`}</div>
+                )}
+            </div>
+          )}
 
           {step === 'error' && (
-            <Button onClick={handleRetry} className="w-full bg-red-600 hover:bg-red-700">
-                Tentar Novamente
-            </Button>
+            <div className="flex gap-2">
+                <Button onClick={() => window.location.reload()} variant="outline" className="flex-1">
+                    Tentar Novamente
+                </Button>
+                <Button onClick={onComplete} variant="ghost" className="flex-1">
+                    Cancelar
+                </Button>
+            </div>
           )}
           
           {step === 'success' && (
-            <Button className="w-full bg-green-600 hover:bg-green-700" disabled>
-                Redirecionando...
+            <Button onClick={onComplete} className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg shadow-lg animate-pulse">
+                Concluir e Voltar ao Painel <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           )}
 
