@@ -14,37 +14,17 @@ import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManage
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
 import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
+import OAuthProcessor from '../components/Marketing/OAuthProcessor'
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const codeParam = searchParams.get('code')
   
   // Lógica inteligente para determinar a aba inicial
   const getInitialTab = () => {
-    // 1. Prioridade: Se tem parâmetro 'tab' na URL
     const tabParam = searchParams.get('tab')
-    if (tabParam) return tabParam
-    
-    // 2. Prioridade: Se está voltando do OAuth (tem 'code')
-    // Simplificado: Se tem código, assume que é para configurações/integração
-    const codeParam = searchParams.get('code')
-    
-    if (codeParam) {
-        // Tenta ler o state para ser mais específico, mas faz fallback para 'settings'
-        const stateParam = searchParams.get('state')
-        if (stateParam) {
-            try {
-                const state = JSON.parse(decodeURIComponent(stateParam))
-                if (state.tab) return state.tab
-            } catch (e) {
-                console.error("Erro ao ler state do OAuth:", e)
-            }
-        }
-        return 'settings'
-    }
-    
-    // 3. Padrão
-    return 'overview'
+    return tabParam || 'overview'
   }
 
   const [activeTab, setActiveTab] = useState(getInitialTab())
@@ -52,16 +32,34 @@ const AdminMarketingCenter = () => {
   // Sincronizar URL quando a aba muda manualmente
   const handleTabChange = (value: string) => {
     setActiveTab(value)
-    
-    // Atualiza a URL sem recarregar a página
     const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', value)
     
-    // Se estiver mudando de aba manualmente, limpa code/state para evitar loops
+    // Limpar parâmetros de OAuth se existirem ao mudar de aba
     if (newParams.has('code')) newParams.delete('code')
     if (newParams.has('state')) newParams.delete('state')
     
     navigate({ search: newParams.toString() }, { replace: true })
+  }
+
+  const handleOAuthComplete = () => {
+    // Remove o código da URL e vai para a aba de configurações
+    const newParams = new URLSearchParams()
+    newParams.set('tab', 'settings')
+    navigate({ search: newParams.toString() }, { replace: true })
+    // Forçar atualização da aba
+    setActiveTab('settings')
+  }
+
+  // SE TIVER CÓDIGO, MOSTRA O PROCESSADOR E BLOQUEIA O RESTO
+  if (codeParam) {
+    return (
+        <OAuthProcessor 
+            code={codeParam} 
+            stateParam={searchParams.get('state')}
+            onComplete={handleOAuthComplete}
+        />
+    )
   }
 
   return (
