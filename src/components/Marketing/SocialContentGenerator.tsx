@@ -2,34 +2,34 @@ import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search } from 'lucide-react'
+import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { Textarea } from '../ui/textarea'
-import { Input } from '../ui/input' // Importado Input
+import { Input } from '../ui/input'
 import { supabase } from '../../lib/supabase'
 import { Product } from '../../types/product'
 import { Label } from '../ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { getFirstImageUrl } from '../../utils/images'
-import { useDebounce } from '../../hooks/useDebounce' // Hook de debounce para a busca
-import toast from 'react-hot-toast' // Importando toast diretamente para personalização
+import { useDebounce } from '../../hooks/useDebounce'
+import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 const SocialContentGenerator = () => {
+  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [loadingProducts, setLoadingProducts] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('') // Estado para busca
+  const [searchTerm, setSearchTerm] = useState('')
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState(false)
   
-  // Estado para o conteúdo gerado
   const [generatedContent, setGeneratedContent] = useState({
     whatsapp: '',
     facebook: '',
     instagram: ''
   })
 
-  // Função de busca com debounce
   const searchProducts = async (term: string) => {
     setLoadingProducts(true)
     try {
@@ -48,11 +48,6 @@ const SocialContentGenerator = () => {
 
       if (error) throw error
       setProducts(data || [])
-      
-      // Se não houver seleção e tivermos resultados, selecione o primeiro
-      if (!selectedProductId && data && data.length > 0) {
-        // setSelectedProductId(data[0].id) // Comentado para forçar escolha consciente
-      }
     } catch (error) {
       console.error('Error fetching products:', error)
       showError('Erro ao buscar produtos')
@@ -64,7 +59,7 @@ const SocialContentGenerator = () => {
   const debouncedSearch = useDebounce(searchProducts, 500)
 
   useEffect(() => {
-    searchProducts('') // Carga inicial
+    searchProducts('')
   }, [])
 
   useEffect(() => {
@@ -164,12 +159,29 @@ const SocialContentGenerator = () => {
       
       dismissToast(toastId)
 
-      // Tratamento específico para erros de Pré-condição (412) - Ex: Integração não encontrada
+      // --- TRATAMENTO DE ERRO 412 (INTEGRATION_NOT_FOUND) ---
       if (response.status === 412) {
-        toast.error(result.message || 'Erro de configuração. Verifique a aba de Conexões.', {
-            duration: 6000,
-            icon: '🔌'
-        })
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <div className="font-semibold flex items-center text-red-600">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              Conexão Necessária
+            </div>
+            <div className="text-sm text-gray-600">
+              {result.message || 'Sua conta do Facebook não está conectada.'}
+            </div>
+            <Button 
+              size="sm" 
+              className="w-full mt-1 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => {
+                toast.dismiss(t.id)
+                navigate('?tab=settings')
+              }}
+            >
+              Conectar Agora
+            </Button>
+          </div>
+        ), { duration: 8000, position: 'top-center' })
         return
       }
       

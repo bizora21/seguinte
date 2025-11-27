@@ -34,61 +34,67 @@ serve(async (req) => {
 
     const { action, code, platform, redirect_uri } = await req.json()
 
+    // --- AÇÃO PRINCIPAL: TROCA DE TOKEN (CALLBACK) ---
     if (action === 'exchange_token') {
         const cleanPlatform = (platform || 'facebook').toLowerCase().trim();
         log(`Iniciando troca de token para: ${cleanPlatform}`);
         
-        let accessToken = '';
+        let userAccessToken = '';
         let expiresIn = null;
         let metadata: any = {};
 
         if (cleanPlatform === 'facebook') {
-            // 1. Short-Lived Token
+            // 1. Obter Short-Lived User Token
             const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`;
             const tokenResp = await fetch(tokenUrl);
             const tokenData = await tokenResp.json();
 
             if (tokenData.error) {
+                log("Erro Facebook Token:", tokenData.error);
                 return new Response(JSON.stringify({ error: tokenData.error.message }), { status: 400, headers: corsHeaders });
             }
 
-            accessToken = tokenData.access_token;
-            expiresIn = tokenData.expires_in;
-
-            // 2. Long-Lived Token
-            const longUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${accessToken}`;
+            // 2. Trocar por Long-Lived User Token
+            const longUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`;
             const longResp = await fetch(longUrl);
             const longData = await longResp.json();
             
-            if (longData.access_token) {
-                accessToken = longData.access_token;
-                expiresIn = longData.expires_in;
-            }
+            userAccessToken = longData.access_token || tokenData.access_token;
+            expiresIn = longData.expires_in || tokenData.expires_in;
 
-            // 3. Buscar Páginas
-            const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`);
+            // 3. CRÍTICO: Buscar Páginas e o PAGE ACCESS TOKEN
+            log("Buscando páginas e tokens de página...");
+            const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userAccessToken}`);
             const pagesData = await pagesResp.json();
             
             if (pagesData.data && pagesData.data.length > 0) {
+                // Pegamos a primeira página por padrão (pode ser melhorado para permitir seleção no futuro)
                 const page = pagesData.data[0];
-                metadata.page_id = page.id;
-                metadata.page_name = page.name;
-                metadata.page_access_token = page.access_token;
+                
+                metadata = {
+                    user_id: page.id, // Guardamos ID do usuário Facebook ou da página
+                    page_id: page.id,
+                    page_name: page.name,
+                    page_access_token: page.access_token, // O TOKEN QUE PERMITE POSTAR
+                    category: page.category
+                };
+                
+                log(`Página encontrada: ${page.name} (ID: ${page.id})`);
+            } else {
+                log("Nenhuma página encontrada vinculada a este usuário.");
             }
         } 
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
-        log("Salvando com UPSERT...");
-
-        // USANDO UPSERT: Cria se não existir, Atualiza se existir.
+        // 4. Salvar tudo no Supabase
         const { data, error } = await supabaseAdmin
             .from('integrations')
             .upsert({
                 platform: cleanPlatform,
-                access_token: accessToken,
+                access_token: userAccessToken, // Token do Usuário (para backup/leitura)
                 expires_at: expiresAt,
-                metadata: metadata,
+                metadata: metadata, // Contém o Token da Página (para escrita)
                 updated_at: new Date().toISOString()
             }, { onConflict: 'platform' })
             .select()
@@ -96,13 +102,15 @@ serve(async (req) => {
 
         if (error) {
              log("Erro no UPSERT:", error);
-             return new Response(JSON.stringify({ error: "Erro ao salvar token: " + error.message }), { status: 500, headers: corsHeaders });
+             return new Response(JSON.stringify({ error: "Erro ao salvar integração: " + error.message }), { status: 500, headers: corsHeaders });
         }
 
         return new Response(JSON.stringify({ success: true, saved: data }), { headers: corsHeaders, status: 200 });
     }
     
+    // --- AÇÃO SECUNDÁRIA: RENOVAR/SINCRONIZAR PÁGINAS ---
     if (action === 'fetch_pages') {
+        // Buscar o token de usuário atual
         const { data: integration } = await supabaseAdmin
             .from('integrations')
             .select('*')
@@ -111,7 +119,32 @@ serve(async (req) => {
             
         if (!integration) return new Response(JSON.stringify({ error: 'Não conectado' }), { headers: corsHeaders, status: 404 });
         
-        return new Response(JSON.stringify({ success: true, page_name: integration.metadata?.page_name || 'Atualizado' }), { headers: corsHeaders, status: 200 });
+        // Usar o token de usuário para buscar páginas novamente
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
+        const pagesData = await pagesResp.json();
+        
+        if (pagesData.error) {
+             return new Response(JSON.stringify({ error: "Erro Facebook: " + pagesData.error.message }), { status: 400, headers: corsHeaders });
+        }
+
+        let updatedMetadata = integration.metadata || {};
+        let pageName = 'Nenhuma';
+
+        if (pagesData.data && pagesData.data.length > 0) {
+            const page = pagesData.data[0];
+            updatedMetadata.page_id = page.id;
+            updatedMetadata.page_name = page.name;
+            updatedMetadata.page_access_token = page.access_token; // Atualiza o token da página
+            pageName = page.name;
+            
+            // Salvar atualização
+            await supabaseAdmin
+                .from('integrations')
+                .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
+                .eq('platform', 'facebook');
+        }
+        
+        return new Response(JSON.stringify({ success: true, page_name: pageName }), { headers: corsHeaders, status: 200 });
     }
 
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { headers: corsHeaders, status: 400 });
