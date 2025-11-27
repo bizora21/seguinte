@@ -38,7 +38,6 @@ export const IMAGE_OPTIMIZER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.c
 
 
 // Credenciais
-// Configuração direta para funcionamento imediato conforme solicitado
 const FACEBOOK_APP_ID = '705882238650821' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '' 
 
@@ -54,15 +53,17 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       return ''
     }
     
-    // A Edge Function usa: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth?platform=facebook
-    const redirectUri = `${OAUTH_HANDLER_BASE_URL}?platform=facebook`
+    // CORREÇÃO: Usar URL limpa sem query params para evitar erros de mismatch
+    const redirectUri = OAUTH_HANDLER_BASE_URL
     const encodedRedirectUri = encodeURIComponent(redirectUri)
     
-    // Escopos necessários para gerenciar páginas e publicar conteúdo
-    // pages_manage_posts e pages_read_engagement são cruciais
+    // Passar a plataforma via state
+    const state = JSON.stringify({ platform: 'facebook' })
+    const encodedState = encodeURIComponent(state)
+    
     const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
     
-    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code`
+    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
   }
   
   if (platform === 'google_analytics' || platform === 'google_search_console') {

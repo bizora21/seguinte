@@ -9,7 +9,7 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-// Credenciais Hardcoded para funcionamento imediato
+// Credenciais Hardcoded
 const FB_APP_ID = '705882238650821'
 const FB_APP_SECRET = '9ed8f8cba18684539e3aa675a13c788c'
 
@@ -40,17 +40,13 @@ serve(async (req) => {
   if (req.method === 'GET' && action === 'get_config') {
       // @ts-ignore
       const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
-      
       return new Response(JSON.stringify({ 
           facebook_app_id: FB_APP_ID,
           google_client_id: googleClientId
-      }), { 
-          headers: corsHeaders, 
-          status: 200 
-      });
+      }), { headers: corsHeaders, status: 200 });
   }
 
-  // Lógica de Callback
+  // --- LÓGICA DE CALLBACK (OAUTH) ---
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
@@ -69,7 +65,10 @@ serve(async (req) => {
   if (stateParam) {
       try {
           const stateData = JSON.parse(decodeURIComponent(stateParam));
-          platform = stateData.platform;
+          // Recuperar a plataforma do state se não vier na URL
+          if (!platform && stateData.platform) {
+              platform = stateData.platform;
+          }
       } catch (e) {
           log("Erro ao decodificar state:", e);
       }
@@ -100,12 +99,13 @@ serve(async (req) => {
     let tokenType: string = 'user_token';
     let metadata: any = { user_id: adminId };
     
+    // URL DE REDIRECIONAMENTO LIMPA (Crucial: deve ser idêntica à cadastrada no Facebook)
     let redirectUri = `${url.origin}${url.pathname}`; 
 
     if (platform === 'facebook') {
-        redirectUri = `${url.origin}${url.pathname}?platform=facebook`;
+        // NÃO adicionar query params aqui, pois removemos no frontend também
+        // redirectUri já está limpa
         
-        // TROCA DE CÓDIGO POR TOKEN (SHORT-LIVED)
         const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         
         const tokenData = await tokenResponse.json();
@@ -117,17 +117,17 @@ serve(async (req) => {
         accessToken = tokenData.access_token;
         expiresIn = tokenData.expires_in; 
         
-        // TROCA PARA LONG-LIVED TOKEN (60 dias)
+        // Troca para Long-Lived Token
         const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${accessToken}`);
         const longLivedData = await longLivedResponse.json();
         
         if (longLivedData.access_token) {
             accessToken = longLivedData.access_token;
-            expiresIn = longLivedData.expires_in; 
+            expiresIn = longLivedData.expires_in;
             tokenType = 'facebook_long_lived_token';
         }
 
-        // BUSCAR PÁGINAS
+        // Buscar Páginas
         const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`);
         const pagesData = await pagesResp.json();
         
@@ -135,13 +135,12 @@ serve(async (req) => {
             const page = pagesData.data[0];
             metadata.page_id = page.id;
             metadata.page_name = page.name;
-            metadata.page_access_token = page.access_token; // Token específico da página (importante para postar)
+            metadata.page_access_token = page.access_token;
             log("Página do Facebook encontrada:", page.name);
-        } else {
-            log("Nenhuma página encontrada vinculada à conta.");
         }
 
     } else if (platform.startsWith('google_')) {
+        // Código Google mantido...
         // @ts-ignore
         const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
         // @ts-ignore
@@ -184,7 +183,7 @@ serve(async (req) => {
 
     if (insertError) throw new Error(insertError.message);
 
-    log("--- SUCESSO! TOKEN SALVO ---");
+    log("--- SUCESSO! ---");
     const adminUrl = `${REDIRECT_BASE}&status=social-auth-success&platform=${platform}`;
     return Response.redirect(adminUrl, 302);
 
