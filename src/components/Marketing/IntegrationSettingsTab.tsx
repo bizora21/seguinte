@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -15,12 +15,19 @@ interface Integration {
   expires_at?: string | null
 }
 
+interface FacebookPage {
+  id: string
+  name: string
+  category: string
+}
+
 const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]) // Novo estado para páginas
   
-  // URL exata que o Facebook vai usar para retornar (NOVA)
+  // URL exata que o Facebook vai usar para retornar
   const CALLBACK_URL = `${window.location.origin}/oauth-callback`
 
   const fetchIntegrations = async () => {
@@ -50,12 +57,20 @@ const IntegrationSettingsTab = () => {
     
     const handleOAuthSuccess = () => {
         console.log("Evento oauth-success recebido! Atualizando lista...")
-        setTimeout(fetchIntegrations, 1500) // Delay um pouco maior para garantir a propagação no DB
+        setTimeout(fetchIntegrations, 1500) 
     }
     
     window.addEventListener('oauth-success', handleOAuthSuccess)
     return () => window.removeEventListener('oauth-success', handleOAuthSuccess)
   }, [])
+
+  // Buscar páginas automaticamente se já estiver conectado
+  useEffect(() => {
+    const fb = integrations.find(i => i.platform === 'facebook');
+    if (fb && fb.access_token !== 'PENDENTE_DE_CONEXAO') {
+        handleSyncPages(true); // Silent mode
+    }
+  }, [integrations.length]) // Executa quando as integrações são carregadas
 
   const handleTestConnection = async () => {
       const toastId = showLoading('Testando comunicação com o servidor...');
@@ -81,31 +96,32 @@ const IntegrationSettingsTab = () => {
       }
   }
 
-  const handleSyncPages = async () => {
-    setSubmitting(true)
-    const toastId = showLoading('Verificando conexão com Facebook...')
+  const handleSyncPages = async (silent = false) => {
+    if (!silent) setSubmitting(true)
+    const toastId = !silent ? showLoading('Listando páginas do Facebook...') : null
+    
     try {
         const { data, error } = await supabase.functions.invoke('social-auth', {
             method: 'POST',
             body: { action: 'get_connected_pages' }
         })
         
-        dismissToast(toastId)
+        if (toastId) dismissToast(toastId)
         
         if (error) throw error
         if (data?.error) throw new Error(data.error)
         
         if (data.success && data.pages) {
-            showSuccess(`${data.pages.length} página(s) encontrada(s) e sincronizada(s)!`)
-            fetchIntegrations()
+            setFacebookPages(data.pages)
+            if (!silent) showSuccess(`${data.pages.length} página(s) encontrada(s)!`)
         } else {
-            showError('Conexão ativa, mas nenhuma página encontrada.')
+            if (!silent) showError('Conexão ativa, mas nenhuma página encontrada.')
         }
     } catch (error: any) {
-        dismissToast(toastId)
-        showError(`Erro de sincronização: ${error.message}`)
+        if (toastId) dismissToast(toastId)
+        if (!silent) showError(`Erro ao listar páginas: ${error.message}`)
     } finally {
-        setSubmitting(false)
+        if (!silent) setSubmitting(false)
     }
   }
 
@@ -123,6 +139,7 @@ const IntegrationSettingsTab = () => {
         dismissToast(toastId);
         showSuccess('Conta desconectada com sucesso.');
         setIntegrations(prev => prev.filter(i => i.platform !== platform));
+        setFacebookPages([]); // Limpa as páginas
     } catch (error: any) {
         dismissToast(toastId);
         showError('Erro ao desconectar: ' + error.message);
@@ -275,16 +292,39 @@ const IntegrationSettingsTab = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* LISTA DE PÁGINAS DO FACEBOOK */}
+                        {facebookPages.length > 0 && (
+                            <div className="border rounded-lg overflow-hidden">
+                                <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
+                                    <h4 className="font-bold text-sm text-gray-700 flex items-center">
+                                        <Flag className="w-4 h-4 mr-2 text-blue-600" /> 
+                                        Páginas Gerenciadas ({facebookPages.length})
+                                    </h4>
+                                </div>
+                                <div className="divide-y max-h-48 overflow-y-auto">
+                                    {facebookPages.map(page => (
+                                        <div key={page.id} className="px-4 py-3 flex justify-between items-center hover:bg-gray-50">
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-900">{page.name}</p>
+                                                <p className="text-xs text-gray-500">ID: {page.id} • {page.category}</p>
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">Pronta para Uso</Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         
                         <div className="flex justify-end gap-3 pt-4 border-t">
                             <Button 
-                                onClick={handleSyncPages} 
+                                onClick={() => handleSyncPages(false)} 
                                 disabled={submitting} 
                                 variant="outline"
                                 className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-2 ${submitting ? 'animate-spin' : ''}`} />
-                                Testar Conexão e Listar Páginas
+                                {facebookPages.length > 0 ? 'Atualizar Lista de Páginas' : 'Listar Páginas Disponíveis'}
                             </Button>
                             <Button 
                                 onClick={() => handleDisconnect('facebook')} 
