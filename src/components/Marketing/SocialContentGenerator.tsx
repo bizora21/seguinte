@@ -159,8 +159,9 @@ const SocialContentGenerator = () => {
       
       dismissToast(toastId)
 
-      // --- TRATAMENTO DE ERRO 412 (INTEGRATION_NOT_FOUND) ---
-      if (response.status === 412) {
+      // --- TRATAMENTO DE ERRO ROBUSTO ---
+      // Verifica status 412 OU código de erro específico
+      if (response.status === 412 || result.error === 'INTEGRATION_NOT_FOUND' || result.error === 'PAGE_NOT_SELECTED') {
         toast((t) => (
           <div className="flex flex-col gap-2">
             <div className="font-semibold flex items-center text-red-600">
@@ -168,7 +169,7 @@ const SocialContentGenerator = () => {
               Conexão Necessária
             </div>
             <div className="text-sm text-gray-600">
-              {result.message || 'Sua conta do Facebook não está conectada.'}
+              {result.message || 'Sua conta do Facebook não está conectada corretamente.'}
             </div>
             <Button 
               size="sm" 

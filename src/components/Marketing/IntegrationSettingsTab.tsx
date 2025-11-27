@@ -39,8 +39,6 @@ const IntegrationSettingsTab = () => {
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
-      // Não mostramos erro visual intrusivo para não assustar se for apenas vazio,
-      // mas logamos no console.
     } finally {
       setLoading(false)
     }
@@ -51,7 +49,7 @@ const IntegrationSettingsTab = () => {
     
     const handleOAuthSuccess = () => {
         console.log("Evento oauth-success recebido! Atualizando lista...")
-        setTimeout(fetchIntegrations, 1000) // Pequeno delay para garantir que o banco processou
+        setTimeout(fetchIntegrations, 1000)
     }
     
     window.addEventListener('oauth-success', handleOAuthSuccess)
@@ -109,11 +107,15 @@ const IntegrationSettingsTab = () => {
   };
 
   const getIntegrationStatus = (platform: string) => {
-    return integrations.find(i => i.platform === platform)
+    const integration = integrations.find(i => i.platform === platform)
+    // Se existir mas o token for o placeholder, consideramos como não conectado
+    if (integration && integration.access_token === 'PENDENTE_DE_CONEXAO') {
+        return null
+    }
+    return integration
   }
 
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console') => {
-    // Verificar se já existe, para evitar duplicação visual
     if (getIntegrationStatus(platform === 'facebook' ? 'facebook' : platform)) {
         if (!confirm('Esta conta já parece conectada. Deseja reconectar?')) return;
     }
