@@ -12,7 +12,7 @@ const corsHeaders = {
 const FB_APP_ID = '705882238650821'
 const FB_APP_SECRET = '9ed8f8cba18684539e3aa675a13c788c'
 
-// Cliente Admin GLOBAL para logs (precisa estar fora do handler para reutilizar se possível, mas aqui instanciamos para garantir acesso)
+// Cliente Admin GLOBAL para logs
 // @ts-ignore
 const getDb = () => createClient(
   // @ts-ignore
@@ -50,6 +50,12 @@ serve(async (req) => {
     const reqBody = await req.json()
     const { action, code, platform, redirect_uri } = reqBody
     
+    // --- ROTA DE TESTE (NOVO) ---
+    if (action === 'ping') {
+        await dbLog('info', 'PING RECEBIDO: O sistema de logs está funcionando!', { time: new Date().toISOString() });
+        return new Response(JSON.stringify({ success: true, message: 'Pong!' }), { headers: corsHeaders, status: 200 });
+    }
+
     await dbLog('info', `Ação iniciada: ${action}`, { platform, redirect_uri_provided: !!redirect_uri });
 
     // --- AÇÃO 1: TROCA DE TOKEN (CALLBACK DO OAUTH) ---
@@ -133,7 +139,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true, saved: data }), { headers: corsHeaders, status: 200 });
     }
     
-    // --- AÇÃO 2: LISTAR PÁGINAS ---
+    // ... (restante do código mantido igual)
     if (action === 'get_connected_pages') {
         const { data: integration } = await supabaseAdmin
             .from('integrations')
@@ -162,7 +168,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true, pages }), { headers: corsHeaders, status: 200 });
     }
 
-    // --- AÇÃO 3: FETCH PAGES (LEGACY) ---
     if (action === 'fetch_pages') {
          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders, status: 200 });
     }

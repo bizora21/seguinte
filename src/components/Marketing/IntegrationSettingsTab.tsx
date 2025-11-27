@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -56,6 +56,30 @@ const IntegrationSettingsTab = () => {
     window.addEventListener('oauth-success', handleOAuthSuccess)
     return () => window.removeEventListener('oauth-success', handleOAuthSuccess)
   }, [])
+
+  const handleTestConnection = async () => {
+      const toastId = showLoading('Testando comunicação com o servidor...');
+      try {
+          const { data, error } = await supabase.functions.invoke('social-auth', {
+              method: 'POST',
+              body: { action: 'ping' }
+          });
+          
+          dismissToast(toastId);
+          
+          if (error) throw error;
+          
+          if (data && data.success) {
+              showSuccess(`Sucesso! Servidor respondeu: "${data.message}". Logs gravados.`);
+          } else {
+              showError('Servidor respondeu, mas indicou falha.');
+          }
+      } catch (error: any) {
+          dismissToast(toastId);
+          showError(`Falha de rede: ${error.message}`);
+          console.error("Ping error:", error);
+      }
+  }
 
   const handleSyncPages = async () => {
     setSubmitting(true)
@@ -162,9 +186,14 @@ const IntegrationSettingsTab = () => {
             <Link className="w-6 h-6 mr-2 text-primary" />
             Central de Integrações
           </CardTitle>
-          <Button onClick={fetchIntegrations} variant="ghost" size="sm" title="Recarregar dados">
-            <RefreshCw className="w-4 h-4 text-gray-500" />
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleTestConnection} variant="outline" size="sm" title="Testar servidor de logs">
+                <Activity className="w-4 h-4 mr-2 text-blue-600" /> Diagnóstico de Rede
+            </Button>
+            <Button onClick={fetchIntegrations} variant="ghost" size="sm" title="Recarregar dados">
+                <RefreshCw className="w-4 h-4 text-gray-500" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-8 p-6">
           
