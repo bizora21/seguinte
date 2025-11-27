@@ -25,25 +25,19 @@ const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]) // Novo estado para páginas
+  const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]) 
+  const [pagesLoaded, setPagesLoaded] = useState(false) // Novo estado para saber se tentamos carregar
   
-  // URL exata que o Facebook vai usar para retornar
   const CALLBACK_URL = `${window.location.origin}/oauth-callback`
 
   const fetchIntegrations = async () => {
     setLoading(true)
     try {
-      console.log("Buscando integrações...")
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
         
-      if (error) {
-        console.error('Erro Supabase:', error)
-        throw error
-      }
-      
-      console.log("Integrações encontradas:", data)
+      if (error) throw error
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
@@ -54,23 +48,17 @@ const IntegrationSettingsTab = () => {
   
   useEffect(() => {
     fetchIntegrations()
-    
-    const handleOAuthSuccess = () => {
-        console.log("Evento oauth-success recebido! Atualizando lista...")
-        setTimeout(fetchIntegrations, 1500) 
-    }
-    
+    const handleOAuthSuccess = () => setTimeout(fetchIntegrations, 1500)
     window.addEventListener('oauth-success', handleOAuthSuccess)
     return () => window.removeEventListener('oauth-success', handleOAuthSuccess)
   }, [])
 
-  // Buscar páginas automaticamente se já estiver conectado
   useEffect(() => {
     const fb = integrations.find(i => i.platform === 'facebook');
     if (fb && fb.access_token !== 'PENDENTE_DE_CONEXAO') {
-        handleSyncPages(true); // Silent mode
+        handleSyncPages(true); 
     }
-  }, [integrations.length]) // Executa quando as integrações são carregadas
+  }, [integrations.length]) 
 
   const handleTestConnection = async () => {
       const toastId = showLoading('Testando comunicação com o servidor...');
@@ -79,11 +67,8 @@ const IntegrationSettingsTab = () => {
               method: 'POST',
               body: { action: 'ping' }
           });
-          
           dismissToast(toastId);
-          
           if (error) throw error;
-          
           if (data && data.success) {
               showSuccess(`Sucesso! Servidor respondeu: "${data.message}". Logs gravados.`);
           } else {
@@ -92,7 +77,6 @@ const IntegrationSettingsTab = () => {
       } catch (error: any) {
           dismissToast(toastId);
           showError(`Falha de rede: ${error.message}`);
-          console.error("Ping error:", error);
       }
   }
 
@@ -111,8 +95,10 @@ const IntegrationSettingsTab = () => {
         if (error) throw error
         if (data?.error) throw new Error(data.error)
         
-        if (data.success && data.pages) {
-            setFacebookPages(data.pages)
+        setFacebookPages(data.pages || [])
+        setPagesLoaded(true)
+
+        if (data.success && data.pages?.length > 0) {
             if (!silent) showSuccess(`${data.pages.length} página(s) encontrada(s)!`)
         } else {
             if (!silent) showError('Conexão ativa, mas nenhuma página encontrada.')
@@ -139,7 +125,8 @@ const IntegrationSettingsTab = () => {
         dismissToast(toastId);
         showSuccess('Conta desconectada com sucesso.');
         setIntegrations(prev => prev.filter(i => i.platform !== platform));
-        setFacebookPages([]); // Limpa as páginas
+        setFacebookPages([]); 
+        setPagesLoaded(false);
     } catch (error: any) {
         dismissToast(toastId);
         showError('Erro ao desconectar: ' + error.message);
@@ -171,7 +158,6 @@ const IntegrationSettingsTab = () => {
         setSubmitting(false)
         return
       }
-      // Redirecionamento completo
       window.location.href = authUrl
     } catch (error: any) {
       showError('Erro ao iniciar conexão: ' + error.message)
@@ -214,12 +200,10 @@ const IntegrationSettingsTab = () => {
         </CardHeader>
         <CardContent className="space-y-8 p-6">
           
-          {/* Instruções de Configuração */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm space-y-3 shadow-sm">
               <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> AÇÃO NECESSÁRIA NO FACEBOOK</h3>
               <p className="text-amber-700">
-                  A rota de callback mudou para maior estabilidade. Copie a URL abaixo e adicione em:
-                  <br/><strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong>.
+                  Para garantir a conexão, adicione esta URL exata nas configurações de Login do Facebook:
               </p>
               <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white p-3 rounded border border-amber-200 font-mono text-xs break-all text-gray-700 select-all font-bold">
@@ -231,7 +215,6 @@ const IntegrationSettingsTab = () => {
               </div>
           </div>
           
-          {/* Integração Facebook */}
           <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${fbIntegration ? 'ring-1 ring-green-500 border-green-500' : 'hover:border-blue-300'}`}>
             <div className="bg-gray-50 p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
@@ -261,14 +244,7 @@ const IntegrationSettingsTab = () => {
             <div className="p-6 bg-white">
                 {fbIntegration && !isPending(fbIntegration) ? (
                     <div className="space-y-6">
-                        {/* Detalhes da Conexão */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Página Padrão</span>
-                                <div className="font-bold text-gray-900 mt-1 flex items-center text-lg">
-                                    {fbIntegration.metadata?.page_name || <span className="text-orange-600 text-sm flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/> Definir na Publicação</span>}
-                                </div>
-                            </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID do Usuário</span>
                                 <div className="font-mono text-sm text-gray-700 mt-1 truncate">
@@ -283,18 +259,10 @@ const IntegrationSettingsTab = () => {
                                     {formatDate(fbIntegration.expires_at)}
                                 </div>
                             </div>
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" /> Conectado em
-                                </span>
-                                <div className="font-medium text-gray-900 mt-1">
-                                    {formatDate(fbIntegration.updated_at)}
-                                </div>
-                            </div>
                         </div>
 
                         {/* LISTA DE PÁGINAS DO FACEBOOK */}
-                        {facebookPages.length > 0 && (
+                        {facebookPages.length > 0 ? (
                             <div className="border rounded-lg overflow-hidden">
                                 <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
                                     <h4 className="font-bold text-sm text-gray-700 flex items-center">
@@ -314,6 +282,28 @@ const IntegrationSettingsTab = () => {
                                     ))}
                                 </div>
                             </div>
+                        ) : pagesLoaded && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div className="flex items-start">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
+                                    <div>
+                                        <h4 className="font-bold text-red-800 text-sm">Nenhuma Página Encontrada</h4>
+                                        <p className="text-xs text-red-700 mt-1">
+                                            O Facebook diz que você não tem páginas ou não deu permissão para vê-las.
+                                        </p>
+                                        <div className="mt-3">
+                                            <p className="text-xs font-semibold text-red-800 mb-1">Solução:</p>
+                                            <Button 
+                                                size="sm" 
+                                                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
+                                                onClick={() => handleConnectOAuth('facebook')}
+                                            >
+                                                Reconectar e Editar Permissões
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                         
                         <div className="flex justify-end gap-3 pt-4 border-t">
@@ -324,7 +314,7 @@ const IntegrationSettingsTab = () => {
                                 className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-2 ${submitting ? 'animate-spin' : ''}`} />
-                                {facebookPages.length > 0 ? 'Atualizar Lista de Páginas' : 'Listar Páginas Disponíveis'}
+                                {facebookPages.length > 0 ? 'Atualizar Lista' : 'Buscar Páginas Novamente'}
                             </Button>
                             <Button 
                                 onClick={() => handleDisconnect('facebook')} 

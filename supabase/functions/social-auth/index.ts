@@ -139,7 +139,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true, saved: data }), { headers: corsHeaders, status: 200 });
     }
     
-    // ... (restante do código mantido igual)
+    // --- AÇÃO: LISTAR PÁGINAS CONECTADAS ---
     if (action === 'get_connected_pages') {
         const { data: integration } = await supabaseAdmin
             .from('integrations')
@@ -151,12 +151,21 @@ serve(async (req) => {
             return new Response(JSON.stringify({ success: false, error: 'Não conectado.' }), { headers: corsHeaders, status: 200 });
         }
         
+        await dbLog('info', 'Buscando páginas do Facebook...', { userId: integration.metadata?.user_id });
+
         const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}&limit=100`);
         const pagesData = await pagesResp.json();
         
         if (pagesData.error) {
+             await dbLog('error', 'Erro ao buscar páginas no Graph API', pagesData.error);
              return new Response(JSON.stringify({ success: false, error: pagesData.error.message }), { status: 200, headers: corsHeaders });
         }
+
+        // LOG DO DIAGNÓSTICO
+        await dbLog('info', 'Resposta do Facebook (Contagem de Páginas)', { 
+            count: pagesData.data?.length || 0,
+            raw_data_sample: pagesData.data ? pagesData.data.slice(0, 1) : 'null' 
+        });
 
         const pages = pagesData.data.map((p: any) => ({
             id: p.id,
