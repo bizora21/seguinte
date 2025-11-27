@@ -70,51 +70,41 @@ serve(async (req) => {
                 throw new Error('Integração com Facebook não encontrada. Conecte a conta nas configurações.');
             }
 
+            // Tenta usar o token da página se disponível (preferível), senão usa o do usuário
+            let pageAccessToken = integration.metadata?.page_access_token || integration.access_token;
             let pageId = integration.metadata?.page_id;
-            let pageAccessToken = integration.access_token; // Inicialmente o token do usuário
 
-            // Se não tivermos o Page ID salvo, vamos buscá-lo e pegar o Page Access Token correto
             if (!pageId) {
-                 console.log("Fetching Facebook Pages...");
+                 // Fallback: Se não temos Page ID, precisamos buscar agora
+                 console.log("Fetching Facebook Pages (Fallback)...");
                  const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
                  const pagesData = await pagesResp.json();
                  
                  if (pagesData.data && pagesData.data.length > 0) {
-                     // Pega a primeira página (Lógica simples - idealmente o usuário escolheria)
                      const page = pagesData.data[0];
                      pageId = page.id;
-                     pageAccessToken = page.access_token; // TOKEN DA PÁGINA (Necessário para postar como a página)
+                     pageAccessToken = page.access_token; // ATUALIZAR TOKEN
                      
-                     // Atualizar o banco com o ID da página para o futuro
+                     // Salvar para o futuro
                      await supabase.from('integrations').update({
-                         metadata: { ...integration.metadata, page_id: pageId, page_name: page.name }
+                         metadata: { ...integration.metadata, page_id: pageId, page_name: page.name, page_access_token: page.access_token }
                      }).eq('platform', 'facebook');
                  } else {
-                     throw new Error('Nenhuma página do Facebook encontrada para esta conta. Crie uma página primeiro.');
+                     throw new Error('Nenhuma página do Facebook encontrada para esta conta.');
                  }
-            } else {
-                // Se já temos o Page ID, precisamos garantir que temos o token da página, não do usuário.
-                // Para simplificar, assumimos que na primeira conexão já salvamos o token correto ou refazemos o fetch acima.
-                // Em produção robusta, salvaríamos 'page_access_token' separadamente.
-                
-                // Fallback de segurança: Buscar token da página novamente
-                const pagesResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=access_token&access_token=${integration.access_token}`);
-                const pageData = await pagesResp.json();
-                if (pageData.access_token) {
-                    pageAccessToken = pageData.access_token;
-                }
             }
 
-            // 2. Realizar a publicação
+            // 2. Realizar a publicação REAL na Graph API
             const endpoint = imageUrl 
                 ? `https://graph.facebook.com/v19.0/${pageId}/photos`
                 : `https://graph.facebook.com/v19.0/${pageId}/feed`;
                 
             const fbBody = imageUrl 
-                ? { url: imageUrl, caption: content, access_token: pageAccessToken }
+                ? { url: imageUrl, caption: content, access_token: pageAccessToken, published: true }
                 : { message: content, access_token: pageAccessToken };
 
-            console.log(`Posting to Facebook Page ${pageId}...`);
+            console.log(`Posting to Facebook Page ${pageId} via Graph API...`);
+            
             const fbResponse = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -125,13 +115,17 @@ serve(async (req) => {
             
             if (fbData.error) {
                 console.error("Facebook API Error:", fbData.error);
-                throw new Error(`Facebook Error: ${fbData.error.message}`);
+                // Tratamento de erro de token expirado
+                if (fbData.error.code === 190) {
+                    throw new Error('O token do Facebook expirou. Por favor, reconecte a conta nas configurações.');
+                }
+                throw new Error(`Erro do Facebook: ${fbData.error.message}`);
             }
 
             return new Response(JSON.stringify({ 
                 success: true, 
-                jobId: fbData.id, // ID do post no Facebook
-                message: 'Publicado no Facebook com sucesso!' 
+                jobId: fbData.id,
+                message: 'Conteúdo publicado no Facebook com sucesso!' 
             }), {
                 headers: corsHeaders,
                 status: 200,
@@ -139,10 +133,9 @@ serve(async (req) => {
         }
     }
     
-    // Ação: Agendar (Salva no banco para um Cron Job processar depois)
+    // Agendamento (Mantido)
     if (body.action === 'schedule_post') {
       const { content, scheduleTime, platform } = body
-      
       const { data, error } = await supabase.from('jobs').insert({
         type: 'social_post',
         status: 'pending',
@@ -150,17 +143,13 @@ serve(async (req) => {
       }).select().single()
       
       if (error) throw error
-      
-      return new Response(JSON.stringify({ success: true, jobId: data.id, message: 'Agendamento salvo no banco de dados.' }), {
+      return new Response(JSON.stringify({ success: true, jobId: data.id, message: 'Agendamento salvo.' }), {
         headers: corsHeaders,
         status: 200,
       })
     }
     
-    return new Response(JSON.stringify({ message: 'Action not implemented' }), {
-      headers: corsHeaders,
-      status: 400,
-    })
+    return new Response(JSON.stringify({ message: 'Action not implemented' }), { headers: corsHeaders, status: 400 })
 
   } catch (error) {
     console.error('Edge Function Error:', error)

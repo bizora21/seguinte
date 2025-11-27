@@ -9,21 +9,15 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-// Inicializa o cliente Supabase (para interagir com o banco de dados)
 // @ts-ignore
 const supabase = createClient(
   // @ts-ignore
   Deno.env.get('SUPABASE_URL') ?? '',
   // @ts-ignore
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', // Usar SERVICE_ROLE_KEY para operações de escrita seguras
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  { auth: { persistSession: false } }
 )
 
-// Helper para logar no console com timestamp
 // @ts-ignore
 const log = (message: string, data?: any) => {
   console.log(`[SOCIAL-AUTH-LOG - ${new Date().toISOString()}] ${message}`, data || '');
@@ -36,17 +30,34 @@ serve(async (req) => {
   }
   
   const url = new URL(req.url);
-  log("=== CALLBACK RECEBIDO ===");
+  const action = url.searchParams.get('action');
 
+  // --- NOVO: Endpoint para o Frontend buscar o App ID (Configuração Dinâmica) ---
+  if (req.method === 'GET' && action === 'get_config') {
+      // @ts-ignore
+      const fbAppId = Deno.env.get('FACEBOOK_APP_ID');
+      // @ts-ignore
+      const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
+      
+      return new Response(JSON.stringify({ 
+          facebook_app_id: fbAppId,
+          google_client_id: googleClientId
+      }), { 
+          headers: corsHeaders, 
+          status: 200 
+      });
+  }
+
+  // --- LÓGICA DE CALLBACK (OAUTH) ---
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
   
-  // O Meta usa 'platform', o Google usa 'state' (que contém a plataforma)
   let platform = url.searchParams.get('platform');
   const stateParam = url.searchParams.get('state');
   
   // URL de redirecionamento para o painel admin
+  // Ajuste para redirecionar corretamente para a tab de configurações
   const REDIRECT_BASE = `${url.origin}/dashboard/admin/marketing?tab=settings`;
 
   if (error) {
@@ -55,12 +66,6 @@ serve(async (req) => {
     return Response.redirect(adminUrl, 302);
   }
 
-  if (!code) {
-    log("--- ERRO: Código não encontrado ---");
-    const adminUrl = `${REDIRECT_BASE}&status=social-auth-error&message=Codigo nao encontrado`;
-    return Response.redirect(adminUrl, 302);
-  }
-  
   // Tenta extrair a plataforma do parâmetro state (usado pelo Google)
   if (stateParam) {
       try {
@@ -70,17 +75,15 @@ serve(async (req) => {
           log("Erro ao decodificar state:", e);
       }
   }
-  
-  if (!platform) {
-      log("--- ERRO: Plataforma não identificada ---");
-      const adminUrl = `${REDIRECT_BASE}&status=social-auth-error&message=Plataforma nao identificada`;
-      return Response.redirect(adminUrl, 302);
+
+  if (!code || !platform) {
+      // Se não for callback nem get_config, retorna erro
+      return new Response(JSON.stringify({ error: 'Parâmetros inválidos' }), { status: 400, headers: corsHeaders });
   }
 
   log(`--- INICIANDO TROCA DE CÓDIGO PARA PLATAFORMA: ${platform} ---`);
 
   try {
-    // 1. Obter o ID do Usuário (Admin) para salvar o token
     const ADMIN_EMAIL = 'lojarapidamz@outlook.com';
     const { data: adminProfile, error: profileError } = await supabase
         .from('profiles')
@@ -89,7 +92,7 @@ serve(async (req) => {
         .single();
 
     if (profileError || !adminProfile) {
-        throw new Error('Perfil do administrador não encontrado no banco de dados.');
+        throw new Error('Perfil do administrador não encontrado.');
     }
     const adminId = adminProfile.id;
     
@@ -97,13 +100,12 @@ serve(async (req) => {
     let refreshToken: string | null = null;
     let expiresIn: number | null = null;
     let tokenType: string = 'user_token';
+    let metadata: any = { user_id: adminId };
     
-    // A URI de redirecionamento DEVE ser a URL desta Edge Function
+    // A URI de redirecionamento DEVE ser a URL desta Edge Function exata
     let redirectUri = `${url.origin}${url.pathname}`; 
 
     if (platform === 'facebook') {
-        // --- Lógica Facebook ---
-        // Para o Facebook, o redirect_uri deve incluir o parâmetro 'platform' para corresponder ao que foi enviado na autorização.
         redirectUri = `${url.origin}${url.pathname}?platform=facebook`;
         
         // @ts-ignore
@@ -115,17 +117,34 @@ serve(async (req) => {
         
         const tokenData = await tokenResponse.json();
         if (!tokenResponse.ok || tokenData.error) {
-            throw new Error(tokenData.error_description || tokenData.error?.message || 'Falha na troca do token de acesso do Facebook.');
+            throw new Error(tokenData.error?.message || 'Falha na troca do token Facebook.');
         }
 
         accessToken = tokenData.access_token;
-        expiresIn = tokenData.expires_in;
-        tokenType = 'facebook_short_lived_user_token';
+        expiresIn = tokenData.expires_in; // Short-lived token
         
+        // TROCA PARA LONG-LIVED TOKEN (Crucial para automação de 60 dias)
+        const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${accessToken}`);
+        const longLivedData = await longLivedResponse.json();
+        
+        if (longLivedData.access_token) {
+            accessToken = longLivedData.access_token;
+            expiresIn = longLivedData.expires_in; // Geralmente 60 dias
+            tokenType = 'facebook_long_lived_token';
+        }
+
+        // Buscar Páginas Automaticamente
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`);
+        const pagesData = await pagesResp.json();
+        if (pagesData.data && pagesData.data.length > 0) {
+            const page = pagesData.data[0];
+            metadata.page_id = page.id;
+            metadata.page_name = page.name;
+            metadata.page_access_token = page.access_token; // Guardar token da página também se possível, ou usar o do user
+        }
+
     } else if (platform.startsWith('google_')) {
-        // --- Lógica Google (Analytics / Search Console) ---
-        // Para o Google, o redirect_uri é apenas a URL base da função.
-        
+        // Lógica Google mantida...
         // @ts-ignore
         const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
         // @ts-ignore
@@ -133,38 +152,29 @@ serve(async (req) => {
         
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 code: code,
                 client_id: clientId,
                 client_secret: clientSecret,
-                redirect_uri: redirectUri, // Google usa o URI sem parâmetros de consulta
+                redirect_uri: redirectUri,
                 grant_type: 'authorization_code',
             }).toString(),
         });
         
         const tokenData = await tokenResponse.json();
-        log("Resposta da API de Token do Google:", tokenData);
-
-        if (!tokenResponse.ok || tokenData.error) {
-            throw new Error(tokenData.error_description || tokenData.error || 'Falha na troca do token de acesso do Google.');
-        }
+        if (!tokenResponse.ok) throw new Error(tokenData.error_description || 'Falha token Google');
         
         accessToken = tokenData.access_token;
-        refreshToken = tokenData.refresh_token || null; // Refresh token é crucial para acesso offline
+        refreshToken = tokenData.refresh_token;
         expiresIn = tokenData.expires_in;
         tokenType = 'google_access_token';
-        
     } else {
-        throw new Error('Plataforma de integração não suportada.');
+        throw new Error('Plataforma não suportada.');
     }
     
-    // 3. Calcular a data de expiração
     const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
-    // 4. Salvar o Token na tabela 'integrations'
     const { error: insertError } = await supabase
         .from('integrations')
         .upsert({
@@ -172,29 +182,19 @@ serve(async (req) => {
             access_token: accessToken,
             refresh_token: refreshToken,
             expires_at: expiresAt,
-            metadata: {
-                user_id: adminId,
-                token_type: tokenType,
-                // Adicionar qualquer metadado específico da plataforma aqui
-            }
-        }, { onConflict: 'platform' })
-        .select();
+            metadata: { ...metadata, token_type: tokenType }
+        }, { onConflict: 'platform' });
 
-    if (insertError) {
-        throw new Error('Erro ao salvar token no banco de dados: ' + insertError.message);
-    }
+    if (insertError) throw new Error(insertError.message);
 
     log("--- SUCESSO! TOKEN SALVO ---");
-    
     const adminUrl = `${REDIRECT_BASE}&status=social-auth-success&platform=${platform}`;
     return Response.redirect(adminUrl, 302);
 
   } catch (err) {
-    log("--- ERRO EXCEÇÃO DURANTE O PROCESSO ---");
+    log("ERRO:", err);
     // @ts-ignore
-    log(err.message);
-    // @ts-ignore
-    const adminUrl = `${REDIRECT_BASE}&status=social-auth-error&message=${encodeURIComponent(err.message || 'Erro inesperado na Edge Function')}`;
+    const adminUrl = `${REDIRECT_BASE}&status=social-auth-error&message=${encodeURIComponent(err.message)}`;
     return Response.redirect(adminUrl, 302);
   }
 });

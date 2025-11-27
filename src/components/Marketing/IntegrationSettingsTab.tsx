@@ -1,9 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { Link, Save, Facebook, TrendingUp, CheckCircle, XCircle, Loader2, RefreshCw, Search, AlertTriangle, Copy } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -117,7 +115,7 @@ const IntegrationSettingsTab = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3">
               <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração Obrigatória no Facebook Developers</h3>
               <p className="text-blue-700">
-                  Para ativar as automações reais, você precisa criar um App no <a href="https://developers.facebook.com" target="_blank" className="underline font-bold">Meta for Developers</a> e adicionar esta URL no campo <strong>"URIs de redirecionamento do OAuth válidos"</strong>:
+                  Certifique-se de que o URL abaixo está adicionado em "Login do Facebook &gt; Configurações &gt; URIs de redirecionamento do OAuth válidos" no painel de desenvolvedores do Meta.
               </p>
               <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white p-2 rounded border border-blue-200 font-mono text-xs break-all">
