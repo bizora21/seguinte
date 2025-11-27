@@ -13,6 +13,11 @@ const FB_APP_ID = '705882238650821'
 const FB_APP_SECRET = '9ed8f8cba18684539e3aa675a13c788c'
 
 // @ts-ignore
+const log = (message: string, data?: any) => {
+  console.log(`[SOCIAL-AUTH] ${message}`, data ? JSON.stringify(data) : '');
+}
+
+// @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -30,16 +35,23 @@ serve(async (req) => {
     const { action, code, platform, redirect_uri } = await req.json()
 
     if (action === 'exchange_token') {
+        // NORMALIZAÇÃO CRÍTICA: Forçar minúsculo
+        const cleanPlatform = (platform || 'facebook').toLowerCase().trim();
+        log(`Iniciando troca de token para: ${cleanPlatform}`);
+        
         let accessToken = '';
         let expiresIn = null;
         let metadata: any = {};
 
-        if (platform === 'facebook') {
+        if (cleanPlatform === 'facebook') {
             const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`;
             const tokenResp = await fetch(tokenUrl);
             const tokenData = await tokenResp.json();
 
-            if (tokenData.error) return new Response(JSON.stringify({ error: tokenData.error.message }), { status: 400, headers: corsHeaders });
+            if (tokenData.error) {
+                log("Erro Facebook OAuth:", tokenData.error);
+                return new Response(JSON.stringify({ error: tokenData.error.message }), { status: 400, headers: corsHeaders });
+            }
 
             accessToken = tokenData.access_token;
             expiresIn = tokenData.expires_in;
@@ -68,23 +80,27 @@ serve(async (req) => {
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
+        log("Tentando salvar no banco...", { platform: cleanPlatform });
+
         // SALVAR E RETORNAR DADOS
         const { data: savedData, error: dbError } = await supabaseAdmin
             .from('integrations')
             .upsert({
-                platform: platform,
+                platform: cleanPlatform,
                 access_token: accessToken,
                 expires_at: expiresAt,
                 metadata: metadata,
                 updated_at: new Date().toISOString()
             })
-            .select() // Importante: Retornar o dado salvo
+            .select()
             .single();
 
         if (dbError) {
-             return new Response(JSON.stringify({ error: "Erro de banco de dados: " + dbError.message }), { status: 500, headers: corsHeaders });
+             log("ERRO FATAL DE BANCO:", dbError);
+             return new Response(JSON.stringify({ error: "Erro ao salvar no banco: " + dbError.message }), { status: 500, headers: corsHeaders });
         }
 
+        log("Sucesso! Dados salvos:", savedData);
         return new Response(JSON.stringify({ success: true, saved: savedData }), { headers: corsHeaders, status: 200 });
     }
     
@@ -103,6 +119,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { headers: corsHeaders, status: 400 });
 
   } catch (err) {
+    log("Exceção não tratada:", err);
     return new Response(JSON.stringify({ error: err.message }), { headers: corsHeaders, status: 500 });
   }
 });
