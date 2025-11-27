@@ -12,31 +12,19 @@ const corsHeaders = {
 const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
 
 // @ts-ignore
-const supabase = createClient(
-  // @ts-ignore
-  Deno.env.get('SUPABASE_URL') ?? '',
-  // @ts-ignore
-  Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-  {
-    auth: {
-      persistSession: false,
-    },
-  },
-)
-
-// @ts-ignore
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
   
-  // --- AUTHENTICATION ---
+  // --- 1. AUTENTICAÇÃO DO USUÁRIO (Frontend) ---
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
   }
   const token = authHeader.replace('Bearer ', '')
 
+  // Cliente para verificar quem está chamando
   const supabaseClient = createClient(
     // @ts-ignore
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,30 +32,45 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   )
+  
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
 
   if (authError || !user || user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     return new Response(JSON.stringify({ error: 'Unauthorized: Admin access required' }), { status: 401, headers: corsHeaders })
   }
-  // --- END AUTHENTICATION ---
+
+  // --- 2. CLIENTE ADMIN (Para acessar o banco de dados sem restrições RLS) ---
+  const supabaseAdmin = createClient(
+    // @ts-ignore
+    Deno.env.get('SUPABASE_URL') ?? '',
+    // @ts-ignore
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
   
   try {
     const body = await req.json().catch(() => ({}))
     
-    // Ação: Publicar Agora (REAL)
+    // Ação: Publicar Agora
     if (body.action === 'publish_now') {
         const { content, platform, imageUrl } = body;
 
         if (platform === 'facebook_instagram' || platform === 'facebook') {
-            // 1. Buscar token válido no banco
-            const { data: integration, error: tokenError } = await supabase
+            // 1. Buscar token válido no banco usando o CLIENTE ADMIN
+            const { data: integration, error: tokenError } = await supabaseAdmin
                 .from('integrations')
                 .select('access_token, metadata')
                 .eq('platform', 'facebook')
                 .single();
 
             if (tokenError || !integration) {
-                throw new Error('Integração com Facebook não encontrada. Conecte a conta nas configurações.');
+                console.error("Erro ao buscar integração:", tokenError);
+                throw new Error('Integração com Facebook não encontrada no banco de dados. Por favor, vá em Configurações e conecte a conta.');
             }
 
             // Tenta usar o token da página se disponível (preferível), senão usa o do usuário
@@ -75,7 +78,7 @@ serve(async (req) => {
             let pageId = integration.metadata?.page_id;
 
             if (!pageId) {
-                 // Fallback: Se não temos Page ID, precisamos buscar agora
+                 // Fallback: Se não temos Page ID salvo, buscamos agora na API do Facebook
                  console.log("Fetching Facebook Pages (Fallback)...");
                  const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
                  const pagesData = await pagesResp.json();
@@ -83,18 +86,18 @@ serve(async (req) => {
                  if (pagesData.data && pagesData.data.length > 0) {
                      const page = pagesData.data[0];
                      pageId = page.id;
-                     pageAccessToken = page.access_token; // ATUALIZAR TOKEN
+                     pageAccessToken = page.access_token; // ATUALIZAR TOKEN PARA O DA PÁGINA
                      
-                     // Salvar para o futuro
-                     await supabase.from('integrations').update({
+                     // Salvar metadados atualizados para o futuro
+                     await supabaseAdmin.from('integrations').update({
                          metadata: { ...integration.metadata, page_id: pageId, page_name: page.name, page_access_token: page.access_token }
                      }).eq('platform', 'facebook');
                  } else {
-                     throw new Error('Nenhuma página do Facebook encontrada para esta conta.');
+                     throw new Error('Nenhuma página do Facebook encontrada para esta conta. Crie uma página no Facebook primeiro.');
                  }
             }
 
-            // 2. Realizar a publicação REAL na Graph API
+            // 2. Realizar a publicação REAL na Graph API do Facebook
             const endpoint = imageUrl 
                 ? `https://graph.facebook.com/v19.0/${pageId}/photos`
                 : `https://graph.facebook.com/v19.0/${pageId}/feed`;
@@ -103,7 +106,7 @@ serve(async (req) => {
                 ? { url: imageUrl, caption: content, access_token: pageAccessToken, published: true }
                 : { message: content, access_token: pageAccessToken };
 
-            console.log(`Posting to Facebook Page ${pageId} via Graph API...`);
+            console.log(`Posting to Facebook Page ${pageId}...`);
             
             const fbResponse = await fetch(endpoint, {
                 method: 'POST',
@@ -115,9 +118,8 @@ serve(async (req) => {
             
             if (fbData.error) {
                 console.error("Facebook API Error:", fbData.error);
-                // Tratamento de erro de token expirado
                 if (fbData.error.code === 190) {
-                    throw new Error('O token do Facebook expirou. Por favor, reconecte a conta nas configurações.');
+                    throw new Error('O token do Facebook expirou ou é inválido. Por favor, desconecte e reconecte a conta nas configurações.');
                 }
                 throw new Error(`Erro do Facebook: ${fbData.error.message}`);
             }
@@ -131,22 +133,6 @@ serve(async (req) => {
                 status: 200,
             });
         }
-    }
-    
-    // Agendamento (Mantido)
-    if (body.action === 'schedule_post') {
-      const { content, scheduleTime, platform } = body
-      const { data, error } = await supabase.from('jobs').insert({
-        type: 'social_post',
-        status: 'pending',
-        payload: { content, scheduleTime, platform }
-      }).select().single()
-      
-      if (error) throw error
-      return new Response(JSON.stringify({ success: true, jobId: data.id, message: 'Agendamento salvo.' }), {
-        headers: corsHeaders,
-        status: 200,
-      })
     }
     
     return new Response(JSON.stringify({ message: 'Action not implemented' }), { headers: corsHeaders, status: 400 })
