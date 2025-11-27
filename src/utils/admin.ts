@@ -20,8 +20,8 @@ export interface PaymentProof {
   status: 'pending' | 'approved' | 'rejected'
   submission_date: string
   reviewed_date: string | null
-  store_name: string | null // CORRIGIDO: Propriedade plana
-  email: string // CORRIGIDO: Propriedade plana
+  store_name: string | null
+  email: string
 }
 
 // URL base da Edge Function para lidar com o retorno do OAuth
@@ -37,9 +37,9 @@ export const UNSPLASH_IMAGE_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.s
 export const IMAGE_OPTIMIZER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/image-optimizer'
 
 
-// Credenciais (Lidas do .env.local do Vite)
-// Adicionando um valor de fallback seguro para evitar que o frontend quebre
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || 'MOCK_FACEBOOK_ID' 
+// Credenciais
+// Configuração direta para funcionamento imediato conforme solicitado
+const FACEBOOK_APP_ID = '705882238650821' 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '' 
 
 /**
@@ -49,18 +49,18 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
   
   if (platform === 'facebook') {
-    if (FACEBOOK_APP_ID === 'MOCK_FACEBOOK_ID') {
-      showError('Erro: VITE_FACEBOOK_APP_ID não configurado no .env.local. Por favor, adicione-o para iniciar o OAuth.')
+    if (!FACEBOOK_APP_ID) {
+      showError('Erro: ID do Facebook não configurado.')
       return ''
     }
     
-    // O Facebook exige que o redirect_uri na URL de autorização seja o mesmo que o usado na troca de token.
     // A Edge Function usa: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth?platform=facebook
     const redirectUri = `${OAUTH_HANDLER_BASE_URL}?platform=facebook`
     const encodedRedirectUri = encodeURIComponent(redirectUri)
     
     // Escopos necessários para gerenciar páginas e publicar conteúdo
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_comments,instagram_manage_insights'
+    // pages_manage_posts e pages_read_engagement são cruciais
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
     
     return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code`
   }
@@ -71,7 +71,6 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       return ''
     }
     
-    // Para o Google, o redirect_uri é apenas a URL base da função, sem parâmetros de query
     const redirectUri = OAUTH_HANDLER_BASE_URL
     const encodedRedirectUri = encodeURIComponent(redirectUri)
     
@@ -79,7 +78,6 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       ? 'https://www.googleapis.com/auth/analytics.readonly'
       : 'https://www.googleapis.com/auth/webmasters.readonly'
       
-    // O state é usado para identificar a plataforma no retorno
     const state = JSON.stringify({ platform })
     
     return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code&access_type=offline&state=${encodeURIComponent(state)}`
@@ -144,11 +142,9 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
 
 export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
   try {
-    // Chama a função segura na base de dados
     const { data, error } = await supabase.rpc('get_pending_proofs_with_seller_details')
 
     if (error) throw error
-    // O resultado da RPC já é um array de objetos planos que corresponde à interface PaymentProof
     return data as PaymentProof[]
   } catch (error: any) {
     console.error('Error fetching pending payment proofs:', error)
@@ -156,10 +152,8 @@ export const getPendingPaymentProofs = async (): Promise<PaymentProof[]> => {
   }
 }
 
-// Função para aprovar pagamento e zerar comissões pendentes
 export const approvePaymentProof = async (proofId: string, sellerId: string, amountPaid: number): Promise<boolean> => {
   try {
-    // 1. Atualizar o status do comprovante para 'approved'
     const { error: proofUpdateError } = await supabase
       .from('seller_payment_proofs')
       .update({ status: 'approved', reviewed_date: new Date().toISOString() })
@@ -167,9 +161,6 @@ export const approvePaymentProof = async (proofId: string, sellerId: string, amo
 
     if (proofUpdateError) throw proofUpdateError
 
-    // 2. Marcar as comissões pendentes como 'paid' até o valor pago.
-    
-    // Buscar todas as comissões pendentes do vendedor, ordenadas por data
     const { data: pendingCommissions, error: fetchCommissionsError } = await supabase
       .from('commissions')
       .select('id, amount')
@@ -187,7 +178,6 @@ export const approvePaymentProof = async (proofId: string, sellerId: string, amo
         commissionsToPay.push(commission.id)
         remainingAmount -= commission.amount
       } else {
-        // Se o pagamento for parcial, paramos aqui.
         break 
       }
     }
@@ -205,7 +195,6 @@ export const approvePaymentProof = async (proofId: string, sellerId: string, amo
       showSuccess('Aprovado! Nenhuma comissão pendente encontrada para zerar com este valor.')
     }
 
-    // 3. Inserir notificação para o administrador sobre a aprovação
     await supabase.from('admin_notifications').insert({
       message: `Comprovante de pagamento #${proofId.slice(0, 8)} do vendedor ${sellerId.slice(0, 8)} APROVADO.`,
       type: 'payment_approved',
@@ -229,7 +218,6 @@ export const rejectPaymentProof = async (proofId: string, sellerId: string): Pro
 
     if (error) throw error
     
-    // Inserir notificação para o administrador sobre a rejeição
     await supabase.from('admin_notifications').insert({
       message: `Comprovante de pagamento #${proofId.slice(0, 8)} do vendedor ${sellerId.slice(0, 8)} REJEITADO.`,
       type: 'payment_rejected',

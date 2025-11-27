@@ -9,6 +9,10 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// Credenciais Hardcoded para funcionamento imediato
+const FB_APP_ID = '705882238650821'
+const FB_APP_SECRET = '9ed8f8cba18684539e3aa675a13c788c'
+
 // @ts-ignore
 const supabase = createClient(
   // @ts-ignore
@@ -32,15 +36,13 @@ serve(async (req) => {
   const url = new URL(req.url);
   const action = url.searchParams.get('action');
 
-  // --- NOVO: Endpoint para o Frontend buscar o App ID (Configuração Dinâmica) ---
+  // Endpoint de Configuração
   if (req.method === 'GET' && action === 'get_config') {
-      // @ts-ignore
-      const fbAppId = Deno.env.get('FACEBOOK_APP_ID');
       // @ts-ignore
       const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID');
       
       return new Response(JSON.stringify({ 
-          facebook_app_id: fbAppId,
+          facebook_app_id: FB_APP_ID,
           google_client_id: googleClientId
       }), { 
           headers: corsHeaders, 
@@ -48,7 +50,7 @@ serve(async (req) => {
       });
   }
 
-  // --- LÓGICA DE CALLBACK (OAUTH) ---
+  // Lógica de Callback
   const code = url.searchParams.get('code');
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
@@ -56,8 +58,6 @@ serve(async (req) => {
   let platform = url.searchParams.get('platform');
   const stateParam = url.searchParams.get('state');
   
-  // URL de redirecionamento para o painel admin
-  // Ajuste para redirecionar corretamente para a tab de configurações
   const REDIRECT_BASE = `${url.origin}/dashboard/admin/marketing?tab=settings`;
 
   if (error) {
@@ -66,7 +66,6 @@ serve(async (req) => {
     return Response.redirect(adminUrl, 302);
   }
 
-  // Tenta extrair a plataforma do parâmetro state (usado pelo Google)
   if (stateParam) {
       try {
           const stateData = JSON.parse(decodeURIComponent(stateParam));
@@ -77,7 +76,6 @@ serve(async (req) => {
   }
 
   if (!code || !platform) {
-      // Se não for callback nem get_config, retorna erro
       return new Response(JSON.stringify({ error: 'Parâmetros inválidos' }), { status: 400, headers: corsHeaders });
   }
 
@@ -102,49 +100,48 @@ serve(async (req) => {
     let tokenType: string = 'user_token';
     let metadata: any = { user_id: adminId };
     
-    // A URI de redirecionamento DEVE ser a URL desta Edge Function exata
     let redirectUri = `${url.origin}${url.pathname}`; 
 
     if (platform === 'facebook') {
         redirectUri = `${url.origin}${url.pathname}?platform=facebook`;
         
-        // @ts-ignore
-        const appId = Deno.env.get('FACEBOOK_APP_ID');
-        // @ts-ignore
-        const appSecret = Deno.env.get('FACEBOOK_APP_SECRET');
-        
-        const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
+        // TROCA DE CÓDIGO POR TOKEN (SHORT-LIVED)
+        const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`);
         
         const tokenData = await tokenResponse.json();
         if (!tokenResponse.ok || tokenData.error) {
+            log("Erro Facebook Token:", tokenData);
             throw new Error(tokenData.error?.message || 'Falha na troca do token Facebook.');
         }
 
         accessToken = tokenData.access_token;
-        expiresIn = tokenData.expires_in; // Short-lived token
+        expiresIn = tokenData.expires_in; 
         
-        // TROCA PARA LONG-LIVED TOKEN (Crucial para automação de 60 dias)
-        const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${accessToken}`);
+        // TROCA PARA LONG-LIVED TOKEN (60 dias)
+        const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${accessToken}`);
         const longLivedData = await longLivedResponse.json();
         
         if (longLivedData.access_token) {
             accessToken = longLivedData.access_token;
-            expiresIn = longLivedData.expires_in; // Geralmente 60 dias
+            expiresIn = longLivedData.expires_in; 
             tokenType = 'facebook_long_lived_token';
         }
 
-        // Buscar Páginas Automaticamente
+        // BUSCAR PÁGINAS
         const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`);
         const pagesData = await pagesResp.json();
+        
         if (pagesData.data && pagesData.data.length > 0) {
             const page = pagesData.data[0];
             metadata.page_id = page.id;
             metadata.page_name = page.name;
-            metadata.page_access_token = page.access_token; // Guardar token da página também se possível, ou usar o do user
+            metadata.page_access_token = page.access_token; // Token específico da página (importante para postar)
+            log("Página do Facebook encontrada:", page.name);
+        } else {
+            log("Nenhuma página encontrada vinculada à conta.");
         }
 
     } else if (platform.startsWith('google_')) {
-        // Lógica Google mantida...
         // @ts-ignore
         const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
         // @ts-ignore
@@ -192,7 +189,7 @@ serve(async (req) => {
     return Response.redirect(adminUrl, 302);
 
   } catch (err) {
-    log("ERRO:", err);
+    log("ERRO CRÍTICO:", err);
     // @ts-ignore
     const adminUrl = `${REDIRECT_BASE}&status=social-auth-error&message=${encodeURIComponent(err.message)}`;
     return Response.redirect(adminUrl, 302);
