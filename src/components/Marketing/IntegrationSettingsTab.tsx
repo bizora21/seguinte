@@ -21,7 +21,7 @@ const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [statusMessage, setStatusMessage] = useState<string | null>(null) // Novo estado para feedback
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const processedRef = useRef(false)
   
   const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
@@ -45,11 +45,13 @@ const IntegrationSettingsTab = () => {
   
   useEffect(() => {
     const code = searchParams.get('code')
-    const stateParam = searchParams.get('state')
+    // Removemos a dependência estrita do stateParam aqui
     
     if (code && !processedRef.current) {
+      console.log("Código OAuth detectado, iniciando processamento...")
       processedRef.current = true;
-      handleOAuthCallback(code, stateParam || '{}')
+      // Passamos o stateParam se existir, ou string vazia
+      handleOAuthCallback(code, searchParams.get('state') || '{}')
     } else if (!code) {
       fetchIntegrations()
     }
@@ -57,8 +59,8 @@ const IntegrationSettingsTab = () => {
 
   const handleOAuthCallback = async (code: string, stateParam: string) => {
     setSubmitting(true)
-    setStatusMessage('Finalizando conexão segura com o Facebook...')
-    const toastId = showLoading('Conectando ao Facebook...')
+    setStatusMessage('Código recebido! Trocando por token de acesso...')
+    const toastId = showLoading('Finalizando conexão com Facebook...')
     
     try {
       let platform = 'facebook'
@@ -66,9 +68,11 @@ const IntegrationSettingsTab = () => {
           const state = JSON.parse(decodeURIComponent(stateParam))
           if (state.platform) platform = state.platform
       } catch (e) {
-          console.warn('State parse error, defaulting to facebook')
+          console.warn('State parse warning (usando facebook como padrão):', e)
       }
       
+      console.log(`Enviando código para Edge Function. Plataforma: ${platform}`)
+
       const { data, error } = await supabase.functions.invoke('social-auth', {
         method: 'POST',
         body: {
@@ -84,27 +88,27 @@ const IntegrationSettingsTab = () => {
 
       dismissToast(toastId)
       showSuccess(`Sucesso! Conectado ao ${platform}.`)
-      setStatusMessage(null)
+      setStatusMessage('Conexão realizada com sucesso!')
       
-      // Limpeza limpa dos parâmetros
-      const currentTab = searchParams.get('tab') || 'settings';
+      // Limpeza da URL
+      const currentTab = 'settings';
       navigate(`?tab=${currentTab}`, { replace: true })
       
       setTimeout(() => {
         fetchIntegrations()
         setSubmitting(false)
-      }, 1000)
+        setStatusMessage(null)
+      }, 1500)
       
     } catch (error: any) {
       dismissToast(toastId)
       console.error('OAuth Callback Error:', error)
       showError(`Erro ao conectar: ${error.message}`)
-      setStatusMessage(`Erro: ${error.message}`)
+      setStatusMessage(`Falha: ${error.message}`)
       setSubmitting(false)
     }
   }
 
-  // ... (rest of the functions: handleSyncPages, handleDisconnect, etc. - MANTIDAS IGUAIS)
   const handleSyncPages = async () => {
     setSubmitting(true)
     const toastId = showLoading('Buscando suas páginas do Facebook...')
@@ -124,10 +128,10 @@ const IntegrationSettingsTab = () => {
         }
     } catch (error: any) {
         dismissToast(toastId)
-        if (error.message.includes('190') || error.message.includes('token')) {
+        if (error.message && (error.message.includes('190') || error.message.includes('token'))) {
              showError('Seu token expirou. Por favor, clique no ícone de lixeira para desconectar e tente novamente.')
         } else {
-             showError(`Erro ao sincronizar: ${error.message}`)
+             showError(`Erro ao sincronizar: ${error.message || 'Erro desconhecido'}`)
         }
     } finally {
         setSubmitting(false)
@@ -192,7 +196,10 @@ const IntegrationSettingsTab = () => {
     <div className="space-y-6">
       {statusMessage && (
         <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
-          <p className="font-bold">Status</p>
+          <p className="font-bold flex items-center">
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 
+            Status da Conexão
+          </p>
           <p>{statusMessage}</p>
         </div>
       )}
