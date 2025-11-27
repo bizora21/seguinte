@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard, Database } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
@@ -14,62 +14,59 @@ import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManage
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
 import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
-import OAuthProcessor from '../components/Marketing/OAuthProcessor'
+import OAuthCallbackModal from '../components/Marketing/OAuthCallbackModal'
 
 const AdminMarketingCenter = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const codeParam = searchParams.get('code')
   
-  // Lógica inteligente para determinar a aba inicial
+  // Determinar aba inicial
   const getInitialTab = () => {
-    const tabParam = searchParams.get('tab')
-    // Se tiver código, queremos ir para settings depois de processar
-    if (searchParams.get('code')) return 'settings'
-    return tabParam || 'overview'
+    // Se tiver code, não importa a aba, vamos processar. Depois voltamos para settings.
+    if (codeParam) return 'settings'
+    return searchParams.get('tab') || 'overview'
   }
 
   const [activeTab, setActiveTab] = useState(getInitialTab())
 
-  // Sincronizar URL quando a aba muda manualmente
+  // Sincronizar URL
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', value)
     
-    // Limpar parâmetros de OAuth se existirem ao mudar de aba
-    if (newParams.has('code')) newParams.delete('code')
-    if (newParams.has('state')) newParams.delete('state')
+    // Limpar lixo de OAuth
+    newParams.delete('code')
+    newParams.delete('state')
     
     navigate({ search: newParams.toString() }, { replace: true })
   }
 
   const handleOAuthComplete = () => {
-    console.log("OAuth Concluído. Limpando URL...")
+    console.log("OAuth Completo. Limpando estado...")
     
-    // 1. Definir a aba ativa para settings
+    // Forçar a remoção dos parâmetros da URL sem recarregar a página
+    const url = new URL(window.location.href)
+    url.searchParams.delete('code')
+    url.searchParams.delete('state')
+    url.searchParams.set('tab', 'settings')
+    window.history.replaceState({}, '', url.toString())
+    
+    // Sincronizar estado do React Router
+    setSearchParams({ tab: 'settings' })
     setActiveTab('settings')
     
-    // 2. Limpeza AGRESSIVA da URL usando History API do navegador
-    // Isso evita que o React Router entre em conflito ou demore a atualizar
-    const cleanUrl = new URL(window.location.href)
-    cleanUrl.searchParams.delete('code')
-    cleanUrl.searchParams.delete('state')
-    cleanUrl.searchParams.set('tab', 'settings')
-    
-    window.history.replaceState({}, '', cleanUrl.toString())
-    
-    // 3. Sincronizar o React Router (opcional mas boa prática)
-    setSearchParams({ tab: 'settings' })
-    
-    // 4. Forçar um pequeno reload do componente IntegrationSettings se necessário
-    // (O IntegrationSettingsTab vai detectar que não tem mais 'code' e fará o fetch)
+    // Pequeno delay para garantir que o componente IntegrationSettingsTab remonte/atualize
+    setTimeout(() => {
+        window.dispatchEvent(new Event('oauth-success'))
+    }, 100)
   }
 
-  // SE TIVER CÓDIGO, MOSTRA O PROCESSADOR E BLOQUEIA O RESTO
+  // INTERCEPTAÇÃO: Se houver código, mostra o modal SOBRE TUDO
   if (codeParam) {
     return (
-        <OAuthProcessor 
+        <OAuthCallbackModal 
             code={codeParam} 
             stateParam={searchParams.get('state')}
             onComplete={handleOAuthComplete}
@@ -102,10 +99,9 @@ const AdminMarketingCenter = () => {
             </div>
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
-             <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
-               <TrendingUp className="w-4 h-4 mr-2" />
-               Relatório Semanal
-             </Button>
+             <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center">
+                <Database className="w-3 h-3 mr-1" /> Sistema v2.1 (Online)
+             </div>
           </div>
         </div>
 
@@ -114,33 +110,19 @@ const AdminMarketingCenter = () => {
           {/* Navegação Principal */}
           <div className="sticky top-0 z-20 bg-gray-50 pt-2 pb-4">
             <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border rounded-xl shadow-sm">
-              <TabsTrigger value="overview" className="py-2.5 px-4 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900">
-                <LayoutDashboard className="w-4 h-4 mr-2" /> Visão Geral
-              </TabsTrigger>
-              <TabsTrigger value="content" className="py-2.5 px-4 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">
-                <FileText className="w-4 h-4 mr-2" /> SEO & Blog (Motor)
-              </TabsTrigger>
-              <TabsTrigger value="social" className="py-2.5 px-4 data-[state=active]:bg-purple-50 data-[state=active]:text-purple-700">
-                <Share2 className="w-4 h-4 mr-2" /> Social & WhatsApp
-              </TabsTrigger>
-              <TabsTrigger value="leads" className="py-2.5 px-4 data-[state=active]:bg-yellow-50 data-[state=active]:text-yellow-700">
-                <Users className="w-4 h-4 mr-2" /> Captura de Leads
-              </TabsTrigger>
-              <TabsTrigger value="broadcast" className="py-2.5 px-4 data-[state=active]:bg-green-50 data-[state=active]:text-green-700">
-                <Send className="w-4 h-4 mr-2" /> Disparos (Email)
-              </TabsTrigger>
-              <TabsTrigger value="automations" className="py-2.5 px-4 data-[state=active]:bg-orange-50 data-[state=active]:text-orange-700">
-                <Zap className="w-4 h-4 mr-2" /> Automações
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="py-2.5 px-4 ml-auto">
-                <TrendingUp className="w-4 h-4 mr-2" /> Configurações
-              </TabsTrigger>
+              <TabsTrigger value="overview" className="py-2.5 px-4"><LayoutDashboard className="w-4 h-4 mr-2" /> Visão Geral</TabsTrigger>
+              <TabsTrigger value="content" className="py-2.5 px-4"><FileText className="w-4 h-4 mr-2" /> SEO & Blog</TabsTrigger>
+              <TabsTrigger value="social" className="py-2.5 px-4"><Share2 className="w-4 h-4 mr-2" /> Social</TabsTrigger>
+              <TabsTrigger value="leads" className="py-2.5 px-4"><Users className="w-4 h-4 mr-2" /> Leads</TabsTrigger>
+              <TabsTrigger value="broadcast" className="py-2.5 px-4"><Send className="w-4 h-4 mr-2" /> E-mail</TabsTrigger>
+              <TabsTrigger value="automations" className="py-2.5 px-4"><Zap className="w-4 h-4 mr-2" /> Automações</TabsTrigger>
+              <TabsTrigger value="settings" className="py-2.5 px-4 ml-auto font-bold text-blue-700 bg-blue-50/50"><TrendingUp className="w-4 h-4 mr-2" /> Configurações & Conexões</TabsTrigger>
             </TabsList>
           </div>
 
           {/* Conteúdo das Abas */}
           
-          <TabsContent value="overview" className="animate-in fade-in-50 duration-300">
+          <TabsContent value="overview">
             <MarketingOverview />
             <div className="mt-8">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Atalhos Rápidos</h3>
@@ -148,10 +130,9 @@ const AdminMarketingCenter = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="content" className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="content" className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">Máquina de Conteúdo SEO</h2>
-                <p className="text-sm text-gray-500">Foco: Google Discover e Primeiras Posições</p>
             </div>
             <ContentManagerTab />
             <div className="mt-8 pt-8 border-t">
@@ -160,36 +141,37 @@ const AdminMarketingCenter = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="social" className="animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="social">
             <div className="space-y-8">
               <SocialContentGenerator /> 
               <div className="pt-8 border-t">
-                <h3 className="text-lg font-semibold mb-4 text-gray-700">Configurações de Conexão (OAuth)</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-700">Configurações de Conexão</h3>
                 <IntegrationSettingsTab />
               </div>
             </div>
           </TabsContent>
           
-          <TabsContent value="leads" className="animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="leads">
             <div className="space-y-6">
               <LeadCaptureTab />
               <LeadsListTab />
             </div>
           </TabsContent>
           
-          <TabsContent value="broadcast" className="animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="broadcast">
             <EmailBroadcastTab />
           </TabsContent>
 
-          <TabsContent value="automations" className="animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="automations">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <EmailAutomationTab />
                 <EmailTemplateManagerTab />
             </div>
           </TabsContent>
           
-          <TabsContent value="settings" className="animate-in slide-in-from-bottom-4 duration-500">
+          <TabsContent value="settings">
             <div className="space-y-6">
+              {/* Force remount if needed by adding a key, though usually fetch on mount is enough */}
               <IntegrationSettingsTab />
               <AdvancedMetricsTab />
             </div>

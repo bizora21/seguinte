@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw, Trash2, Calendar, ShieldCheck } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -25,7 +25,6 @@ const IntegrationSettingsTab = () => {
   const fetchIntegrations = async () => {
     setLoading(true)
     try {
-      // Adicionando um timestamp para evitar cache
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
@@ -41,6 +40,18 @@ const IntegrationSettingsTab = () => {
   
   useEffect(() => {
     fetchIntegrations()
+    
+    // Listener para atualização automática após o modal fechar
+    const handleOAuthSuccess = () => {
+        console.log("Evento oauth-success recebido! Atualizando lista...")
+        fetchIntegrations()
+    }
+    
+    window.addEventListener('oauth-success', handleOAuthSuccess)
+    
+    return () => {
+        window.removeEventListener('oauth-success', handleOAuthSuccess)
+    }
   }, [])
 
   const handleSyncPages = async () => {
@@ -125,79 +136,79 @@ const IntegrationSettingsTab = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-xl">
-            <Link className="w-6 h-6 mr-2 text-primary" />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <Card className="border shadow-md">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b">
+          <CardTitle className="flex items-center text-xl text-gray-800">
+            <Link className="w-5 h-5 mr-2 text-primary" />
             Central de Integrações
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-8 p-6">
           
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3 shadow-sm">
               <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração do Facebook Developers</h3>
               <p className="text-blue-700">
                   Adicione esta URL exata em "Login do Facebook &gt; Configurações &gt; URIs de redirecionamento do OAuth válidos":
               </p>
               <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white p-2 rounded border border-blue-200 font-mono text-xs break-all text-gray-600">
+                  <code className="flex-1 bg-white p-2.5 rounded border border-blue-200 font-mono text-xs break-all text-gray-700 select-all">
                       {CALLBACK_URL}
                   </code>
-                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(CALLBACK_URL)}>
+                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(CALLBACK_URL)} title="Copiar URL">
                       <Copy className="w-4 h-4" />
                   </Button>
               </div>
           </div>
           
           {/* Integração Facebook */}
-          <div className="border rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
+          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${getIntegrationStatus('facebook') ? 'ring-2 ring-green-100' : ''}`}>
+            <div className="bg-gray-50 p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="bg-blue-600 p-2 rounded-lg text-white">
+                    <div className="bg-[#1877F2] p-2.5 rounded-lg text-white shadow-sm">
                         <Facebook className="w-6 h-6" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-gray-900">Facebook & Instagram</h3>
-                        <p className="text-sm text-gray-500">Para postagem automática de produtos</p>
+                        <h3 className="font-bold text-gray-900 text-lg">Facebook & Instagram</h3>
+                        <p className="text-sm text-gray-500">Postagem automática e viralização</p>
                     </div>
                 </div>
                 {getIntegrationStatus('facebook') ? (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Conectado
+                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 px-3 py-1 text-sm font-semibold">
+                        <CheckCircle className="w-4 h-4 mr-1.5" /> Conectado
                     </Badge>
                 ) : (
-                    <Badge variant="outline" className="text-gray-500">Não Conectado</Badge>
+                    <Badge variant="outline" className="text-gray-500 bg-white">Não Conectado</Badge>
                 )}
             </div>
             
-            <div className="p-6">
+            <div className="p-6 bg-white">
                 {getIntegrationStatus('facebook') ? (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-3 bg-gray-50 rounded border">
-                                <span className="text-xs font-bold text-gray-500 uppercase">Página Conectada</span>
-                                <div className="font-medium text-gray-900 mt-1 flex items-center">
-                                    {getIntegrationStatus('facebook')?.metadata?.page_name || 'Pendente de Sincronização'}
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Página Conectada</span>
+                                <div className="font-bold text-gray-900 mt-1 flex items-center text-lg">
+                                    {getIntegrationStatus('facebook')?.metadata?.page_name || <span className="text-orange-500 text-base">Pendente de Sincronização</span>}
                                 </div>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded border">
-                                <span className="text-xs font-bold text-gray-500 uppercase">ID da Página</span>
-                                <div className="font-mono text-sm text-gray-900 mt-1">
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID da Página</span>
+                                <div className="font-mono text-sm text-gray-700 mt-1 truncate">
                                     {getIntegrationStatus('facebook')?.metadata?.page_id || '-'}
                                 </div>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded border">
-                                <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> Token Expira em
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Validade do Token
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
                                     {formatDate(getIntegrationStatus('facebook')?.expires_at)}
                                 </div>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded border">
-                                <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" /> Última Atualização
+                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" /> Última Sincronização
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
                                     {formatDate(getIntegrationStatus('facebook')?.updated_at)}
@@ -210,7 +221,7 @@ const IntegrationSettingsTab = () => {
                                 onClick={handleSyncPages} 
                                 disabled={submitting} 
                                 variant="outline"
-                                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                                className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-2 ${submitting ? 'animate-spin' : ''}`} />
                                 Sincronizar Páginas
@@ -219,6 +230,7 @@ const IntegrationSettingsTab = () => {
                                 onClick={() => handleDisconnect('facebook')} 
                                 disabled={submitting} 
                                 variant="destructive"
+                                className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700"
                             >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Desconectar
@@ -226,15 +238,15 @@ const IntegrationSettingsTab = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="text-center py-6">
-                        <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                            Conecte sua conta para permitir que a LojaRápida publique produtos automaticamente na sua Página do Facebook e Instagram.
+                    <div className="text-center py-8 px-4">
+                        <p className="text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
+                            Conecte sua conta para permitir que a LojaRápida publique produtos automaticamente na sua Página do Facebook e Instagram. Aumente suas vendas com um clique.
                         </p>
                         <Button 
                             onClick={() => handleConnectOAuth('facebook')}
                             disabled={submitting}
                             size="lg"
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                            className="bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold px-8 h-12 shadow-lg transition-all hover:scale-105"
                         >
                             {submitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Facebook className="w-5 h-5 mr-2" />}
                             Conectar Facebook Agora
@@ -244,10 +256,12 @@ const IntegrationSettingsTab = () => {
             </div>
           </div>
           
-          <Button onClick={fetchIntegrations} variant="ghost" size="sm" className="w-full text-gray-500">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar Status de Conexão
-          </Button>
+          <div className="text-center pt-4">
+            <Button onClick={fetchIntegrations} variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600">
+                <RefreshCw className="w-3 h-3 mr-2" />
+                Forçar Atualização de Status
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
