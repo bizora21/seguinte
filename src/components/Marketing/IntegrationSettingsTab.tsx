@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -20,6 +20,7 @@ const IntegrationSettingsTab = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
+  // URL exata que o Facebook vai usar para retornar
   const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
 
   const fetchIntegrations = async () => {
@@ -49,7 +50,7 @@ const IntegrationSettingsTab = () => {
     
     const handleOAuthSuccess = () => {
         console.log("Evento oauth-success recebido! Atualizando lista...")
-        setTimeout(fetchIntegrations, 1000)
+        setTimeout(fetchIntegrations, 1500) // Delay um pouco maior para garantir a propagação no DB
     }
     
     window.addEventListener('oauth-success', handleOAuthSuccess)
@@ -58,11 +59,11 @@ const IntegrationSettingsTab = () => {
 
   const handleSyncPages = async () => {
     setSubmitting(true)
-    const toastId = showLoading('Sincronizando páginas do Facebook...')
+    const toastId = showLoading('Verificando conexão com Facebook...')
     try {
         const { data, error } = await supabase.functions.invoke('social-auth', {
             method: 'POST',
-            body: { action: 'fetch_pages' }
+            body: { action: 'get_connected_pages' }
         })
         
         dismissToast(toastId)
@@ -70,22 +71,22 @@ const IntegrationSettingsTab = () => {
         if (error) throw error
         if (data?.error) throw new Error(data.error)
         
-        if (data.success) {
-            showSuccess(`Página "${data.page_name}" sincronizada!`)
+        if (data.success && data.pages) {
+            showSuccess(`${data.pages.length} página(s) encontrada(s) e sincronizada(s)!`)
             fetchIntegrations()
         } else {
-            showError(data.message || 'Nenhuma página encontrada.')
+            showError('Conexão ativa, mas nenhuma página encontrada.')
         }
     } catch (error: any) {
         dismissToast(toastId)
-        showError(`Erro ao sincronizar: ${error.message}`)
+        showError(`Erro de sincronização: ${error.message}`)
     } finally {
         setSubmitting(false)
     }
   }
 
   const handleDisconnect = async (platform: string) => {
-    if (!confirm('Tem certeza que deseja desconectar?')) return;
+    if (!confirm('Tem certeza que deseja desconectar? Isso impedirá novas publicações.')) return;
     setSubmitting(true);
     const toastId = showLoading('Desconectando...');
     try {
@@ -96,11 +97,11 @@ const IntegrationSettingsTab = () => {
         if (error) throw error;
         
         dismissToast(toastId);
-        showSuccess('Conta desconectada.');
+        showSuccess('Conta desconectada com sucesso.');
         setIntegrations(prev => prev.filter(i => i.platform !== platform));
     } catch (error: any) {
         dismissToast(toastId);
-        showError('Erro: ' + error.message);
+        showError('Erro ao desconectar: ' + error.message);
     } finally {
         setSubmitting(false);
     }
@@ -108,8 +109,8 @@ const IntegrationSettingsTab = () => {
 
   const getIntegrationStatus = (platform: string) => {
     const integration = integrations.find(i => i.platform === platform)
-    // Se existir mas o token for o placeholder, consideramos como não conectado
-    if (integration && integration.access_token === 'PENDENTE_DE_CONEXAO') {
+    // Se existir mas o token for o placeholder ou inválido
+    if (integration && (integration.access_token === 'PENDENTE_DE_CONEXAO' || !integration.access_token)) {
         return null
     }
     return integration
@@ -117,7 +118,7 @@ const IntegrationSettingsTab = () => {
 
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console') => {
     if (getIntegrationStatus(platform === 'facebook' ? 'facebook' : platform)) {
-        if (!confirm('Esta conta já parece conectada. Deseja reconectar?')) return;
+        if (!confirm('Esta conta já parece conectada. Deseja reconectar para renovar o token?')) return;
     }
 
     setSubmitting(true)
@@ -127,16 +128,17 @@ const IntegrationSettingsTab = () => {
         setSubmitting(false)
         return
       }
+      // Redirecionamento completo
       window.location.href = authUrl
     } catch (error: any) {
-      showError('Erro ao iniciar: ' + error.message)
+      showError('Erro ao iniciar conexão: ' + error.message)
       setSubmitting(false)
     }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    showSuccess('Copiado!')
+    showSuccess('URL copiada para a área de transferência!')
   }
   
   const formatDate = (dateStr?: string | null) => {
@@ -162,13 +164,15 @@ const IntegrationSettingsTab = () => {
         </CardHeader>
         <CardContent className="space-y-8 p-6">
           
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3 shadow-sm">
-              <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração do Facebook</h3>
-              <p className="text-blue-700">
-                  Adicione esta URL no Facebook Developers &gt; Login do Facebook &gt; Configurações:
+          {/* Instruções de Configuração */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm space-y-3 shadow-sm">
+              <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> Configuração Obrigatória no Facebook</h3>
+              <p className="text-amber-700">
+                  Para que a conexão funcione, certifique-se de que esta URL exata está adicionada em 
+                  <strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong> no painel de desenvolvedor.
               </p>
               <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white p-2.5 rounded border border-blue-200 font-mono text-xs break-all text-gray-700 select-all">
+                  <code className="flex-1 bg-white p-3 rounded border border-amber-200 font-mono text-xs break-all text-gray-700 select-all font-bold">
                       {CALLBACK_URL}
                   </code>
                   <Button size="sm" variant="outline" onClick={() => copyToClipboard(CALLBACK_URL)} title="Copiar URL">
@@ -178,7 +182,7 @@ const IntegrationSettingsTab = () => {
           </div>
           
           {/* Integração Facebook */}
-          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${getIntegrationStatus('facebook') ? 'ring-2 ring-green-500 border-green-500' : ''}`}>
+          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${getIntegrationStatus('facebook') ? 'ring-1 ring-green-500 border-green-500' : 'hover:border-blue-300'}`}>
             <div className="bg-gray-50 p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-[#1877F2] p-2.5 rounded-lg text-white shadow-sm">
@@ -186,7 +190,7 @@ const IntegrationSettingsTab = () => {
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-900 text-lg">Facebook & Instagram</h3>
-                        <p className="text-sm text-gray-500">Postagem automática</p>
+                        <p className="text-sm text-gray-500">Postagem automática de produtos</p>
                     </div>
                 </div>
                 {getIntegrationStatus('facebook') ? (
@@ -201,22 +205,23 @@ const IntegrationSettingsTab = () => {
             <div className="p-6 bg-white">
                 {getIntegrationStatus('facebook') ? (
                     <div className="space-y-6">
+                        {/* Detalhes da Conexão */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Página</span>
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Página Padrão</span>
                                 <div className="font-bold text-gray-900 mt-1 flex items-center text-lg">
-                                    {getIntegrationStatus('facebook')?.metadata?.page_name || <span className="text-orange-500 text-base flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/> Sincronização Necessária</span>}
+                                    {getIntegrationStatus('facebook')?.metadata?.page_name || <span className="text-orange-600 text-sm flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/> Definir na Publicação</span>}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID</span>
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID do Usuário</span>
                                 <div className="font-mono text-sm text-gray-700 mt-1 truncate">
-                                    {getIntegrationStatus('facebook')?.metadata?.page_id || '-'}
+                                    {getIntegrationStatus('facebook')?.metadata?.user_id || '-'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> Expira em
+                                    <ShieldCheck className="w-3 h-3" /> Token Expira em
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
                                     {formatDate(getIntegrationStatus('facebook')?.expires_at)}
@@ -224,7 +229,7 @@ const IntegrationSettingsTab = () => {
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" /> Atualizado
+                                    <Calendar className="w-3 h-3" /> Conectado em
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
                                     {formatDate(getIntegrationStatus('facebook')?.updated_at)}
@@ -240,7 +245,7 @@ const IntegrationSettingsTab = () => {
                                 className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-2 ${submitting ? 'animate-spin' : ''}`} />
-                                Sincronizar Páginas
+                                Testar Conexão e Listar Páginas
                             </Button>
                             <Button 
                                 onClick={() => handleDisconnect('facebook')} 
@@ -273,7 +278,7 @@ const IntegrationSettingsTab = () => {
           </div>
           
           <div className="text-center pt-4">
-             <p className="text-xs text-gray-400">ID do Admin: lojarapidamz@outlook.com</p>
+             <p className="text-xs text-gray-400">Ambiente Seguro • Dados Criptografados</p>
           </div>
         </CardContent>
       </Card>
