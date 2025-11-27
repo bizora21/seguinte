@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store, ShoppingCart, Star } from 'lucide-react'
+import { Eye, Store, ClipboardList, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/badge'
 import { getFirstImageUrl } from '../utils/images'
@@ -129,11 +129,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
           className="col-span-4"
         >
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-9 text-sm shadow-sm transition-all active:scale-95"
+            className="w-full bg-primary hover:bg-green-700 text-white font-bold h-9 text-sm shadow-sm transition-all active:scale-95 uppercase tracking-wide"
             disabled={product.stock === 0}
           >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {product.stock === 0 ? 'Esgotado' : 'Comprar'}
+            <ClipboardList className="w-4 h-4 mr-2" />
+            {product.stock === 0 ? 'Esgotado' : 'Encomendar'}
           </Button>
         </Link>
         

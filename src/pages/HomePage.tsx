@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
@@ -11,9 +11,7 @@ import {
   Shield, 
   Truck, 
   CreditCard,
-  Zap,
   Users,
-  MapPin,
   ArrowRight,
   Loader2,
   CheckCircle,
@@ -21,13 +19,8 @@ import {
   Headphones,
   Search,
   ShoppingBag,
-  TruckIcon,
-  CreditCardIcon,
-  MessageCircle,
   Star,
-  Heart,
-  Gift,
-  Globe
+  Rocket
 } from 'lucide-react'
 import { SEO, generateWebSiteSchema, generateLocalBusinessSchema } from '../components/SEO'
 
@@ -48,7 +41,7 @@ const HomePage: React.FC = () => {
         `)
         .gt('stock', 0)
         .order('created_at', { ascending: false })
-        .limit(6) // Aumentado para 6 para preencher melhor o grid
+        .limit(8) // Mostra 8 produtos para um grid equilibrado
 
       if (error) throw error
       setFeaturedProducts(data || [])
@@ -71,9 +64,7 @@ const HomePage: React.FC = () => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   }
 
@@ -82,425 +73,218 @@ const HomePage: React.FC = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: {
-        type: 'spring' as const,
-        stiffness: 100,
-        damping: 12
-      }
+      transition: { type: 'spring', stiffness: 100, damping: 12 }
     }
   }
-
-  // Seção de benefícios
-  const benefits = [
-    {
-      icon: <Shield className="w-8 h-8 text-green-600" />,
-      title: 'Compra 100% Segura',
-      description: 'Pagamento na entrega. Você só paga quando receber o produto.'
-    },
-    {
-      icon: <Truck className="w-8 h-8 text-blue-600" />,
-      title: 'Entrega Grátis',
-      description: 'Frete grátis para todo Moçambique. Entrega em 1 a 5 dias úteis.'
-    },
-    {
-      icon: <Store className="w-8 h-8 text-purple-600" />,
-      title: 'Apoie Vendedores Locais',
-      description: 'Conectamos você com os melhores vendedores de todo o país.'
-    },
-    {
-      icon: <CreditCard className="w-8 h-8 text-orange-600" />,
-      title: 'Pagamento Flexível',
-      description: 'Aceitamos M-Pesa, eMola, dinheiro e cartão na entrega.'
-    }
-  ]
-
-  // Passos de como funciona
-  const steps = [
-    {
-      icon: <Search className="w-6 h-6 text-green-600" />,
-      title: 'Busque e Escolha',
-      description: 'Navegue por milhares de produtos de vendedores locais.'
-    },
-    {
-      icon: <ShoppingBag className="w-6 h-6 text-blue-600" />,
-      title: 'Faça seu Pedido',
-      description: 'Selecione os produtos e confira seu carrinho.'
-    },
-    {
-      icon: <TruckIcon className="w-6 h-6 text-purple-600" />,
-      title: 'Receba em Casa',
-      description: 'Aguarde a entrega em 1 a 5 dias úteis e pague na hora.'
-    },
-    {
-      icon: <CreditCardIcon className="w-6 h-6 text-orange-600" />,
-      title: 'Avalie sua Experiência',
-      description: 'Compartilhe sua experiência e ajude outros clientes.'
-    }
-  ]
-
-  // Vantagens para clientes
-  const clientBenefits = [
-    {
-      icon: <CheckCircle className="w-5 h-5 text-green-600" />,
-      title: 'Segurança Garantida',
-      description: 'Pague apenas quando receber o produto.'
-    },
-    {
-      icon: <Truck className="w-5 h-5 text-blue-600" />,
-      title: 'Entrega Rápida',
-      description: 'Receba seus produtos em 1 a 5 dias úteis.'
-    },
-    {
-      icon: <MessageCircle className="w-5 h-5 text-purple-600" />,
-      title: 'Suporte Direto',
-      description: 'Converse diretamente com os vendedores.'
-    },
-    {
-      icon: <Star className="w-5 h-5 text-yellow-500" />,
-      title: 'Produtos Verificados',
-      description: 'Qualidade garantida por vendedores confiáveis.'
-    }
-  ]
-
-  // Vantagens para vendedores
-  const sellerBenefits = [
-    {
-      icon: <TrendingUp className="w-5 h-5 text-green-600" />,
-      title: 'Alcance Nacional',
-      description: 'Venda para clientes em todo Moçambique.'
-    },
-    {
-      icon: <Headphones className="w-5 h-5 text-blue-600" />,
-      title: 'Suporte Especializado',
-      description: 'Ajuda dedicada para crescer seu negócio.'
-    },
-    {
-      icon: <CreditCard className="w-5 h-5 text-purple-600" />,
-      title: 'Pagamento Seguro',
-      description: 'Receba seus pagamentos em meticais de forma segura.'
-    },
-    {
-      icon: <Users className="w-5 h-5 text-orange-600" />,
-      title: 'Plataforma Gratuita',
-      description: 'Comece a vender sem custos iniciais.'
-    }
-  ]
 
   return (
     <>
       <SEO
-        title="LojaRápida | Marketplace Rápido e Seguro em Moçambique"
-        description="O maior marketplace de Moçambique. Compre e venda produtos online com segurança, pagamento na entrega e frete grátis para todo o país."
+        title="LojaRápida - Encomende e Venda Rápido em Moçambique"
+        description="O marketplace mais confiável de Moçambique. Encomende produtos com pagamento na entrega ou comece a vender rápido para todo o país."
         url="https://lojarapidamz.com/"
         image="/og-image.jpg"
         jsonLd={[generateWebSiteSchema(), generateLocalBusinessSchema()]}
       />
-      <div className="min-h-screen">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-r from-green-600 to-green-700 text-white">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center"
-            >
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                O Maior Marketplace de
-                <span className="block text-yellow-400">Moçambique</span>
-              </h1>
-              <p className="text-xl md:text-2xl mb-8 text-green-100 max-w-3xl mx-auto">
-                Compre e venda com segurança. Conectamos vendedores locais com clientes em todo o país.
-              </p>
+      
+      <div className="min-h-screen bg-white font-sans">
+        
+        {/* --- HERO SECTION --- */}
+        <section className="relative overflow-hidden bg-[#0A2540] text-white pb-20 pt-24 lg:pt-32">
+          {/* Background Pattern Suave */}
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center max-w-4xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center"
+                transition={{ duration: 0.6 }}
               >
-                <Button 
-                  size="lg" 
-                  onClick={() => navigate('/lojas')}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-4 text-lg"
-                >
-                  <Store className="w-5 h-5 mr-2" />
-                  Explorar Lojas
-                </Button>
-                <Button 
-                  size="lg"
-                  onClick={() => navigate('/register')} 
-                  className="bg-white hover:bg-gray-100 text-green-700 font-semibold px-8 py-4 text-lg border-0"
-                >
-                  <Users className="w-5 h-5 mr-2" />
-                  Começar a Vender
-                </Button>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
+                <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
+                  <span className="flex h-2 w-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                  <span className="text-sm font-medium text-green-50 tracking-wide uppercase">Marketplace #1 em Moçambique</span>
+                </div>
 
-        {/* Benefits Section */}
-        <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-              {benefits.map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="p-6 border rounded-lg shadow-sm hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex justify-center mb-4">
-                    {benefit.icon}
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{benefit.title}</h3>
-                  <p className="text-gray-600">{benefit.description}</p>
-                </motion.div>
-              ))}
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+                  Encomende e Venda <br className="hidden md:block" />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-300">
+                    Rápido e Seguro
+                  </span>
+                </h1>
+
+                <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
+                  Conectamos compradores e vendedores locais. 
+                  <span className="text-white font-semibold"> Pagamento na entrega</span>, 
+                  sem riscos, sem complicações.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <Button 
+                    onClick={() => navigate('/lojas')}
+                    size="lg"
+                    className="w-full sm:w-auto h-14 px-8 text-lg font-bold bg-green-500 hover:bg-green-600 text-white shadow-[0_0_20px_rgba(34,197,94,0.3)] transition-all hover:scale-105"
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-2" />
+                    Encomendar Agora
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/register')}
+                    variant="outline"
+                    size="lg"
+                    className="w-full sm:w-auto h-14 px-8 text-lg font-bold text-white border-white/30 hover:bg-white/10 hover:text-white"
+                  >
+                    <Store className="w-5 h-5 mr-2" />
+                    Quero Vender
+                  </Button>
+                </div>
+
+                {/* Trust Signals */}
+                <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap justify-center gap-6 md:gap-12 text-sm font-medium text-gray-400">
+                  <div className="flex items-center"><Shield className="w-5 h-5 mr-2 text-green-400" /> Compra 100% Segura</div>
+                  <div className="flex items-center"><Truck className="w-5 h-5 mr-2 text-blue-400" /> Entrega em todo MZ</div>
+                  <div className="flex items-center"><CreditCard className="w-5 h-5 mr-2 text-purple-400" /> Pague ao Receber</div>
+                </div>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        {/* How It Works Section */}
+        {/* --- VALUE PROPOSITION (CARDS) --- */}
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Como Funciona?
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Na LojaRápida, comprar e vender é simples, rápido e seguro. Siga estes passos:
-              </p>
-            </motion.div>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Por que usar a LojaRápida?</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">Criamos uma plataforma pensada para a realidade de Moçambique, focada em confiança e agilidade.</p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={index}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { icon: Shield, title: "Pagamento Seguro", desc: "Nunca pague adiantado. O pagamento é feito apenas no ato da entrega, garantindo total segurança para o seu dinheiro.", color: "text-green-600", bg: "bg-green-50" },
+                { icon: Rocket, title: "Entrega Expressa", desc: "Nossa rede logística parceira garante entregas rápidas em Maputo, Matola e envios seguros para todas as províncias.", color: "text-blue-600", bg: "bg-blue-50" },
+                { icon: Users, title: "Apoio Local", desc: "Ao comprar na LojaRápida, você impulsiona pequenos negócios e empreendedores moçambicanos a crescerem.", color: "text-purple-600", bg: "bg-purple-50" }
+              ].map((item, i) => (
+                <motion.div 
+                  key={i}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  transition={{ delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  className="text-center"
+                  className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
                 >
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    {step.icon}
+                  <div className={`w-14 h-14 ${item.bg} rounded-xl flex items-center justify-center mb-6`}>
+                    <item.icon className={`w-7 h-7 ${item.color}`} />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-gray-600">{step.description}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{item.desc}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Featured Products Section */}
-        <section className="py-20 bg-white">
+        {/* --- DUAL CTA SECTION --- */}
+        <section className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Produtos em Destaque
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Descubra os produtos mais populares da nossa plataforma
-              </p>
-              
-              {!showProducts && (
-                <Button
-                  onClick={handleShowProducts}
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Package className="w-5 h-5 mr-2" />
-                  Veja os Produtos em Destaque
-                </Button>
-              )}
-            </motion.div>
-
-            {showProducts && (
-              <>
-                {loading && (
-                  <div className="flex justify-center items-center h-40">
-                    <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Card Comprador */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-between min-h-[300px]">
+                <div className="relative z-10">
+                  <div className="inline-flex items-center bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-4">
+                    <ShoppingBag className="w-3 h-3 mr-1" /> PARA CLIENTES
                   </div>
-                )}
+                  <h3 className="text-3xl font-bold mb-4">Quer comprar algo incrível?</h3>
+                  <p className="text-blue-100 mb-8 max-w-md">Explore milhares de produtos únicos. Moda, eletrônicos, casa e muito mais.</p>
+                  <Button onClick={() => navigate('/produtos')} className="bg-white text-blue-900 hover:bg-blue-50 font-bold">
+                    Ver Catálogo
+                  </Button>
+                </div>
+                <ShoppingBag className="absolute -bottom-10 -right-10 w-64 h-64 text-white/10 rotate-12" />
+              </div>
 
-                {!loading && featuredProducts.length > 0 && (
-                  <motion.div
+              {/* Card Vendedor */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-black text-white p-10 flex flex-col justify-between min-h-[300px]">
+                <div className="relative z-10">
+                  <div className="inline-flex items-center bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-4">
+                    <TrendingUp className="w-3 h-3 mr-1" /> PARA EMPREENDEDORES
+                  </div>
+                  <h3 className="text-3xl font-bold mb-4">Quer vender rápido?</h3>
+                  <p className="text-gray-400 mb-8 max-w-md">Crie sua loja digital em minutos. Sem custos de adesão. Alcance todo o país.</p>
+                  <Button onClick={() => navigate('/register')} className="bg-green-500 text-white hover:bg-green-600 font-bold">
+                    Criar Minha Loja
+                  </Button>
+                </div>
+                <Store className="absolute -bottom-10 -right-10 w-64 h-64 text-white/10 rotate-12" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- FEATURED PRODUCTS --- */}
+        <section className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Achados da Semana</h2>
+              <p className="text-gray-600">Produtos populares selecionados para você encomendar agora.</p>
+            </div>
+
+            {!showProducts ? (
+              <div className="text-center">
+                <Button 
+                  onClick={handleShowProducts} 
+                  size="lg" 
+                  variant="outline"
+                  className="h-14 px-8 text-lg border-2"
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  Carregar Produtos em Destaque
+                </Button>
+              </div>
+            ) : (
+              <>
+                {loading ? (
+                  <div className="flex justify-center py-12"><Loader2 className="w-10 h-10 animate-spin text-gray-400" /></div>
+                ) : featuredProducts.length > 0 ? (
+                  <motion.div 
                     variants={containerVariants}
                     initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12"
+                    animate="visible"
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
                   >
                     {featuredProducts.map((product) => (
-                      <motion.div
-                        key={product.id}
-                        variants={itemVariants}
-                        className="h-full" // Correção de altura
-                      >
+                      <motion.div key={product.id} variants={itemVariants} className="h-full">
                         <ProductCard product={product} />
                       </motion.div>
                     ))}
                   </motion.div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">Nenhum produto em destaque no momento.</div>
                 )}
-
-                {!loading && featuredProducts.length === 0 && (
-                  <div className="text-center p-12 bg-gray-50 rounded-lg">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">Nenhum produto em destaque no momento.</p>
-                  </div>
-                )}
+                
+                <div className="text-center mt-12">
+                  <Button onClick={() => navigate('/produtos')} className="bg-[#0A2540] hover:bg-gray-800 text-white px-8">
+                    Ver Todos os Produtos <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </>
             )}
-
-            {showProducts && (
-              <div className="text-center">
-                <Button
-                  onClick={() => navigate('/produtos')}
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Ver Catálogo Completo
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            )}
           </div>
         </section>
 
-        {/* Client Benefits Section */}
-        <section className="py-20 bg-gray-50">
+        {/* --- SEO FOOTER TEXT --- */}
+        <section className="py-12 border-t border-gray-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Vantagens para Clientes
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Na LojaRápida, você compra com segurança e conforto. Descubra as vantagens:
+            <div className="prose max-w-none text-gray-500 text-sm">
+              <h3 className="text-gray-900 font-semibold mb-2">Sobre Compras Online em Moçambique</h3>
+              <p>
+                A LojaRápida está transformando o comércio eletrônico em Moçambique. Nossa plataforma permite que você encomende produtos de vendedores em Maputo, Matola, Beira, Nampula e outras províncias com facilidade. 
+                Diferente de outros sites, focamos na segurança do "Cash on Delivery" (Pagamento na Entrega), eliminando o medo de fraudes online. 
+                Seja para comprar eletrônicos, moda, produtos para casa ou beleza, a LojaRápida é o seu destino confiável. Venda rápido seus produtos criando uma conta de vendedor gratuita hoje mesmo.
               </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {clientBenefits.map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="flex items-start space-x-4 p-6 bg-white rounded-lg shadow-sm"
-                >
-                  <div className="flex-shrink-0 mt-1">
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{benefit.title}</h3>
-                    <p className="text-gray-600">{benefit.description}</p>
-                  </div>
-                </motion.div>
-              ))}
             </div>
           </div>
         </section>
 
-        {/* Seller Benefits Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Vantagens para Vendedores
-              </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Junte-se à nossa plataforma e cresça seu negócio. Oferecemos:
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {sellerBenefits.map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="flex items-start space-x-4 p-6 bg-gray-50 rounded-lg shadow-sm"
-                >
-                  <div className="flex-shrink-0 mt-1">
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{benefit.title}</h3>
-                    <p className="text-gray-600">{benefit.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-green-600 to-green-700 text-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Pronto para Começar?
-              </h2>
-              <p className="text-xl mb-8 text-green-100">
-                Junte-se a milhares de vendedores e clientes que já confiam na LojaRápida
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  onClick={() => navigate('/produtos')}
-                  className="bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-8 py-4 text-lg"
-                  size="lg"
-                >
-                  <Package className="w-5 h-5 mr-2" />
-                  Explorar Produtos Agora
-                </Button>
-                <Button
-                  onClick={() => navigate('/register')}
-                  className="bg-white hover:bg-gray-100 text-green-700 font-semibold px-8 py-4 text-lg border-0"
-                  size="lg"
-                >
-                  <Users className="w-5 h-5 mr-2" />
-                  Começar a Vender
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </section>
       </div>
     </>
   )

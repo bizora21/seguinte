@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store, MessageCircle, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -135,9 +135,6 @@ const ProductDetail = () => {
   
   const seoImage = getFirstImageUrl(product.image_url);
   
-  // DEBUG LOG: Verificar qual imagem está a ser passada para o SEO
-  console.log(`[SEO DEBUG] Imagem do Produto para SEO: ${seoImage}`);
-  
   const ogTitle = `${product.name} | ${formatPrice(product.price)} - ${storeName}`;
   const ogDescription = `${product.description?.substring(0, 250) || 'Compre este produto incrível na LojaRápida. Pagamento na entrega e frete grátis em Moçambique.'} ${product.stock > 0 ? 'Disponível para entrega imediata.' : 'Fora de estoque.'}`;
   
@@ -262,10 +259,14 @@ const ProductDetail = () => {
                     {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
                   </Badge>
 
-                  <Button onClick={handleEncomendar} className="w-full" size="lg" disabled={product.stock === 0}>
-                    <Package className="w-5 h-5 mr-2" />
+                  <Button onClick={handleEncomendar} className="w-full h-12 text-lg font-bold uppercase tracking-wide bg-primary hover:bg-green-700" size="lg" disabled={product.stock === 0}>
+                    <ClipboardList className="w-6 h-6 mr-2" />
                     {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
                   </Button>
+                  
+                  <p className="text-xs text-center text-gray-500 flex items-center justify-center">
+                    <Shield className="w-3 h-3 mr-1" /> Pagamento seguro na entrega
+                  </p>
                 </CardContent>
               </Card>
               
