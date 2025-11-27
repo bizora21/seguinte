@@ -24,18 +24,10 @@ export interface PaymentProof {
   email: string
 }
 
-// URL base da Edge Function (agora usada apenas via invoke, não redirect)
-const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
-
-// URL base da Edge Function para o Content Generator
+// URLs das Edge Functions
 export const CONTENT_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/content-generator'
-
-// URL base da Edge Function para o Unsplash Image Generator
 export const UNSPLASH_IMAGE_GENERATOR_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/unsplash-image-generator'
-
-// URL base da Edge Function para o Image Optimizer
 export const IMAGE_OPTIMIZER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/image-optimizer'
-
 
 // Credenciais
 const FACEBOOK_APP_ID = '705882238650821' 
@@ -47,23 +39,31 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
   
   // URL do Frontend onde o usuário deve cair após o login
-  // IMPORTANTE: Esta URL deve ser adicionada à lista de permissões no Facebook Developers
-  const redirectUri = `${window.location.origin}/dashboard/admin/marketing`
+  // Remove trailing slashes para evitar problemas de correspondência exata
+  const origin = window.location.origin.replace(/\/$/, '')
+  const redirectUri = `${origin}/dashboard/admin/marketing`
+  
+  console.log(`[OAuth Debug] Gerando URL para ${platform}`)
+  console.log(`[OAuth Debug] Redirect URI: ${redirectUri}`)
+  
   const encodedRedirectUri = encodeURIComponent(redirectUri)
   
   if (platform === 'facebook') {
     if (!FACEBOOK_APP_ID) {
-      showError('Erro: ID do Facebook não configurado.')
+      showError('Erro Crítico: ID do Aplicativo Facebook não configurado no código.')
       return ''
     }
     
-    // Passar a plataforma via state para o frontend saber o que fazer na volta
     const state = JSON.stringify({ platform: 'facebook', tab: 'settings' })
     const encodedState = encodeURIComponent(state)
     
+    // Escopos necessários
     const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts'
     
-    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
+    const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
+    
+    console.log(`[OAuth Debug] URL Final: ${url}`)
+    return url
   }
   
   if (platform === 'google_analytics' || platform === 'google_search_console') {
@@ -84,7 +84,6 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
   return ''
 }
 
-
 // --- Notification Functions ---
 
 export const getUnreadNotificationsCount = async (): Promise<number> => {
@@ -98,7 +97,6 @@ export const getUnreadNotificationsCount = async (): Promise<number> => {
     return count || 0
   } catch (error: any) {
     console.error('Error fetching unread notifications count:', error)
-    showError('Falha ao buscar contagem de notificações.')
     return 0
   }
 }
@@ -115,7 +113,6 @@ export const getRecentNotifications = async (): Promise<AdminNotification[]> => 
     return data as AdminNotification[]
   } catch (error: any) {
     console.error('Error fetching recent notifications:', error)
-    showError('Falha ao buscar notificações recentes.')
     return []
   }
 }
@@ -131,7 +128,6 @@ export const markNotificationAsRead = async (notificationId: string): Promise<bo
     return true
   } catch (error: any) {
     console.error('Error marking notification as read:', error)
-    showError('Falha ao marcar notificação como lida.')
     return false
   }
 }
@@ -222,7 +218,7 @@ export const rejectPaymentProof = async (proofId: string, sellerId: string): Pro
       related_id: proofId
     })
 
-    showSuccess('Pagamento rejeitado e vendedor notificado (simulado).')
+    showSuccess('Pagamento rejeitado.')
     return true
   } catch (error: any) {
     console.error('Error rejecting payment proof:', error)
