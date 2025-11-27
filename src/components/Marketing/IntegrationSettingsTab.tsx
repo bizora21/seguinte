@@ -109,15 +109,17 @@ const IntegrationSettingsTab = () => {
 
   const getIntegrationStatus = (platform: string) => {
     const integration = integrations.find(i => i.platform === platform)
-    // Se existir mas o token for o placeholder ou inválido
-    if (integration && (integration.access_token === 'PENDENTE_DE_CONEXAO' || !integration.access_token)) {
-        return null
-    }
+    if (!integration) return null
     return integration
   }
 
+  const isPending = (integration: Integration | null) => {
+      return integration?.access_token === 'PENDENTE_DE_CONEXAO';
+  }
+
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console') => {
-    if (getIntegrationStatus(platform === 'facebook' ? 'facebook' : platform)) {
+    const current = getIntegrationStatus(platform === 'facebook' ? 'facebook' : platform);
+    if (current && !isPending(current)) {
         if (!confirm('Esta conta já parece conectada. Deseja reconectar para renovar o token?')) return;
     }
 
@@ -149,6 +151,8 @@ const IntegrationSettingsTab = () => {
   if (loading) {
     return <div className="flex justify-center h-32"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
   }
+
+  const fbIntegration = getIntegrationStatus('facebook');
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -182,7 +186,7 @@ const IntegrationSettingsTab = () => {
           </div>
           
           {/* Integração Facebook */}
-          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${getIntegrationStatus('facebook') ? 'ring-1 ring-green-500 border-green-500' : 'hover:border-blue-300'}`}>
+          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${fbIntegration ? 'ring-1 ring-green-500 border-green-500' : 'hover:border-blue-300'}`}>
             <div className="bg-gray-50 p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                     <div className="bg-[#1877F2] p-2.5 rounded-lg text-white shadow-sm">
@@ -193,30 +197,36 @@ const IntegrationSettingsTab = () => {
                         <p className="text-sm text-gray-500">Postagem automática de produtos</p>
                     </div>
                 </div>
-                {getIntegrationStatus('facebook') ? (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 px-3 py-1 text-sm font-bold flex items-center shadow-sm">
-                        <CheckCircle className="w-4 h-4 mr-1.5" /> CONECTADO
-                    </Badge>
+                {fbIntegration ? (
+                    isPending(fbIntegration) ? (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 px-3 py-1 text-sm font-bold flex items-center">
+                            <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> AGUARDANDO CONEXÃO
+                        </Badge>
+                    ) : (
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 px-3 py-1 text-sm font-bold flex items-center shadow-sm">
+                            <CheckCircle className="w-4 h-4 mr-1.5" /> CONECTADO
+                        </Badge>
+                    )
                 ) : (
                     <Badge variant="outline" className="text-gray-500 bg-white">Não Conectado</Badge>
                 )}
             </div>
             
             <div className="p-6 bg-white">
-                {getIntegrationStatus('facebook') ? (
+                {fbIntegration && !isPending(fbIntegration) ? (
                     <div className="space-y-6">
                         {/* Detalhes da Conexão */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Página Padrão</span>
                                 <div className="font-bold text-gray-900 mt-1 flex items-center text-lg">
-                                    {getIntegrationStatus('facebook')?.metadata?.page_name || <span className="text-orange-600 text-sm flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/> Definir na Publicação</span>}
+                                    {fbIntegration.metadata?.page_name || <span className="text-orange-600 text-sm flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/> Definir na Publicação</span>}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID do Usuário</span>
                                 <div className="font-mono text-sm text-gray-700 mt-1 truncate">
-                                    {getIntegrationStatus('facebook')?.metadata?.user_id || '-'}
+                                    {fbIntegration.metadata?.user_id || '-'}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -224,7 +234,7 @@ const IntegrationSettingsTab = () => {
                                     <ShieldCheck className="w-3 h-3" /> Token Expira em
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
-                                    {formatDate(getIntegrationStatus('facebook')?.expires_at)}
+                                    {formatDate(fbIntegration.expires_at)}
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -232,7 +242,7 @@ const IntegrationSettingsTab = () => {
                                     <Calendar className="w-3 h-3" /> Conectado em
                                 </span>
                                 <div className="font-medium text-gray-900 mt-1">
-                                    {formatDate(getIntegrationStatus('facebook')?.updated_at)}
+                                    {formatDate(fbIntegration.updated_at)}
                                 </div>
                             </div>
                         </div>
@@ -260,6 +270,12 @@ const IntegrationSettingsTab = () => {
                     </div>
                 ) : (
                     <div className="text-center py-8 px-4">
+                        {isPending(fbIntegration) && (
+                            <p className="text-yellow-600 mb-4 font-medium flex items-center justify-center">
+                                <AlertTriangle className="w-4 h-4 mr-2" />
+                                Detectamos um registro de teste. Por favor, conecte novamente para ativar.
+                            </p>
+                        )}
                         <p className="text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
                             Conecte sua conta para permitir que a LojaRápida publique produtos automaticamente na sua Página do Facebook e Instagram.
                         </p>
@@ -270,7 +286,7 @@ const IntegrationSettingsTab = () => {
                             className="bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold px-8 h-12 shadow-lg transition-all hover:scale-105 transform active:scale-95"
                         >
                             {submitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Facebook className="w-5 h-5 mr-2" />}
-                            Conectar Facebook Agora
+                            {isPending(fbIntegration) ? 'Reconectar Facebook Agora' : 'Conectar Facebook Agora'}
                         </Button>
                     </div>
                 )}
