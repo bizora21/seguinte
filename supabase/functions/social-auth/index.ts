@@ -9,14 +9,8 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
-// Credenciais do Facebook
 const FB_APP_ID = '705882238650821'
 const FB_APP_SECRET = '9ed8f8cba18684539e3aa675a13c788c'
-
-// @ts-ignore
-const log = (message: string, data?: any) => {
-  console.log(`[SOCIAL-AUTH] ${message}`, data ? JSON.stringify(data) : '');
-}
 
 // @ts-ignore
 serve(async (req) => {
@@ -25,7 +19,6 @@ serve(async (req) => {
   }
   
   try {
-    // 1. Cliente Admin para DB (Service Role)
     const supabaseAdmin = createClient(
         // @ts-ignore
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -36,10 +29,7 @@ serve(async (req) => {
 
     const { action, code, platform, redirect_uri } = await req.json()
 
-    // --- AÇÃO: TROCA DE TOKEN ---
     if (action === 'exchange_token') {
-        log(`Trocando token para: ${platform}`);
-        
         let accessToken = '';
         let expiresIn = null;
         let metadata: any = {};
@@ -49,9 +39,7 @@ serve(async (req) => {
             const tokenResp = await fetch(tokenUrl);
             const tokenData = await tokenResp.json();
 
-            if (tokenData.error) {
-                return new Response(JSON.stringify({ error: tokenData.error.message }), { status: 400, headers: corsHeaders });
-            }
+            if (tokenData.error) return new Response(JSON.stringify({ error: tokenData.error.message }), { status: 400, headers: corsHeaders });
 
             accessToken = tokenData.access_token;
             expiresIn = tokenData.expires_in;
@@ -80,26 +68,26 @@ serve(async (req) => {
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
-        // SALVAR NO BANCO (CRÍTICO)
-        const { error: dbError } = await supabaseAdmin
+        // SALVAR E RETORNAR DADOS
+        const { data: savedData, error: dbError } = await supabaseAdmin
             .from('integrations')
             .upsert({
-                platform: platform, // PK
+                platform: platform,
                 access_token: accessToken,
                 expires_at: expiresAt,
                 metadata: metadata,
                 updated_at: new Date().toISOString()
-            }); // Não precisa de onConflict pois 'platform' é PK agora
+            })
+            .select() // Importante: Retornar o dado salvo
+            .single();
 
         if (dbError) {
-             log("Erro ao salvar:", dbError);
              return new Response(JSON.stringify({ error: "Erro de banco de dados: " + dbError.message }), { status: 500, headers: corsHeaders });
         }
 
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders, status: 200 });
+        return new Response(JSON.stringify({ success: true, saved: savedData }), { headers: corsHeaders, status: 200 });
     }
     
-    // --- AÇÃO: BUSCAR PÁGINAS ---
     if (action === 'fetch_pages') {
         const { data: integration } = await supabaseAdmin
             .from('integrations')
@@ -109,15 +97,12 @@ serve(async (req) => {
             
         if (!integration) return new Response(JSON.stringify({ error: 'Não conectado' }), { headers: corsHeaders, status: 404 });
         
-        // Re-fetch logic (simplificada)
-        // ... (Mesma lógica de busca de páginas)
         return new Response(JSON.stringify({ success: true, page_name: integration.metadata?.page_name || 'Atualizado' }), { headers: corsHeaders, status: 200 });
     }
 
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { headers: corsHeaders, status: 400 });
 
   } catch (err) {
-    log("Erro fatal:", err);
     return new Response(JSON.stringify({ error: err.message }), { headers: corsHeaders, status: 500 });
   }
 });

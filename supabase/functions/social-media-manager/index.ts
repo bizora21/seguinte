@@ -18,7 +18,7 @@ serve(async (req) => {
   }
   
   try {
-    // 1. Validar Usuário (Deve ser Admin)
+    // 1. Validar Usuário
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error('Sem token de autorização')
     
@@ -48,25 +48,30 @@ serve(async (req) => {
     
     if (body.action === 'publish_now') {
         const { content, platform, imageUrl } = body;
+        const targetPlatform = platform || 'facebook';
 
         // 3. Buscar Token
         const { data: integration, error: dbError } = await supabaseAdmin
             .from('integrations')
-            .select('*') // Selecionar tudo para debug
-            .eq('platform', 'facebook')
-            .maybeSingle(); // Usa maybeSingle para não lançar erro se vazio
+            .select('*')
+            .eq('platform', targetPlatform)
+            .maybeSingle();
 
         if (dbError) throw new Error(`Erro de Banco de Dados: ${dbError.message}`);
         
         if (!integration) {
-            throw new Error('Integração com Facebook não encontrada. Por favor, vá em "Configurações & Conexões" e clique em "Conectar Facebook".');
+            // DIAGNÓSTICO: Listar o que existe na tabela
+            const { data: allIntegrations } = await supabaseAdmin.from('integrations').select('platform');
+            const available = allIntegrations?.map(i => i.platform).join(', ') || 'Nenhuma';
+            
+            throw new Error(`Integração '${targetPlatform}' não encontrada. Disponíveis no banco: [${available}]. Por favor, reconecte em Configurações.`);
         }
 
         const pageId = integration.metadata?.page_id;
         const pageToken = integration.metadata?.page_access_token || integration.access_token;
 
         if (!pageId) {
-            throw new Error('Conta conectada, mas nenhuma Página do Facebook foi selecionada. Tente clicar em "Sincronizar Páginas" nas configurações.');
+            throw new Error('Conta conectada, mas nenhuma Página foi selecionada. Clique em "Sincronizar Páginas" nas configurações.');
         }
 
         // 4. Publicar no Facebook
