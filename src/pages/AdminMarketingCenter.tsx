@@ -25,18 +25,21 @@ const AdminMarketingCenter = () => {
     const tabParam = searchParams.get('tab')
     if (tabParam) return tabParam
     
-    // 2. Prioridade: Se está voltando do OAuth (tem 'code' e 'state')
+    // 2. Prioridade: Se está voltando do OAuth (tem 'code')
+    // Simplificado: Se tem código, assume que é para configurações/integração
     const codeParam = searchParams.get('code')
-    const stateParam = searchParams.get('state')
     
-    if (codeParam && stateParam) {
-        try {
-            const state = JSON.parse(decodeURIComponent(stateParam))
-            if (state.tab) return state.tab
-        } catch (e) {
-            console.error("Erro ao ler state do OAuth:", e)
+    if (codeParam) {
+        // Tenta ler o state para ser mais específico, mas faz fallback para 'settings'
+        const stateParam = searchParams.get('state')
+        if (stateParam) {
+            try {
+                const state = JSON.parse(decodeURIComponent(stateParam))
+                if (state.tab) return state.tab
+            } catch (e) {
+                console.error("Erro ao ler state do OAuth:", e)
+            }
         }
-        // Fallback seguro se não conseguir ler o state
         return 'settings'
     }
     
@@ -50,9 +53,14 @@ const AdminMarketingCenter = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     
-    // Atualiza a URL sem recarregar a página (limpa code/state se existirem)
-    const newParams = new URLSearchParams()
+    // Atualiza a URL sem recarregar a página
+    const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', value)
+    
+    // Se estiver mudando de aba manualmente, limpa code/state para evitar loops
+    if (newParams.has('code')) newParams.delete('code')
+    if (newParams.has('state')) newParams.delete('state')
+    
     navigate({ search: newParams.toString() }, { replace: true })
   }
 

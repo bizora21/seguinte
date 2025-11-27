@@ -21,6 +21,7 @@ const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null) // Novo estado para feedback
   const processedRef = useRef(false)
   
   const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
@@ -46,9 +47,9 @@ const IntegrationSettingsTab = () => {
     const code = searchParams.get('code')
     const stateParam = searchParams.get('state')
     
-    if (code && stateParam && !processedRef.current) {
+    if (code && !processedRef.current) {
       processedRef.current = true;
-      handleOAuthCallback(code, stateParam)
+      handleOAuthCallback(code, stateParam || '{}')
     } else if (!code) {
       fetchIntegrations()
     }
@@ -56,11 +57,17 @@ const IntegrationSettingsTab = () => {
 
   const handleOAuthCallback = async (code: string, stateParam: string) => {
     setSubmitting(true)
+    setStatusMessage('Finalizando conexão segura com o Facebook...')
     const toastId = showLoading('Conectando ao Facebook...')
     
     try {
-      const state = JSON.parse(decodeURIComponent(stateParam))
-      const platform = state.platform
+      let platform = 'facebook'
+      try {
+          const state = JSON.parse(decodeURIComponent(stateParam))
+          if (state.platform) platform = state.platform
+      } catch (e) {
+          console.warn('State parse error, defaulting to facebook')
+      }
       
       const { data, error } = await supabase.functions.invoke('social-auth', {
         method: 'POST',
@@ -77,9 +84,10 @@ const IntegrationSettingsTab = () => {
 
       dismissToast(toastId)
       showSuccess(`Sucesso! Conectado ao ${platform}.`)
+      setStatusMessage(null)
       
-      // Limpeza limpa dos parâmetros, mantendo a aba atual
-      const currentTab = state.tab || searchParams.get('tab') || 'settings';
+      // Limpeza limpa dos parâmetros
+      const currentTab = searchParams.get('tab') || 'settings';
       navigate(`?tab=${currentTab}`, { replace: true })
       
       setTimeout(() => {
@@ -90,33 +98,30 @@ const IntegrationSettingsTab = () => {
     } catch (error: any) {
       dismissToast(toastId)
       console.error('OAuth Callback Error:', error)
-      showError(`Falha na conexão: ${error.message}`)
+      showError(`Erro ao conectar: ${error.message}`)
+      setStatusMessage(`Erro: ${error.message}`)
       setSubmitting(false)
     }
   }
 
+  // ... (rest of the functions: handleSyncPages, handleDisconnect, etc. - MANTIDAS IGUAIS)
   const handleSyncPages = async () => {
     setSubmitting(true)
     const toastId = showLoading('Buscando suas páginas do Facebook...')
-    
     try {
         const { data, error } = await supabase.functions.invoke('social-auth', {
             method: 'POST',
             body: { action: 'fetch_pages' }
         })
-
         if (error) throw error
         if (data?.error) throw new Error(data.error)
-        
         dismissToast(toastId)
-        
         if (data.success) {
             showSuccess(`Página "${data.page_name}" configurada com sucesso!`)
             fetchIntegrations()
         } else {
             showError(data.message || 'Nenhuma página encontrada.')
         }
-
     } catch (error: any) {
         dismissToast(toastId)
         if (error.message.includes('190') || error.message.includes('token')) {
@@ -131,18 +136,14 @@ const IntegrationSettingsTab = () => {
 
   const handleDisconnect = async (platform: string) => {
     if (!confirm('Tem certeza que deseja desconectar esta conta?')) return;
-
     setSubmitting(true);
     const toastId = showLoading('Desconectando...');
-
     try {
         const { error } = await supabase
             .from('integrations')
             .delete()
             .eq('platform', platform);
-
         if (error) throw error;
-
         dismissToast(toastId);
         showSuccess('Conta desconectada com sucesso.');
         setIntegrations(prev => prev.filter(i => i.platform !== platform));
@@ -189,6 +190,13 @@ const IntegrationSettingsTab = () => {
 
   return (
     <div className="space-y-6">
+      {statusMessage && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+          <p className="font-bold">Status</p>
+          <p>{statusMessage}</p>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center text-xl">
