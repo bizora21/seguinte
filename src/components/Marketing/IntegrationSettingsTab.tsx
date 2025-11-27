@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -22,7 +22,6 @@ const IntegrationSettingsTab = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
-  // URL de redirecionamento para whitelisting (agora é a página do frontend)
   const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
 
   const fetchIntegrations = async () => {
@@ -37,13 +36,11 @@ const IntegrationSettingsTab = () => {
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
-      // showError('Erro ao carregar integrações: ' + error.message) // Silenciar para não poluir
     } finally {
       setLoading(false)
     }
   }
   
-  // Processar retorno do OAuth
   useEffect(() => {
     const code = searchParams.get('code')
     const stateParam = searchParams.get('state')
@@ -63,14 +60,13 @@ const IntegrationSettingsTab = () => {
       const state = JSON.parse(decodeURIComponent(stateParam))
       const platform = state.platform
       
-      // Chamada Segura para a Edge Function (Supabase adiciona apikey/Authorization)
       const { data, error } = await supabase.functions.invoke('social-auth', {
         method: 'POST',
         body: {
           action: 'exchange_token',
           code,
           platform,
-          redirect_uri: CALLBACK_URL // URL base sem query params
+          redirect_uri: CALLBACK_URL
         }
       })
 
@@ -80,7 +76,6 @@ const IntegrationSettingsTab = () => {
       dismissToast(toastId)
       showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
       
-      // Limpar URL
       const newParams = new URLSearchParams(searchParams)
       newParams.delete('code')
       newParams.delete('state')
@@ -94,6 +89,37 @@ const IntegrationSettingsTab = () => {
       showError(`Falha na conexão: ${error.message}`)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // --- NOVA FUNÇÃO PARA SINCRONIZAR PÁGINAS ---
+  const handleSyncPages = async () => {
+    setSubmitting(true)
+    const toastId = showLoading('Buscando suas páginas do Facebook...')
+    
+    try {
+        const { data, error } = await supabase.functions.invoke('social-auth', {
+            method: 'POST',
+            body: { action: 'fetch_pages' }
+        })
+
+        if (error) throw error
+        if (data?.error) throw new Error(data.error)
+        
+        dismissToast(toastId)
+        
+        if (data.success) {
+            showSuccess(`Página "${data.page_name}" configurada com sucesso!`)
+            fetchIntegrations()
+        } else {
+            showError(data.message || 'Nenhuma página encontrada.')
+        }
+
+    } catch (error: any) {
+        dismissToast(toastId)
+        showError(`Erro ao sincronizar: ${error.message}`)
+    } finally {
+        setSubmitting(false)
     }
   }
 
@@ -144,7 +170,7 @@ const IntegrationSettingsTab = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3">
               <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração Obrigatória no Facebook Developers</h3>
               <p className="text-blue-700">
-                  Certifique-se de que o URL abaixo está adicionado em "Login do Facebook &gt; Configurações &gt; URIs de redirecionamento do OAuth válidos" no painel de desenvolvedores do Meta.
+                  Certifique-se de que o URL abaixo está adicionado em "Login do Facebook &gt; Configurações &gt; URIs de redirecionamento do OAuth válidos".
               </p>
               <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white p-2 rounded border border-blue-200 font-mono text-xs break-all">
@@ -154,39 +180,57 @@ const IntegrationSettingsTab = () => {
                       <Copy className="w-4 h-4" />
                   </Button>
               </div>
-              <p className="text-xs text-blue-600">
-                  * Lembre-se de adicionar o <strong>App ID</strong> e <strong>App Secret</strong> nos Secrets do Supabase.
-              </p>
           </div>
           
           <div className="space-y-4">
             {integrationList.map((item) => {
               const status = getIntegrationStatus(item.platform)
               const isConnected = !!status
+              const hasPage = status?.metadata?.page_id
               
               return (
-                <div key={item.platform} className={`p-4 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between border gap-4 ${isConnected ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
-                  <div className="flex items-center space-x-3">
-                    {item.icon}
-                    <div>
-                      <p className="font-semibold text-gray-800">{item.name}</p>
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                      {isConnected && (
-                        <div className="flex items-center text-xs text-green-700 mt-1">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Conectado. (ID: {status.metadata?.page_id ? 'Página Configurada' : 'Pendente'})
+                <div key={item.platform} className={`p-4 rounded-lg flex flex-col gap-4 border ${isConnected ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center space-x-3">
+                        {item.icon}
+                        <div>
+                          <p className="font-semibold text-gray-800">{item.name}</p>
+                          <p className="text-sm text-gray-600">{item.description}</p>
+                          {isConnected && (
+                            <div className="flex items-center text-xs mt-1 font-medium">
+                              {hasPage ? (
+                                <span className="text-green-700 flex items-center"><CheckCircle className="w-3 h-3 mr-1" /> Página: {status.metadata.page_name}</span>
+                              ) : (
+                                <span className="text-orange-600 flex items-center"><AlertTriangle className="w-3 h-3 mr-1" /> ID: Pendente (Nenhuma página detectada)</span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                          {isConnected && !hasPage && item.platform === 'facebook' && (
+                              <Button 
+                                onClick={handleSyncPages} 
+                                disabled={submitting} 
+                                variant="secondary"
+                                className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200"
+                              >
+                                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4 mr-2" />}
+                                Sincronizar Páginas
+                              </Button>
+                          )}
+                          
+                          <Button 
+                            onClick={() => handleConnectOAuth(item.platform as any, item.name)}
+                            disabled={submitting}
+                            variant={isConnected ? 'outline' : 'default'}
+                            className={isConnected ? 'text-gray-700 border-gray-300' : 'bg-blue-600 hover:bg-blue-700 text-white'}
+                          >
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar Conta' : 'Conectar Agora'}
+                          </Button>
+                      </div>
                   </div>
-                  <Button 
-                    onClick={() => handleConnectOAuth(item.platform as any, item.name)}
-                    disabled={submitting}
-                    variant={isConnected ? 'outline' : 'default'}
-                    className={isConnected ? 'text-gray-700 border-gray-300' : 'bg-blue-600 hover:bg-blue-700 text-white'}
-                  >
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar Conta' : 'Conectar Agora'}
-                  </Button>
                 </div>
               )
             })}

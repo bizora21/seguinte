@@ -25,7 +25,6 @@ serve(async (req) => {
   }
   
   // --- AUTHENTICATION CHECK ---
-  // Agora que o frontend chama via supabase.functions.invoke, os headers são obrigatórios
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return new Response(JSON.stringify({ error: 'Unauthorized: Missing Authorization header' }), { status: 401, headers: corsHeaders })
@@ -40,13 +39,11 @@ serve(async (req) => {
     { global: { headers: { Authorization: `Bearer ${token}` } } }
   )
   
-  // Verificar se o usuário é admin
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
   if (authError || !user) {
     return new Response(JSON.stringify({ error: 'Unauthorized: Invalid user' }), { status: 401, headers: corsHeaders })
   }
   
-  // Verificar email do admin
   const ADMIN_EMAIL = 'lojarapidamz@outlook.com';
   if (user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return new Response(JSON.stringify({ error: 'Unauthorized: Admin access required' }), { status: 403, headers: corsHeaders })
@@ -62,6 +59,7 @@ serve(async (req) => {
   try {
     const { action, code, platform, redirect_uri } = await req.json()
 
+    // --- AÇÃO 1: TROCA DE TOKEN (LOGIN) ---
     if (action === 'exchange_token') {
         log(`Processing token exchange for ${platform}`);
         
@@ -72,8 +70,6 @@ serve(async (req) => {
         let metadata: any = { user_id: user.id };
 
         if (platform === 'facebook') {
-            // TROCA DE CÓDIGO POR TOKEN (SHORT-LIVED)
-            // IMPORTANTE: redirect_uri deve ser idêntico ao usado na chamada inicial
             const tokenResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`);
             
             const tokenData = await tokenResponse.json();
@@ -85,7 +81,6 @@ serve(async (req) => {
             accessToken = tokenData.access_token;
             expiresIn = tokenData.expires_in; 
             
-            // TROCA PARA LONG-LIVED TOKEN
             const longLivedResponse = await fetch(`https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${accessToken}`);
             const longLivedData = await longLivedResponse.json();
             
@@ -95,7 +90,7 @@ serve(async (req) => {
                 tokenType = 'facebook_long_lived_token';
             }
 
-            // BUSCAR PÁGINAS
+            // Tenta buscar páginas imediatamente
             const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${accessToken}`);
             const pagesData = await pagesResp.json();
             
@@ -107,7 +102,6 @@ serve(async (req) => {
                 log("Página encontrada:", page.name);
             }
         } 
-        // Adicionar Google aqui se necessário...
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
 
@@ -125,6 +119,40 @@ serve(async (req) => {
         if (insertError) throw new Error(insertError.message);
 
         return new Response(JSON.stringify({ success: true, platform }), { headers: corsHeaders, status: 200 });
+    }
+
+    // --- AÇÃO 2: SINCRONIZAR PÁGINAS (NOVO) ---
+    if (action === 'fetch_pages') {
+        const { data: integration } = await supabaseAdmin
+            .from('integrations')
+            .select('*')
+            .eq('platform', 'facebook')
+            .single();
+            
+        if (!integration) throw new Error('Nenhuma conta do Facebook conectada.');
+        
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
+        const pagesData = await pagesResp.json();
+        
+        if (pagesData.error) throw new Error(pagesData.error.message);
+        
+        if (pagesData.data && pagesData.data.length > 0) {
+             const page = pagesData.data[0];
+             const updatedMeta = { 
+                 ...integration.metadata, 
+                 page_id: page.id, 
+                 page_name: page.name, 
+                 page_access_token: page.access_token 
+             };
+             
+             await supabaseAdmin.from('integrations')
+                .update({ metadata: updatedMeta })
+                .eq('platform', 'facebook');
+                
+             return new Response(JSON.stringify({ success: true, page_name: page.name }), { headers: corsHeaders });
+        } else {
+            return new Response(JSON.stringify({ success: false, message: 'Nenhuma Página do Facebook encontrada nesta conta. Crie uma página primeiro.' }), { headers: corsHeaders });
+        }
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), { headers: corsHeaders, status: 400 });
