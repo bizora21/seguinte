@@ -21,8 +21,9 @@ const IntegrationSettingsTab = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-
-  const CALLBACK_URL = "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth"
+  
+  // URL de redirecionamento para whitelisting (agora é a página do frontend)
+  const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
 
   const fetchIntegrations = async () => {
     setLoading(true)
@@ -36,36 +37,65 @@ const IntegrationSettingsTab = () => {
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
-      showError('Erro ao carregar integrações: ' + error.message)
+      // showError('Erro ao carregar integrações: ' + error.message) // Silenciar para não poluir
     } finally {
       setLoading(false)
     }
   }
   
+  // Processar retorno do OAuth
   useEffect(() => {
-    const status = searchParams.get('status')
-    const message = searchParams.get('message')
-    const platform = searchParams.get('platform')
+    const code = searchParams.get('code')
+    const stateParam = searchParams.get('state')
     
-    if (status) {
-      if (status === 'social-auth-success') {
-        showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
-      } else if (status === 'social-auth-error') {
-        showError(`Falha na conexão com ${platform}: ${decodeURIComponent(message || 'Erro desconhecido')}`)
-      }
-      
-      const newParams = new URLSearchParams(searchParams)
-      newParams.delete('status')
-      newParams.delete('message')
-      newParams.delete('platform')
-      newParams.delete('code')
-      navigate({ search: newParams.toString() }, { replace: true })
-      
-      fetchIntegrations()
+    if (code && stateParam) {
+      handleOAuthCallback(code, stateParam)
     } else {
       fetchIntegrations()
     }
-  }, [searchParams, navigate])
+  }, [searchParams])
+
+  const handleOAuthCallback = async (code: string, stateParam: string) => {
+    setSubmitting(true)
+    const toastId = showLoading('Finalizando conexão...')
+    
+    try {
+      const state = JSON.parse(decodeURIComponent(stateParam))
+      const platform = state.platform
+      
+      // Chamada Segura para a Edge Function (Supabase adiciona apikey/Authorization)
+      const { data, error } = await supabase.functions.invoke('social-auth', {
+        method: 'POST',
+        body: {
+          action: 'exchange_token',
+          code,
+          platform,
+          redirect_uri: CALLBACK_URL // URL base sem query params
+        }
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      dismissToast(toastId)
+      showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
+      
+      // Limpar URL
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('code')
+      newParams.delete('state')
+      navigate({ search: newParams.toString() }, { replace: true })
+      
+      fetchIntegrations()
+      
+    } catch (error: any) {
+      dismissToast(toastId)
+      console.error('OAuth Callback Error:', error)
+      showError(`Falha na conexão: ${error.message}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const getIntegrationStatus = (platform: string) => {
     return integrations.find(i => i.platform === platform)
@@ -74,7 +104,6 @@ const IntegrationSettingsTab = () => {
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console', name: string) => {
     setSubmitting(true)
     try {
-      // Usando a função centralizada que já tem os escopos corrigidos
       const authUrl = generateOAuthUrl(platform)
       if (!authUrl) {
         setSubmitting(false)

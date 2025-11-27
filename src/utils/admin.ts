@@ -24,7 +24,7 @@ export interface PaymentProof {
   email: string
 }
 
-// URL base da Edge Function para lidar com o retorno do OAuth
+// URL base da Edge Function (agora usada apenas via invoke, não redirect)
 const OAUTH_HANDLER_BASE_URL = 'https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth'
 
 // URL base da Edge Function para o Content Generator
@@ -43,9 +43,13 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 /**
  * Gera a URL de autorização para iniciar o fluxo OAuth.
- * O redirect_uri deve ser a URL da Edge Function.
  */
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
+  
+  // URL do Frontend onde o usuário deve cair após o login
+  // IMPORTANTE: Esta URL deve ser adicionada à lista de permissões no Facebook Developers
+  const redirectUri = `${window.location.origin}/dashboard/admin/marketing`
+  const encodedRedirectUri = encodeURIComponent(redirectUri)
   
   if (platform === 'facebook') {
     if (!FACEBOOK_APP_ID) {
@@ -53,16 +57,10 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       return ''
     }
     
-    // A Edge Function usa: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth
-    // NÃO adicionar parâmetros na URL de redirecionamento para o Facebook, pois deve ser exata
-    const redirectUri = OAUTH_HANDLER_BASE_URL
-    const encodedRedirectUri = encodeURIComponent(redirectUri)
-    
-    // Passar a plataforma via state
-    const state = JSON.stringify({ platform: 'facebook' })
+    // Passar a plataforma via state para o frontend saber o que fazer na volta
+    const state = JSON.stringify({ platform: 'facebook', tab: 'settings' })
     const encodedState = encodeURIComponent(state)
     
-    // Escopos ajustados: Apenas Facebook Pages para evitar erro de "Invalid Scopes"
     const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts'
     
     return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
@@ -74,14 +72,11 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       return ''
     }
     
-    const redirectUri = OAUTH_HANDLER_BASE_URL
-    const encodedRedirectUri = encodeURIComponent(redirectUri)
-    
     const scope = platform === 'google_analytics' 
       ? 'https://www.googleapis.com/auth/analytics.readonly'
       : 'https://www.googleapis.com/auth/webmasters.readonly'
       
-    const state = JSON.stringify({ platform })
+    const state = JSON.stringify({ platform, tab: 'settings' })
     
     return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&response_type=code&access_type=offline&state=${encodeURIComponent(state)}`
   }
