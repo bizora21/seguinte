@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw, Trash2 } from 'lucide-react'
@@ -16,11 +16,12 @@ interface Integration {
 }
 
 const IntegrationSettingsTab = () => {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const processedRef = useRef(false) // Previne execução dupla do React.StrictMode
   
   const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
 
@@ -45,21 +46,25 @@ const IntegrationSettingsTab = () => {
     const code = searchParams.get('code')
     const stateParam = searchParams.get('state')
     
-    if (code && stateParam) {
+    // Se tiver código e ainda não tiver processado
+    if (code && stateParam && !processedRef.current) {
+      processedRef.current = true; // Marca como processado imediatamente
       handleOAuthCallback(code, stateParam)
-    } else {
+    } else if (!code) {
+      // Só busca integrações se NÃO estiver processando um callback
       fetchIntegrations()
     }
   }, [searchParams])
 
   const handleOAuthCallback = async (code: string, stateParam: string) => {
     setSubmitting(true)
-    const toastId = showLoading('Finalizando conexão...')
+    const toastId = showLoading('Conectando ao Facebook...')
     
     try {
       const state = JSON.parse(decodeURIComponent(stateParam))
       const platform = state.platform
       
+      // Chamada para a Edge Function
       const { data, error } = await supabase.functions.invoke('social-auth', {
         method: 'POST',
         body: {
@@ -74,24 +79,29 @@ const IntegrationSettingsTab = () => {
       if (data?.error) throw new Error(data.error)
 
       dismissToast(toastId)
-      showSuccess(`Conexão com ${platform} estabelecida com sucesso!`)
+      showSuccess(`Sucesso! Conectado ao ${platform}.`)
       
-      const newParams = new URLSearchParams(searchParams)
-      newParams.delete('code')
-      newParams.delete('state')
-      navigate({ search: newParams.toString() }, { replace: true })
+      // Limpeza agressiva da URL para remover o código usado
+      // Usamos window.location para forçar um refresh limpo se necessário,
+      // ou navigate com replace para limpar o histórico.
+      const newUrl = window.location.pathname + '?tab=social' // Mantém na aba social
+      window.history.replaceState({}, document.title, newUrl)
       
-      fetchIntegrations()
+      // Recarrega as integrações após um breve delay para garantir que o banco atualizou
+      setTimeout(() => {
+        fetchIntegrations()
+        setSubmitting(false)
+      }, 1000)
       
     } catch (error: any) {
       dismissToast(toastId)
       console.error('OAuth Callback Error:', error)
-      showError(`Falha na conexão: ${error.message}`)
-    } finally {
+      showError(`Erro ao conectar: ${error.message}`)
       setSubmitting(false)
     }
   }
 
+  // --- NOVA FUNÇÃO PARA SINCRONIZAR PÁGINAS ---
   const handleSyncPages = async () => {
     setSubmitting(true)
     const toastId = showLoading('Buscando suas páginas do Facebook...')
@@ -116,18 +126,12 @@ const IntegrationSettingsTab = () => {
 
     } catch (error: any) {
         dismissToast(toastId)
-        // Tratamento específico para token expirado
-        if (error.message.includes('190') || error.message.includes('token')) {
-             showError('Seu token expirou. Por favor, clique no ícone de lixeira para desconectar e tente novamente.')
-        } else {
-             showError(`Erro ao sincronizar: ${error.message}`)
-        }
+        showError(`Erro ao sincronizar: ${error.message}`)
     } finally {
         setSubmitting(false)
     }
   }
 
-  // --- NOVA FUNÇÃO: DESCONECTAR ---
   const handleDisconnect = async (platform: string) => {
     if (!confirm('Tem certeza que deseja desconectar esta conta? Isso removerá o token atual.')) return;
 
@@ -144,7 +148,7 @@ const IntegrationSettingsTab = () => {
 
         dismissToast(toastId);
         showSuccess('Conta desconectada com sucesso.');
-        fetchIntegrations();
+        setIntegrations(prev => prev.filter(i => i.platform !== platform));
     } catch (error: any) {
         dismissToast(toastId);
         showError('Erro ao desconectar: ' + error.message);
@@ -165,6 +169,7 @@ const IntegrationSettingsTab = () => {
         setSubmitting(false)
         return
       }
+      // Redirecionamento completo
       window.location.href = authUrl
     } catch (error: any) {
       showError('Erro ao iniciar o fluxo de conexão: ' + error.message)
@@ -238,7 +243,7 @@ const IntegrationSettingsTab = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2 items-center">
+                      <div className="flex gap-2">
                           {isConnected && (
                               <Button 
                                 onClick={() => handleDisconnect(item.platform)} 
