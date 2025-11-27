@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, RotateCw, Trash2 } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -92,7 +92,6 @@ const IntegrationSettingsTab = () => {
     }
   }
 
-  // --- NOVA FUNÇÃO PARA SINCRONIZAR PÁGINAS ---
   const handleSyncPages = async () => {
     setSubmitting(true)
     const toastId = showLoading('Buscando suas páginas do Facebook...')
@@ -117,11 +116,42 @@ const IntegrationSettingsTab = () => {
 
     } catch (error: any) {
         dismissToast(toastId)
-        showError(`Erro ao sincronizar: ${error.message}`)
+        // Tratamento específico para token expirado
+        if (error.message.includes('190') || error.message.includes('token')) {
+             showError('Seu token expirou. Por favor, clique no ícone de lixeira para desconectar e tente novamente.')
+        } else {
+             showError(`Erro ao sincronizar: ${error.message}`)
+        }
     } finally {
         setSubmitting(false)
     }
   }
+
+  // --- NOVA FUNÇÃO: DESCONECTAR ---
+  const handleDisconnect = async (platform: string) => {
+    if (!confirm('Tem certeza que deseja desconectar esta conta? Isso removerá o token atual.')) return;
+
+    setSubmitting(true);
+    const toastId = showLoading('Desconectando...');
+
+    try {
+        const { error } = await supabase
+            .from('integrations')
+            .delete()
+            .eq('platform', platform);
+
+        if (error) throw error;
+
+        dismissToast(toastId);
+        showSuccess('Conta desconectada com sucesso.');
+        fetchIntegrations();
+    } catch (error: any) {
+        dismissToast(toastId);
+        showError('Erro ao desconectar: ' + error.message);
+    } finally {
+        setSubmitting(false);
+    }
+  };
 
   const getIntegrationStatus = (platform: string) => {
     return integrations.find(i => i.platform === platform)
@@ -208,7 +238,20 @@ const IntegrationSettingsTab = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
+                          {isConnected && (
+                              <Button 
+                                onClick={() => handleDisconnect(item.platform)} 
+                                disabled={submitting} 
+                                variant="destructive"
+                                size="icon"
+                                className="h-10 w-10"
+                                title="Desconectar / Excluir Token"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                          )}
+
                           {isConnected && !hasPage && item.platform === 'facebook' && (
                               <Button 
                                 onClick={handleSyncPages} 
@@ -217,7 +260,7 @@ const IntegrationSettingsTab = () => {
                                 className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200"
                               >
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4 mr-2" />}
-                                Sincronizar Páginas
+                                Sincronizar
                               </Button>
                           )}
                           
@@ -227,7 +270,7 @@ const IntegrationSettingsTab = () => {
                             variant={isConnected ? 'outline' : 'default'}
                             className={isConnected ? 'text-gray-700 border-gray-300' : 'bg-blue-600 hover:bg-blue-700 text-white'}
                           >
-                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar Conta' : 'Conectar Agora'}
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : isConnected ? 'Reconectar' : 'Conectar Agora'}
                           </Button>
                       </div>
                   </div>
