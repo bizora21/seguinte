@@ -23,6 +23,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage"; // NOVO IMPORT
 
 // Rotas Lazy Loaded (Code Splitting)
 const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
@@ -51,7 +52,7 @@ const TermosDeUsoPage = React.lazy(() => import("./pages/TermosDeUsoPage"));
 const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePrivacidadePage"));
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
-const TestSocial = React.lazy(() => import("./pages/TestSocial")); // NOVO IMPORT
+const TestSocial = React.lazy(() => import("./pages/TestSocial"));
 
 const queryClient = new QueryClient();
 
@@ -80,8 +81,10 @@ const App = () => (
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       
-                      {/* ROTA DE TESTE SOCIAL */}
                       <Route path="/teste-social" element={<TestSocial />} />
+                      
+                      {/* ROTA DE CALLBACK OAUTH - DEDICADA */}
+                      <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
 
                       {/* Redirecionamento de rotas antigas para a nova estrutura */}
                       <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />

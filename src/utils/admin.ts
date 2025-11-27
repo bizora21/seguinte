@@ -39,9 +39,9 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
   
   // URL do Frontend onde o usuário deve cair após o login
-  // Remove trailing slashes para evitar problemas de correspondência exata
+  // NOVA URL DEDICADA para evitar problemas de roteamento
   const origin = window.location.origin.replace(/\/$/, '')
-  const redirectUri = `${origin}/dashboard/admin/marketing`
+  const redirectUri = `${origin}/oauth-callback`
   
   console.log(`[OAuth Debug] Gerando URL para ${platform}`)
   console.log(`[OAuth Debug] Redirect URI: ${redirectUri}`)

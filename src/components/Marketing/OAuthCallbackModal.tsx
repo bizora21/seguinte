@@ -45,7 +45,9 @@ const OAuthCallbackModal: React.FC<OAuthCallbackModalProps> = ({ code, statePara
         // Determinar a URL exata usada no redirecionamento
         // Importante: Deve ser IDÊNTICA à usada no generateOAuthUrl
         const origin = window.location.origin.replace(/\/$/, '')
-        const CALLBACK_URL = `${origin}/dashboard/admin/marketing`
+        
+        // --- CORREÇÃO: Usar a nova rota dedicada ---
+        const CALLBACK_URL = `${origin}/oauth-callback`
         
         addLog(`Callback URL: ${CALLBACK_URL}`)
         addLog(`Code recebido (início): ${code.substring(0, 10)}...`)
@@ -56,7 +58,7 @@ const OAuthCallbackModal: React.FC<OAuthCallbackModalProps> = ({ code, statePara
             action: 'exchange_token',
             code,
             platform,
-            redirect_uri: CALLBACK_URL
+            redirect_uri: CALLBACK_URL // Envia a nova URL para validação
           }
         })
 
@@ -103,57 +105,55 @@ const OAuthCallbackModal: React.FC<OAuthCallbackModalProps> = ({ code, statePara
   }, [code, stateParam, onComplete])
 
   return (
-    <div className="fixed inset-0 bg-slate-900 z-[9999] flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-2xl border-0">
-        <CardHeader className={`text-center pb-6 border-b ${status === 'success' ? 'bg-green-50' : status === 'error' ? 'bg-red-50' : 'bg-white'}`}>
-          <div className="mx-auto mb-4">
-            {status === 'processing' && <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />}
-            {status === 'success' && <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />}
-            {status === 'error' && <XCircle className="w-12 h-12 text-red-600 mx-auto" />}
-          </div>
-          
-          <CardTitle className="text-2xl">
-            {status === 'processing' ? 'Conectando...' : status === 'success' ? 'Sucesso!' : 'Erro na Conexão'}
-          </CardTitle>
-        </CardHeader>
+    <Card className="w-full max-w-lg shadow-2xl border-0">
+      <CardHeader className={`text-center pb-6 border-b ${status === 'success' ? 'bg-green-50' : status === 'error' ? 'bg-red-50' : 'bg-white'}`}>
+        <div className="mx-auto mb-4">
+          {status === 'processing' && <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto" />}
+          {status === 'success' && <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />}
+          {status === 'error' && <XCircle className="w-12 h-12 text-red-600 mx-auto" />}
+        </div>
         
-        <CardContent className="space-y-4 pt-6">
-          
-          <div className="bg-slate-950 rounded-lg p-4 font-mono text-xs text-green-400 h-48 overflow-y-auto border border-slate-800">
-            {logs.map((log, i) => (
-                <div key={i} className="mb-1">{`> ${log}`}</div>
-            ))}
-          </div>
+        <CardTitle className="text-2xl">
+          {status === 'processing' ? 'Conectando...' : status === 'success' ? 'Sucesso!' : 'Erro na Conexão'}
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-4 pt-6">
+        
+        <div className="bg-slate-950 rounded-lg p-4 font-mono text-xs text-green-400 h-48 overflow-y-auto border border-slate-800">
+          {logs.map((log, i) => (
+              <div key={i} className="mb-1">{`> ${log}`}</div>
+          ))}
+        </div>
 
-          {status === 'error' && (
-            <div className="bg-red-100 border border-red-200 text-red-800 p-4 rounded-lg text-sm">
-                <div className="font-bold flex items-center mb-2"><Bug className="w-4 h-4 mr-2"/> Detalhes do Erro:</div>
-                <div className="break-words font-mono">{errorDetails}</div>
-            </div>
+        {status === 'error' && (
+          <div className="bg-red-100 border border-red-200 text-red-800 p-4 rounded-lg text-sm">
+              <div className="font-bold flex items-center mb-2"><Bug className="w-4 h-4 mr-2"/> Detalhes do Erro:</div>
+              <div className="break-words font-mono">{errorDetails}</div>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {status === 'success' && (
+              <Button onClick={onComplete} className="w-full bg-green-600 hover:bg-green-700">
+                  Voltar ao Painel
+              </Button>
           )}
 
-          <div className="space-y-3">
-            {status === 'success' && (
-                <Button onClick={onComplete} className="w-full bg-green-600 hover:bg-green-700">
-                    Voltar ao Painel
-                </Button>
-            )}
+          {status === 'error' && (
+              <div className="flex gap-3">
+                  <Button onClick={() => window.location.href = window.location.origin + '/dashboard/admin/marketing?tab=settings'} variant="outline" className="flex-1">
+                      Tentar Novamente
+                  </Button>
+                  <Button onClick={onComplete} variant="destructive" className="flex-1">
+                      Fechar
+                  </Button>
+              </div>
+          )}
+        </div>
 
-            {status === 'error' && (
-                <div className="flex gap-3">
-                    <Button onClick={() => window.location.href = window.location.origin + '/dashboard/admin/marketing?tab=settings'} variant="outline" className="flex-1">
-                        Tentar Novamente
-                    </Button>
-                    <Button onClick={onComplete} variant="destructive" className="flex-1">
-                        Fechar
-                    </Button>
-                </div>
-            )}
-          </div>
-
-        </CardContent>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 

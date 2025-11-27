@@ -20,8 +20,8 @@ const IntegrationSettingsTab = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
-  // URL exata que o Facebook vai usar para retornar
-  const CALLBACK_URL = `${window.location.origin}/dashboard/admin/marketing`
+  // URL exata que o Facebook vai usar para retornar (NOVA)
+  const CALLBACK_URL = `${window.location.origin}/oauth-callback`
 
   const fetchIntegrations = async () => {
     setLoading(true)
@@ -199,10 +199,10 @@ const IntegrationSettingsTab = () => {
           
           {/* Instruções de Configuração */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm space-y-3 shadow-sm">
-              <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> Configuração Obrigatória no Facebook</h3>
+              <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> AÇÃO NECESSÁRIA NO FACEBOOK</h3>
               <p className="text-amber-700">
-                  Para que a conexão funcione, certifique-se de que esta URL exata está adicionada em 
-                  <strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong> no painel de desenvolvedor.
+                  A rota de callback mudou para maior estabilidade. Copie a URL abaixo e adicione em:
+                  <br/><strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong>.
               </p>
               <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white p-3 rounded border border-amber-200 font-mono text-xs break-all text-gray-700 select-all font-bold">
