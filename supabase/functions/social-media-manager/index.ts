@@ -59,19 +59,30 @@ serve(async (req) => {
 
         if (dbError) throw new Error(`Erro de Banco de Dados: ${dbError.message}`);
         
+        // --- CORREÇÃO: Tratamento de Erro Robusto (HTTP 412) ---
         if (!integration) {
-            // DIAGNÓSTICO: Listar o que existe na tabela
-            const { data: allIntegrations } = await supabaseAdmin.from('integrations').select('platform');
-            const available = allIntegrations?.map(i => i.platform).join(', ') || 'Nenhuma';
-            
-            throw new Error(`Integração '${targetPlatform}' não encontrada. Disponíveis no banco: [${available}]. Por favor, reconecte em Configurações.`);
+            return new Response(JSON.stringify({
+                error: 'INTEGRATION_NOT_FOUND',
+                message: `A integração com ${targetPlatform} não foi encontrada. Por favor, reconecte na aba de Configurações.`,
+                provider: targetPlatform
+            }), { 
+                status: 412, // Precondition Failed
+                headers: corsHeaders 
+            });
         }
 
         const pageId = integration.metadata?.page_id;
         const pageToken = integration.metadata?.page_access_token || integration.access_token;
 
         if (!pageId) {
-            throw new Error('Conta conectada, mas nenhuma Página foi selecionada. Clique em "Sincronizar Páginas" nas configurações.');
+             return new Response(JSON.stringify({
+                error: 'PAGE_NOT_SELECTED',
+                message: 'Conta conectada, mas nenhuma Página foi selecionada. Clique em "Sincronizar Páginas" nas configurações.',
+                provider: targetPlatform
+            }), { 
+                status: 412, 
+                headers: corsHeaders 
+            });
         }
 
         // 4. Publicar no Facebook
@@ -92,6 +103,14 @@ serve(async (req) => {
         const fbData = await fbResponse.json();
         
         if (fbData.error) {
+            // Se o token for inválido, retornamos um erro específico também
+            if (fbData.error.code === 190) { // OAuth Exception
+                 return new Response(JSON.stringify({
+                    error: 'TOKEN_EXPIRED',
+                    message: 'A sessão do Facebook expirou. Por favor, reconecte nas Configurações.',
+                    provider: targetPlatform
+                }), { status: 412, headers: corsHeaders });
+            }
             throw new Error(`Facebook recusou: ${fbData.error.message}`);
         }
 

@@ -12,6 +12,7 @@ import { Label } from '../ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { getFirstImageUrl } from '../../utils/images'
 import { useDebounce } from '../../hooks/useDebounce' // Hook de debounce para a busca
+import toast from 'react-hot-toast' // Importando toast diretamente para personalização
 
 const SocialContentGenerator = () => {
   const [products, setProducts] = useState<Product[]>([])
@@ -161,11 +162,21 @@ const SocialContentGenerator = () => {
       
       const result = await response.json()
       
+      dismissToast(toastId)
+
+      // Tratamento específico para erros de Pré-condição (412) - Ex: Integração não encontrada
+      if (response.status === 412) {
+        toast.error(result.message || 'Erro de configuração. Verifique a aba de Conexões.', {
+            duration: 6000,
+            icon: '🔌'
+        })
+        return
+      }
+      
       if (!response.ok || result.error) {
         throw new Error(result.error || 'Erro na publicação')
       }
       
-      dismissToast(toastId)
       showSuccess('Publicado com sucesso no Facebook!')
       
     } catch (error: any) {
