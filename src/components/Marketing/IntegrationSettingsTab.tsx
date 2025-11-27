@@ -58,7 +58,7 @@ const IntegrationSettingsTab = () => {
       newParams.delete('status')
       newParams.delete('message')
       newParams.delete('platform')
-      newParams.delete('code') // Limpar código também
+      newParams.delete('code')
       navigate({ search: newParams.toString() }, { replace: true })
       
       fetchIntegrations()
@@ -74,6 +74,7 @@ const IntegrationSettingsTab = () => {
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console', name: string) => {
     setSubmitting(true)
     try {
+      // Usando a função centralizada que já tem os escopos corrigidos
       const authUrl = generateOAuthUrl(platform)
       if (!authUrl) {
         setSubmitting(false)
@@ -92,7 +93,7 @@ const IntegrationSettingsTab = () => {
   }
   
   const integrationList = [
-    { platform: 'facebook', name: 'Facebook & Instagram', icon: <Facebook className="w-6 h-6 text-blue-600" />, description: 'Necessário para agendamento e publicação automática.' },
+    { platform: 'facebook', name: 'Facebook (Páginas)', icon: <Facebook className="w-6 h-6 text-blue-600" />, description: 'Necessário para automação de posts no Facebook.' },
     { platform: 'google_analytics', name: 'Google Analytics', icon: <TrendingUp className="w-6 h-6 text-orange-600" />, description: 'Monitoramento de tráfego e conversão.' },
   ]
 
@@ -111,7 +112,6 @@ const IntegrationSettingsTab = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           
-          {/* INSTRUÇÕES DE CONFIGURAÇÃO */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-3">
               <h3 className="font-bold text-blue-800 flex items-center"><AlertTriangle className="w-4 h-4 mr-2" /> Configuração Obrigatória no Facebook Developers</h3>
               <p className="text-blue-700">

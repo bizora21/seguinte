@@ -53,7 +53,8 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
       return ''
     }
     
-    // CORREÇÃO: Usar URL limpa sem query params para evitar erros de mismatch
+    // A Edge Function usa: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-auth
+    // NÃO adicionar parâmetros na URL de redirecionamento para o Facebook, pois deve ser exata
     const redirectUri = OAUTH_HANDLER_BASE_URL
     const encodedRedirectUri = encodeURIComponent(redirectUri)
     
@@ -61,7 +62,8 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
     const state = JSON.stringify({ platform: 'facebook' })
     const encodedState = encodeURIComponent(state)
     
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
+    // Escopos ajustados: Apenas Facebook Pages para evitar erro de "Invalid Scopes"
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts'
     
     return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
   }
