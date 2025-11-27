@@ -47,52 +47,55 @@ serve(async (req) => {
     const body = await req.json()
     
     if (body.action === 'publish_now') {
-        const { content, platform, imageUrl } = body;
+        const { content, platform, imageUrl, pageId } = body;
         const targetPlatform = platform || 'facebook';
 
-        // 3. Buscar Token
+        if (!pageId) {
+             return new Response(JSON.stringify({
+                error: 'PAGE_NOT_SELECTED',
+                message: 'Por favor, selecione uma Página do Facebook para publicar.',
+                provider: targetPlatform
+            }), { status: 400, headers: corsHeaders });
+        }
+
+        // 3. Buscar Token do USUÁRIO
         const { data: integration, error: dbError } = await supabaseAdmin
             .from('integrations')
             .select('*')
             .eq('platform', targetPlatform)
             .maybeSingle();
 
-        if (dbError) throw new Error(`Erro de Banco de Dados: ${dbError.message}`);
-        
-        // --- CORREÇÃO: Tratamento de Erro Robusto (HTTP 412) ---
-        if (!integration) {
+        if (dbError || !integration || integration.access_token === 'PENDENTE_DE_CONEXAO') {
             return new Response(JSON.stringify({
                 error: 'INTEGRATION_NOT_FOUND',
-                message: `A integração com ${targetPlatform} não foi encontrada. Por favor, reconecte na aba de Configurações.`,
+                message: 'Integração não encontrada ou desconectada.',
                 provider: targetPlatform
-            }), { 
-                status: 412, // Precondition Failed
-                headers: corsHeaders 
-            });
+            }), { status: 412, headers: corsHeaders });
         }
 
-        const pageId = integration.metadata?.page_id;
-        const pageToken = integration.metadata?.page_access_token || integration.access_token;
+        // 4. Obter o Token da PÁGINA Específica
+        // Usamos o token do usuário para pedir permissão "em nome da página"
+        const pageTokenResp = await fetch(`https://graph.facebook.com/v19.0/${pageId}?fields=access_token&access_token=${integration.access_token}`);
+        const pageTokenData = await pageTokenResp.json();
 
-        if (!pageId) {
+        if (pageTokenData.error || !pageTokenData.access_token) {
              return new Response(JSON.stringify({
-                error: 'PAGE_NOT_SELECTED',
-                message: 'Conta conectada, mas nenhuma Página foi selecionada. Clique em "Sincronizar Páginas" nas configurações.',
+                error: 'PAGE_TOKEN_ERROR',
+                message: `Não foi possível obter permissão para a página ${pageId}. O usuário admin tem permissão nela? Detalhe: ${pageTokenData.error?.message}`,
                 provider: targetPlatform
-            }), { 
-                status: 412, 
-                headers: corsHeaders 
-            });
+            }), { status: 400, headers: corsHeaders });
         }
 
-        // 4. Publicar no Facebook
+        const pageAccessToken = pageTokenData.access_token;
+
+        // 5. Publicar no Facebook usando o Token da Página
         const endpoint = imageUrl 
             ? `https://graph.facebook.com/v19.0/${pageId}/photos`
             : `https://graph.facebook.com/v19.0/${pageId}/feed`;
             
         const fbBody = imageUrl 
-            ? { url: imageUrl, caption: content, access_token: pageToken, published: true }
-            : { message: content, access_token: pageToken };
+            ? { url: imageUrl, caption: content, access_token: pageAccessToken, published: true }
+            : { message: content, access_token: pageAccessToken };
 
         const fbResponse = await fetch(endpoint, {
             method: 'POST',
@@ -103,7 +106,6 @@ serve(async (req) => {
         const fbData = await fbResponse.json();
         
         if (fbData.error) {
-            // Se o token for inválido, retornamos um erro específico também
             if (fbData.error.code === 190) { // OAuth Exception
                  return new Response(JSON.stringify({
                     error: 'TOKEN_EXPIRED',

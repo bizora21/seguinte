@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle } from 'lucide-react'
+import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle, Flag } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { Textarea } from '../ui/textarea'
 import { Input } from '../ui/input'
@@ -15,6 +15,12 @@ import { useDebounce } from '../../hooks/useDebounce'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 
+interface FacebookPage {
+  id: string
+  name: string
+  category: string
+}
+
 const SocialContentGenerator = () => {
   const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
@@ -24,11 +30,41 @@ const SocialContentGenerator = () => {
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState(false)
   
+  // Estado para Páginas do Facebook
+  const [fbPages, setFbPages] = useState<FacebookPage[]>([])
+  const [selectedPageId, setSelectedPageId] = useState<string>('')
+  const [loadingPages, setLoadingPages] = useState(false)
+  
   const [generatedContent, setGeneratedContent] = useState({
     whatsapp: '',
     facebook: '',
     instagram: ''
   })
+
+  // Buscar Páginas do Facebook ao carregar
+  useEffect(() => {
+    const fetchPages = async () => {
+        setLoadingPages(true)
+        try {
+            const { data, error } = await supabase.functions.invoke('social-auth', {
+                method: 'POST',
+                body: { action: 'get_connected_pages' }
+            })
+            
+            if (data?.success && data?.pages) {
+                setFbPages(data.pages)
+                if (data.pages.length > 0) {
+                    setSelectedPageId(data.pages[0].id)
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao buscar páginas:", e)
+        } finally {
+            setLoadingPages(false)
+        }
+    }
+    fetchPages()
+  }, [])
 
   const searchProducts = async (term: string) => {
     setLoadingProducts(true)
@@ -134,6 +170,10 @@ const SocialContentGenerator = () => {
 
   const handlePublishToFacebook = async () => {
     if (!generatedContent.facebook || !selectedProduct) return
+    if (!selectedPageId) {
+        showError("Selecione uma Página do Facebook primeiro.")
+        return
+    }
     
     setPublishing(true)
     const toastId = showLoading('Publicando na Página do Facebook...')
@@ -150,6 +190,7 @@ const SocialContentGenerator = () => {
         body: JSON.stringify({
           action: 'publish_now',
           platform: 'facebook',
+          pageId: selectedPageId, // Envia o ID da página selecionada
           content: generatedContent.facebook,
           imageUrl: imageUrl 
         })
@@ -160,8 +201,7 @@ const SocialContentGenerator = () => {
       dismissToast(toastId)
 
       // --- TRATAMENTO DE ERRO ROBUSTO ---
-      // Verifica status 412 OU código de erro específico
-      if (response.status === 412 || result.error === 'INTEGRATION_NOT_FOUND' || result.error === 'PAGE_NOT_SELECTED') {
+      if (response.status === 412 || result.error === 'INTEGRATION_NOT_FOUND') {
         toast((t) => (
           <div className="flex flex-col gap-2">
             <div className="font-semibold flex items-center text-red-600">
@@ -169,7 +209,7 @@ const SocialContentGenerator = () => {
               Conexão Necessária
             </div>
             <div className="text-sm text-gray-600">
-              {result.message || 'Sua conta do Facebook não está conectada corretamente.'}
+              {result.message || 'Sua conta do Facebook não está conectada.'}
             </div>
             <Button 
               size="sm" 
@@ -187,7 +227,7 @@ const SocialContentGenerator = () => {
       }
       
       if (!response.ok || result.error) {
-        throw new Error(result.error || 'Erro na publicação')
+        throw new Error(result.message || result.error || 'Erro na publicação')
       }
       
       showSuccess('Publicado com sucesso no Facebook!')
@@ -303,25 +343,54 @@ const SocialContentGenerator = () => {
 
                 <TabsContent value="facebook" className="flex-1 space-y-4">
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg h-full flex flex-col">
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex justify-between items-center mb-4">
                             <h4 className="font-semibold text-blue-800 flex items-center">
                                 <Send className="w-4 h-4 mr-2" /> Postagem Automática
                             </h4>
                             {!generatedContent.facebook && <span className="text-xs text-blue-600 animate-pulse">Gere a legenda primeiro</span>}
                         </div>
                         
+                        {/* Seletor de Página */}
+                        <div className="mb-4">
+                            <Label className="text-xs font-bold text-blue-800 mb-1 block">Publicar na Página:</Label>
+                            {loadingPages ? (
+                                <div className="text-sm text-gray-500 flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Carregando páginas...</div>
+                            ) : fbPages.length > 0 ? (
+                                <Select value={selectedPageId} onValueChange={setSelectedPageId}>
+                                    <SelectTrigger className="bg-white border-blue-200 text-sm h-9">
+                                        <SelectValue placeholder="Selecione a página" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {fbPages.map(page => (
+                                            <SelectItem key={page.id} value={page.id}>
+                                                <div className="flex items-center">
+                                                    <Flag className="w-3 h-3 mr-2 text-blue-500" />
+                                                    {page.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <div className="text-xs text-red-500 flex items-center bg-red-50 p-2 rounded border border-red-100">
+                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                    Nenhuma página encontrada. <span className="underline ml-1 cursor-pointer" onClick={() => navigate('?tab=settings')}>Verifique as configurações</span>.
+                                </div>
+                            )}
+                        </div>
+                        
                         <Textarea 
                             value={generatedContent.facebook} 
                             onChange={(e) => setGeneratedContent({...generatedContent, facebook: e.target.value})}
-                            rows={12} 
+                            rows={8} 
                             placeholder="A legenda gerada pela IA aparecerá aqui..."
-                            className="text-sm bg-white border-blue-200 flex-1 min-h-[200px] resize-none" 
+                            className="text-sm bg-white border-blue-200 flex-1 min-h-[150px] resize-none" 
                         />
                         
                         <div className="mt-4 flex gap-3">
                             <Button 
                                 onClick={handlePublishToFacebook} 
-                                disabled={publishing || !generatedContent.facebook}
+                                disabled={publishing || !generatedContent.facebook || !selectedPageId}
                                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-12"
                             >
                                 {publishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Facebook className="w-5 h-5 mr-2" />}
@@ -332,7 +401,7 @@ const SocialContentGenerator = () => {
                             </Button>
                         </div>
                         <p className="text-xs text-gray-500 mt-2 text-center">
-                            Isso publicará a imagem do produto e o texto acima na sua Página do Facebook conectada.
+                            Isso publicará a imagem do produto e o texto acima na sua Página do Facebook selecionada.
                         </p>
                     </div>
                 </TabsContent>

@@ -44,18 +44,15 @@ serve(async (req) => {
         let metadata: any = {};
 
         if (cleanPlatform === 'facebook') {
-            // 1. Obter Short-Lived User Token
             const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`;
             const tokenResp = await fetch(tokenUrl);
             const tokenData = await tokenResp.json();
 
             if (tokenData.error) {
                 log("Erro Facebook Token:", tokenData.error);
-                // Retornar 200 com erro para o frontend ler
                 return new Response(JSON.stringify({ success: false, error: tokenData.error.message }), { status: 200, headers: corsHeaders });
             }
 
-            // 2. Trocar por Long-Lived User Token
             const longUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`;
             const longResp = await fetch(longUrl);
             const longData = await longResp.json();
@@ -63,24 +60,10 @@ serve(async (req) => {
             userAccessToken = longData.access_token || tokenData.access_token;
             expiresIn = longData.expires_in || tokenData.expires_in;
 
-            // 3. CRÍTICO: Buscar Páginas e o PAGE ACCESS TOKEN
-            log("Buscando páginas e tokens de página...");
-            const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${userAccessToken}`);
-            const pagesData = await pagesResp.json();
-            
-            if (pagesData.data && pagesData.data.length > 0) {
-                const page = pagesData.data[0];
-                metadata = {
-                    user_id: page.id,
-                    page_id: page.id,
-                    page_name: page.name,
-                    page_access_token: page.access_token,
-                    category: page.category
-                };
-                log(`Página encontrada: ${page.name} (ID: ${page.id})`);
-            } else {
-                log("Nenhuma página encontrada vinculada a este usuário.");
-            }
+            // Busca inicial de metadados (apenas para registro, a seleção real será no frontend)
+            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${userAccessToken}`);
+            const meData = await meResp.json();
+            metadata = { user_id: meData.id, user_name: meData.name };
         } 
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
@@ -98,57 +81,39 @@ serve(async (req) => {
             .single();
 
         if (error) {
-             log("Erro no UPSERT:", error);
-             return new Response(JSON.stringify({ success: false, error: "Erro ao salvar integração: " + error.message }), { status: 200, headers: corsHeaders });
+             return new Response(JSON.stringify({ error: "Erro ao salvar integração: " + error.message }), { status: 500, headers: corsHeaders });
         }
 
         return new Response(JSON.stringify({ success: true, saved: data }), { headers: corsHeaders, status: 200 });
     }
     
-    // --- AÇÃO SECUNDÁRIA: RENOVAR/SINCRONIZAR PÁGINAS ---
-    if (action === 'fetch_pages') {
+    // --- NOVA AÇÃO: LISTAR PÁGINAS DISPONÍVEIS ---
+    if (action === 'get_connected_pages') {
         const { data: integration } = await supabaseAdmin
             .from('integrations')
             .select('*')
             .eq('platform', 'facebook')
             .single();
             
-        if (!integration) {
-            return new Response(JSON.stringify({ success: false, error: 'Não conectado' }), { headers: corsHeaders, status: 200 });
+        if (!integration || integration.access_token === 'PENDENTE_DE_CONEXAO') {
+            return new Response(JSON.stringify({ success: false, error: 'Não conectado' }), { headers: corsHeaders, status: 404 });
         }
         
-        // Verifica se é placeholder
-        if (integration.access_token === 'PENDENTE_DE_CONEXAO') {
-             return new Response(JSON.stringify({ success: false, error: 'Conexão pendente. Por favor, conecte novamente.' }), { headers: corsHeaders, status: 200 });
-        }
-        
-        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}`);
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}&limit=100`);
         const pagesData = await pagesResp.json();
         
         if (pagesData.error) {
-             // Retorna 200 com detalhe do erro
              return new Response(JSON.stringify({ success: false, error: "Erro Facebook: " + pagesData.error.message }), { status: 200, headers: corsHeaders });
         }
 
-        let updatedMetadata = integration.metadata || {};
-        let pageName = 'Nenhuma';
-
-        if (pagesData.data && pagesData.data.length > 0) {
-            const page = pagesData.data[0];
-            updatedMetadata.page_id = page.id;
-            updatedMetadata.page_name = page.name;
-            updatedMetadata.page_access_token = page.access_token;
-            pageName = page.name;
-            
-            await supabaseAdmin
-                .from('integrations')
-                .update({ metadata: updatedMetadata, updated_at: new Date().toISOString() })
-                .eq('platform', 'facebook');
-        } else {
-            return new Response(JSON.stringify({ success: false, error: "Nenhuma página do Facebook encontrada nesta conta." }), { headers: corsHeaders, status: 200 });
-        }
+        const pages = pagesData.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            access_token: p.access_token // Importante: O token da página é retornado aqui para uso imediato se necessário, mas idealmente gerenciado pelo backend
+        }));
         
-        return new Response(JSON.stringify({ success: true, page_name: pageName }), { headers: corsHeaders, status: 200 });
+        return new Response(JSON.stringify({ success: true, pages }), { headers: corsHeaders, status: 200 });
     }
 
     return new Response(JSON.stringify({ error: 'Ação inválida' }), { headers: corsHeaders, status: 400 });
