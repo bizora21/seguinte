@@ -95,8 +95,8 @@ serve(async (req) => {
             userAccessToken = longData.access_token || tokenData.access_token;
             expiresIn = longData.expires_in || tokenData.expires_in;
 
-            // BUSCAR DADOS DO USUÁRIO
-            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name,accounts{access_token,name,id,category}&access_token=${userAccessToken}`);
+            // BUSCAR DADOS DO USUÁRIO E PÁGINAS (com Instagram)
+            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name,accounts{access_token,name,id,category,instagram_business_account}&access_token=${userAccessToken}`);
             const meData = await meResp.json();
             
             if (meData.error) {
@@ -106,10 +106,10 @@ serve(async (req) => {
                 metadata.user_name = meData.name;
                 
                 if (meData.accounts && meData.accounts.data.length > 0) {
-                    const firstPage = meData.accounts.data[0];
-                    metadata.page_id = firstPage.id;
-                    metadata.page_name = firstPage.name;
+                    // Contar quantas têm Instagram conectado
+                    const instagramCount = meData.accounts.data.filter((p: any) => p.instagram_business_account).length;
                     metadata.total_pages = meData.accounts.data.length;
+                    metadata.pages_with_instagram = instagramCount;
                 } else {
                     metadata.warning = "Nenhuma página encontrada.";
                 }
@@ -153,7 +153,8 @@ serve(async (req) => {
         
         await dbLog('info', 'Buscando páginas do Facebook...', { userId: integration.metadata?.user_id });
 
-        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${integration.access_token}&limit=100`);
+        // ATUALIZADO: Pedindo o campo instagram_business_account
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,access_token,instagram_business_account&access_token=${integration.access_token}&limit=100`);
         const pagesData = await pagesResp.json();
         
         if (pagesData.error) {
@@ -162,16 +163,17 @@ serve(async (req) => {
         }
 
         // LOG DO DIAGNÓSTICO
-        await dbLog('info', 'Resposta do Facebook (Contagem de Páginas)', { 
+        await dbLog('info', 'Resposta do Facebook', { 
             count: pagesData.data?.length || 0,
-            raw_data_sample: pagesData.data ? pagesData.data.slice(0, 1) : 'null' 
+            has_instagram: pagesData.data?.some((p: any) => p.instagram_business_account)
         });
 
         const pages = pagesData.data.map((p: any) => ({
             id: p.id,
             name: p.name,
             category: p.category,
-            access_token: p.access_token
+            access_token: p.access_token,
+            instagram_id: p.instagram_business_account?.id || null // Retorna o ID do Insta se existir
         }));
         
         return new Response(JSON.stringify({ success: true, pages }), { headers: corsHeaders, status: 200 });

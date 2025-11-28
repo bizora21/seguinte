@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard, Database } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard, Database, Rocket } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
@@ -14,6 +14,7 @@ import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManage
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
 import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
+import ProgrammaticSEOManager from '../components/Marketing/ProgrammaticSEOManager' // NOVO IMPORT
 import OAuthCallbackModal from '../components/Marketing/OAuthCallbackModal'
 
 const AdminMarketingCenter = () => {
@@ -100,7 +101,7 @@ const AdminMarketingCenter = () => {
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
              <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center">
-                <Database className="w-3 h-3 mr-1" /> Sistema v2.1 (Online)
+                <Database className="w-3 h-3 mr-1" /> Sistema v2.2 (Hyper-Growth)
              </div>
           </div>
         </div>
@@ -112,11 +113,12 @@ const AdminMarketingCenter = () => {
             <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border rounded-xl shadow-sm">
               <TabsTrigger value="overview" className="py-2.5 px-4"><LayoutDashboard className="w-4 h-4 mr-2" /> Visão Geral</TabsTrigger>
               <TabsTrigger value="content" className="py-2.5 px-4"><FileText className="w-4 h-4 mr-2" /> SEO & Blog</TabsTrigger>
+              <TabsTrigger value="traffic_matrix" className="py-2.5 px-4"><Rocket className="w-4 h-4 mr-2" /> Matriz de Tráfego</TabsTrigger>
               <TabsTrigger value="social" className="py-2.5 px-4"><Share2 className="w-4 h-4 mr-2" /> Social</TabsTrigger>
               <TabsTrigger value="leads" className="py-2.5 px-4"><Users className="w-4 h-4 mr-2" /> Leads</TabsTrigger>
               <TabsTrigger value="broadcast" className="py-2.5 px-4"><Send className="w-4 h-4 mr-2" /> E-mail</TabsTrigger>
               <TabsTrigger value="automations" className="py-2.5 px-4"><Zap className="w-4 h-4 mr-2" /> Automações</TabsTrigger>
-              <TabsTrigger value="settings" className="py-2.5 px-4 ml-auto font-bold text-blue-700 bg-blue-50/50"><TrendingUp className="w-4 h-4 mr-2" /> Configurações & Conexões</TabsTrigger>
+              <TabsTrigger value="settings" className="py-2.5 px-4 ml-auto font-bold text-blue-700 bg-blue-50/50"><TrendingUp className="w-4 h-4 mr-2" /> Configurações</TabsTrigger>
             </TabsList>
           </div>
 
@@ -138,6 +140,34 @@ const AdminMarketingCenter = () => {
             <div className="mt-8 pt-8 border-t">
                 <h3 className="text-lg font-bold mb-4 text-gray-700">Gerenciar Categorias</h3>
                 <BlogCategoryManager />
+            </div>
+          </TabsContent>
+          
+          {/* Nova Aba de Matriz */}
+          <TabsContent value="traffic_matrix" className="space-y-6">
+             <div className="flex justify-between items-center">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800">Motor de Tráfego Programático</h2>
+                    <p className="text-gray-600">Gere conteúdo em escala para dominar o Google em todas as cidades.</p>
+                </div>
+            </div>
+            <ProgrammaticSEOManager />
+            <div className="mt-8">
+                <h3 className="text-lg font-bold mb-4 text-gray-700">Como funciona?</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="p-4 bg-white border rounded-lg">
+                        <span className="text-xl font-bold text-indigo-600">1. Combinação</span>
+                        <p className="text-sm text-gray-600 mt-2">O sistema cruza cidades (ex: Maputo) com categorias (ex: Carros) para criar tópicos únicos.</p>
+                    </div>
+                    <div className="p-4 bg-white border rounded-lg">
+                        <span className="text-xl font-bold text-indigo-600">2. Geração AI</span>
+                        <p className="text-sm text-gray-600 mt-2">A IA escreve um artigo otimizado para cada combinação, focado em SEO local.</p>
+                    </div>
+                    <div className="p-4 bg-white border rounded-lg">
+                        <span className="text-xl font-bold text-indigo-600">3. Indexação</span>
+                        <p className="text-sm text-gray-600 mt-2">O Google indexa essas milhares de páginas, trazendo tráfego orgânico gratuito.</p>
+                    </div>
+                </div>
             </div>
           </TabsContent>
           

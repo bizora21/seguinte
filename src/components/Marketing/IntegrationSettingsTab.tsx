@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag, Instagram } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -19,6 +19,7 @@ interface FacebookPage {
   id: string
   name: string
   category: string
+  instagram_id?: string | null // Novo campo
 }
 
 const IntegrationSettingsTab = () => {
@@ -26,18 +27,24 @@ const IntegrationSettingsTab = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]) 
-  const [pagesLoaded, setPagesLoaded] = useState(false) // Novo estado para saber se tentamos carregar
+  const [pagesLoaded, setPagesLoaded] = useState(false)
   
   const CALLBACK_URL = `${window.location.origin}/oauth-callback`
 
   const fetchIntegrations = async () => {
     setLoading(true)
     try {
+      console.log("Buscando integrações...")
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
         
-      if (error) throw error
+      if (error) {
+        console.error('Erro Supabase:', error)
+        throw error
+      }
+      
+      console.log("Integrações encontradas:", data)
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
@@ -95,10 +102,8 @@ const IntegrationSettingsTab = () => {
         if (error) throw error
         if (data?.error) throw new Error(data.error)
         
-        setFacebookPages(data.pages || [])
-        setPagesLoaded(true)
-
-        if (data.success && data.pages?.length > 0) {
+        if (data.success && data.pages) {
+            setFacebookPages(data.pages)
             if (!silent) showSuccess(`${data.pages.length} página(s) encontrada(s)!`)
         } else {
             if (!silent) showError('Conexão ativa, mas nenhuma página encontrada.')
@@ -204,6 +209,7 @@ const IntegrationSettingsTab = () => {
               <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> AÇÃO NECESSÁRIA NO FACEBOOK</h3>
               <p className="text-amber-700">
                   Para garantir a conexão, adicione esta URL exata nas configurações de Login do Facebook:
+                  <br/><strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong>.
               </p>
               <div className="flex items-center gap-2">
                   <code className="flex-1 bg-white p-3 rounded border border-amber-200 font-mono text-xs break-all text-gray-700 select-all font-bold">
@@ -274,10 +280,17 @@ const IntegrationSettingsTab = () => {
                                     {facebookPages.map(page => (
                                         <div key={page.id} className="px-4 py-3 flex justify-between items-center hover:bg-gray-50">
                                             <div>
-                                                <p className="font-medium text-sm text-gray-900">{page.name}</p>
+                                                <p className="font-medium text-sm text-gray-900 flex items-center">
+                                                    {page.name}
+                                                    {page.instagram_id && (
+                                                        <span className="ml-2 flex items-center text-xs text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100">
+                                                            <Instagram className="w-3 h-3 mr-1" /> +Instagram
+                                                        </span>
+                                                    )}
+                                                </p>
                                                 <p className="text-xs text-gray-500">ID: {page.id} • {page.category}</p>
                                             </div>
-                                            <Badge variant="outline" className="text-xs">Pronta para Uso</Badge>
+                                            <Badge variant="outline" className="text-xs">Pronta</Badge>
                                         </div>
                                     ))}
                                 </div>

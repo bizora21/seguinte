@@ -57,8 +57,8 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
     const state = JSON.stringify({ platform: 'facebook', tab: 'settings' })
     const encodedState = encodeURIComponent(state)
     
-    // Escopos necessários
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts'
+    // ATUALIZADO: Adicionados escopos do Instagram
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
     
     const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
     
