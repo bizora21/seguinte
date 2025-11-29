@@ -115,7 +115,13 @@ const SocialContentGenerator = () => {
   // Resetar link customizado quando muda o produto
   useEffect(() => {
     if (selectedProduct) {
-        setCustomLink(`https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social&utm_medium=post`)
+        // CORREÇÃO: Usar o domínio atual da janela para evitar erros de link quebrado
+        // Se estiver em localhost, usa o domínio de produção padrão
+        const baseUrl = window.location.hostname.includes('localhost') 
+            ? 'https://lojarapidamz.com' 
+            : window.location.origin;
+            
+        setCustomLink(`${baseUrl}/produto/${selectedProduct.id}?utm_source=social&utm_medium=post`)
         setUseShortLink(false)
     }
   }, [selectedProduct])
@@ -184,7 +190,12 @@ const SocialContentGenerator = () => {
       const hashtags = data.data.hashtags || '#LojaRapida #Mocambique #VendasOnline'
 
       // Usar o link customizado (encurtado ou não)
-      const finalLink = customLink || `https://lojarapidamz.com/produto/${selectedProduct.id}`
+      // Se o link encurtado não estiver definido, regenera-o com base no atual
+      const baseUrl = window.location.hostname.includes('localhost') 
+            ? 'https://lojarapidamz.com' 
+            : window.location.origin;
+      const defaultLink = `${baseUrl}/produto/${selectedProduct.id}`;
+      const finalLink = customLink || defaultLink;
 
       const fbContent = `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${finalLink}\n\n${hashtags}`
       
@@ -393,7 +404,11 @@ const SocialContentGenerator = () => {
                                         size="sm" 
                                         variant="outline"
                                         onClick={() => {
-                                            setCustomLink(`https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social`)
+                                            // Resetar para o link padrão atual
+                                            const baseUrl = window.location.hostname.includes('localhost') 
+                                                ? 'https://lojarapidamz.com' 
+                                                : window.location.origin;
+                                            setCustomLink(`${baseUrl}/produto/${selectedProduct.id}?utm_source=social`)
                                             setUseShortLink(false)
                                         }}
                                         title="Resetar"
