@@ -26,6 +26,7 @@ import {
   Rocket
 } from 'lucide-react'
 import { SEO, generateWebSiteSchema, generateLocalBusinessSchema } from '../components/SEO'
+import FlashDealBanner from '../components/FlashDealBanner' // IMPORT NOVO
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
@@ -44,7 +45,7 @@ const HomePage: React.FC = () => {
         `)
         .gt('stock', 0)
         .order('created_at', { ascending: false })
-        .limit(8) // Mostra 8 produtos para um grid equilibrado
+        .limit(8)
 
       if (error) throw error
       setFeaturedProducts(data || [])
@@ -79,102 +80,6 @@ const HomePage: React.FC = () => {
       transition: { type: 'spring', stiffness: 100, damping: 12 }
     }
   }
-
-  // Seção de benefícios
-  const benefits = [
-    {
-      icon: <Shield className="w-8 h-8 text-green-600" />,
-      title: 'Compra 100% Segura',
-      description: 'Pagamento na entrega. Você só paga quando receber o produto.'
-    },
-    {
-      icon: <Truck className="w-8 h-8 text-blue-600" />,
-      title: 'Entrega Grátis',
-      description: 'Frete grátis para todo Moçambique. Entrega em 1 a 5 dias úteis.'
-    },
-    {
-      icon: <Store className="w-8 h-8 text-purple-600" />,
-      title: 'Apoie Vendedores Locais',
-      description: 'Conectamos você com os melhores vendedores de todo o país.'
-    },
-    {
-      icon: <CreditCard className="w-8 h-8 text-orange-600" />,
-      title: 'Pagamento Flexível',
-      description: 'Aceitamos M-Pesa, eMola, dinheiro e cartão na entrega.'
-    }
-  ]
-
-  // Passos de como funciona
-  const steps = [
-    {
-      icon: <Search className="w-6 h-6 text-green-600" />,
-      title: 'Busque e Escolha',
-      description: 'Navegue por milhares de produtos de vendedores locais.'
-    },
-    {
-      icon: <ShoppingBag className="w-6 h-6 text-blue-600" />,
-      title: 'Faça seu Pedido',
-      description: 'Selecione os produtos e confira seu carrinho.'
-    },
-    {
-      icon: <TruckIcon className="w-6 h-6 text-purple-600" />,
-      title: 'Receba em Casa',
-      description: 'Aguarde a entrega em 1 a 5 dias úteis e pague na hora.'
-    },
-    {
-      icon: <CreditCardIcon className="w-6 h-6 text-orange-600" />,
-      title: 'Avalie sua Experiência',
-      description: 'Compartilhe sua experiência e ajude outros clientes.'
-    }
-  ]
-
-  // Vantagens para clientes
-  const clientBenefits = [
-    {
-      icon: <CheckCircle className="w-5 h-5 text-green-600" />,
-      title: 'Segurança Garantida',
-      description: 'Pague apenas quando receber o produto.'
-    },
-    {
-      icon: <Truck className="w-5 h-5 text-blue-600" />,
-      title: 'Entrega Rápida',
-      description: 'Receba seus produtos em 1 a 5 dias úteis.'
-    },
-    {
-      icon: <MessageCircle className="w-5 h-5 text-purple-600" />,
-      title: 'Suporte Direto',
-      description: 'Converse diretamente com os vendedores.'
-    },
-    {
-      icon: <Star className="w-5 h-5 text-yellow-500" />,
-      title: 'Produtos Verificados',
-      description: 'Qualidade garantida por vendedores confiáveis.'
-    }
-  ]
-
-  // Vantagens para vendedores
-  const sellerBenefits = [
-    {
-      icon: <TrendingUp className="w-5 h-5 text-green-600" />,
-      title: 'Alcance Nacional',
-      description: 'Venda para clientes em todo Moçambique.'
-    },
-    {
-      icon: <Headphones className="w-5 h-5 text-blue-600" />,
-      title: 'Suporte Especializado',
-      description: 'Ajuda dedicada para crescer seu negócio.'
-    },
-    {
-      icon: <CreditCard className="w-5 h-5 text-purple-600" />,
-      title: 'Pagamento Seguro',
-      description: 'Receba seus pagamentos em meticais de forma segura.'
-    },
-    {
-      icon: <Users className="w-5 h-5 text-orange-600" />,
-      title: 'Plataforma Gratuita',
-      description: 'Comece a vender sem custos iniciais.'
-    }
-  ]
 
   return (
     <>
@@ -246,6 +151,13 @@ const HomePage: React.FC = () => {
               </motion.div>
             </div>
           </div>
+        </section>
+
+        {/* --- FLASH DEALS SECTION (NOVO) --- */}
+        <section className="bg-gray-50 pt-8 pb-4">
+           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+              <FlashDealBanner />
+           </div>
         </section>
 
         {/* --- VALUE PROPOSITION (CARDS) --- */}

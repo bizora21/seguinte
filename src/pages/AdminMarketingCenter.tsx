@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard, Database, Rocket } from 'lucide-react'
+import { ArrowLeft, Zap, Users, Share2, TrendingUp, FileText, Send, LayoutDashboard, Database, Rocket, Timer } from 'lucide-react'
 import LeadCaptureTab from '../components/Marketing/LeadCaptureTab'
 import EmailAutomationTab from '../components/Marketing/EmailAutomationTab'
 import AdvancedMetricsTab from '../components/Marketing/AdvancedMetricsTab'
@@ -14,7 +14,8 @@ import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManage
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
 import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
-import TrafficMatrix from '../components/Marketing/TrafficMatrix' // IMPORT ATUALIZADO
+import TrafficMatrix from '../components/Marketing/TrafficMatrix'
+import FlashDealManager from '../components/Marketing/FlashDealManager' // IMPORT NOVO
 import OAuthCallbackModal from '../components/Marketing/OAuthCallbackModal'
 
 const AdminMarketingCenter = () => {
@@ -22,7 +23,6 @@ const AdminMarketingCenter = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const codeParam = searchParams.get('code')
   
-  // Determinar aba inicial
   const getInitialTab = () => {
     if (codeParam) return 'settings'
     return searchParams.get('tab') || 'overview'
@@ -42,30 +42,20 @@ const AdminMarketingCenter = () => {
   }
 
   const handleOAuthComplete = () => {
-    console.log("OAuth Completo. Limpando estado...")
-    
     const url = new URL(window.location.href)
     url.searchParams.delete('code')
     url.searchParams.delete('state')
     url.searchParams.set('tab', 'settings')
     window.history.replaceState({}, '', url.toString())
-    
     setSearchParams({ tab: 'settings' })
     setActiveTab('settings')
-    
     setTimeout(() => {
         window.dispatchEvent(new Event('oauth-success'))
     }, 100)
   }
 
   if (codeParam) {
-    return (
-        <OAuthCallbackModal 
-            code={codeParam} 
-            stateParam={searchParams.get('state')}
-            onComplete={handleOAuthComplete}
-        />
-    )
+    return <OAuthCallbackModal code={codeParam} stateParam={searchParams.get('state')} onComplete={handleOAuthComplete} />
   }
 
   return (
@@ -73,11 +63,7 @@ const AdminMarketingCenter = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/dashboard/admin')}
-              className="mb-2 -ml-4 text-gray-600 hover:text-gray-900"
-            >
+            <Button variant="ghost" onClick={() => navigate('/dashboard/admin')} className="mb-2 -ml-4 text-gray-600 hover:text-gray-900">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar para Admin Dashboard
             </Button>
@@ -103,9 +89,10 @@ const AdminMarketingCenter = () => {
           <div className="sticky top-0 z-20 bg-gray-50 pt-2 pb-4">
             <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border rounded-xl shadow-sm">
               <TabsTrigger value="overview" className="py-2.5 px-4"><LayoutDashboard className="w-4 h-4 mr-2" /> Visão Geral</TabsTrigger>
-              <TabsTrigger value="content" className="py-2.5 px-4"><FileText className="w-4 h-4 mr-2" /> SEO & Blog</TabsTrigger>
-              <TabsTrigger value="traffic_matrix" className="py-2.5 px-4 bg-indigo-50 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"><Rocket className="w-4 h-4 mr-2" /> Matriz de Tráfego</TabsTrigger>
               <TabsTrigger value="social" className="py-2.5 px-4"><Share2 className="w-4 h-4 mr-2" /> Social</TabsTrigger>
+              <TabsTrigger value="flash_deals" className="py-2.5 px-4 bg-orange-50 data-[state=active]:bg-orange-600 data-[state=active]:text-white"><Timer className="w-4 h-4 mr-2" /> Flash Sales</TabsTrigger>
+              <TabsTrigger value="content" className="py-2.5 px-4"><FileText className="w-4 h-4 mr-2" /> SEO & Blog</TabsTrigger>
+              <TabsTrigger value="traffic_matrix" className="py-2.5 px-4"><Rocket className="w-4 h-4 mr-2" /> Matriz SEO</TabsTrigger>
               <TabsTrigger value="leads" className="py-2.5 px-4"><Users className="w-4 h-4 mr-2" /> Leads</TabsTrigger>
               <TabsTrigger value="broadcast" className="py-2.5 px-4"><Send className="w-4 h-4 mr-2" /> E-mail</TabsTrigger>
               <TabsTrigger value="automations" className="py-2.5 px-4"><Zap className="w-4 h-4 mr-2" /> Automações</TabsTrigger>
@@ -121,6 +108,10 @@ const AdminMarketingCenter = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="flash_deals">
+            <FlashDealManager />
+          </TabsContent>
+
           <TabsContent value="content" className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">Máquina de Conteúdo SEO</h2>
@@ -133,7 +124,7 @@ const AdminMarketingCenter = () => {
           </TabsContent>
           
           <TabsContent value="traffic_matrix" className="space-y-6">
-             <TrafficMatrix /> {/* COMPONENTE PRINCIPAL SUBSTITUÍDO */}
+             <TrafficMatrix />
           </TabsContent>
           
           <TabsContent value="social">
