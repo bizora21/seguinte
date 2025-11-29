@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag, Instagram, Lock, ExternalLink } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag, Instagram, Lock, ExternalLink, Code } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
 import { Badge } from '../ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog'
 
 interface Integration {
   platform: string
@@ -30,6 +31,7 @@ const IntegrationSettingsTab = () => {
   const [submitting, setSubmitting] = useState(false)
   const [facebookPages, setFacebookPages] = useState<FacebookPage[]>([]) 
   const [pagesLoaded, setPagesLoaded] = useState(false)
+  const [rawResponse, setRawResponse] = useState<string>('') // Para debug
   
   const CALLBACK_URL = `${window.location.origin}/oauth-callback`
 
@@ -97,6 +99,9 @@ const IntegrationSettingsTab = () => {
         
         if (error) throw error
         if (data?.error) throw new Error(data.error)
+        
+        // Guardar resposta bruta para debug
+        setRawResponse(JSON.stringify(data, null, 2))
         
         if (data.success && data.pages) {
             setFacebookPages(data.pages)
@@ -191,11 +196,10 @@ const IntegrationSettingsTab = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-2 shadow-sm">
               <h3 className="font-bold text-blue-800 flex items-center"><Info className="w-4 h-4 mr-2" /> SOLUÇÃO DE PROBLEMAS</h3>
               <p className="text-blue-700">
-                  Se a sua página aparece na lista mas <strong>não conecta</strong> (aparece com cadeado vermelho), você precisa:
-                  <br/>1. Clicar em <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank" rel="noopener noreferrer" className="underline font-bold">Integrações Comerciais do Facebook</a>.
-                  <br/>2. Remover o app "LojaRápida".
-                  <br/>3. Voltar aqui e clicar em "Reconectar".
-                  <br/>4. Na tela do Facebook, clique em <strong>"Editar Configurações"</strong> e selecione TODAS as páginas.
+                  <strong>Página faltando?</strong> Isso acontece porque ela está num Gerenciador de Negócios (Business Manager).
+                  <br/>1. Acesse o <a href="https://business.facebook.com/settings/people" target="_blank" rel="noopener noreferrer" className="underline font-bold">Meta Business Suite</a>.
+                  <br/>2. Vá em Configurações do Negócio {'>'} Usuários {'>'} Pessoas.
+                  <br/>3. Clique no seu nome e verifique se a página está em "Ativos Atribuídos". Se não estiver, clique em "Adicionar Ativos".
               </p>
           </div>
           
@@ -228,9 +232,26 @@ const IntegrationSettingsTab = () => {
                                     <Flag className="w-4 h-4 mr-2 text-blue-600" /> 
                                     Suas Páginas ({facebookPages.length})
                                 </h4>
-                                <Button onClick={() => handleSyncPages(false)} size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:text-blue-800">
-                                    <RefreshCw className={`w-3 h-3 mr-1 ${submitting ? 'animate-spin' : ''}`} /> Atualizar Lista
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-gray-600 hover:text-gray-900" title="Ver JSON Bruto">
+                                                <Code className="w-3 h-3 mr-1" /> Debug
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                            <DialogHeader>
+                                                <DialogTitle>Resposta Bruta do Facebook API</DialogTitle>
+                                            </DialogHeader>
+                                            <pre className="bg-slate-950 text-green-400 p-4 rounded text-xs font-mono whitespace-pre-wrap overflow-x-hidden">
+                                                {rawResponse || 'Nenhum dado carregado. Clique em Atualizar Lista.'}
+                                            </pre>
+                                        </DialogContent>
+                                    </Dialog>
+                                    <Button onClick={() => handleSyncPages(false)} size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:text-blue-800">
+                                        <RefreshCw className={`w-3 h-3 mr-1 ${submitting ? 'animate-spin' : ''}`} /> Atualizar Lista
+                                    </Button>
+                                </div>
                             </div>
                             <div className="divide-y max-h-60 overflow-y-auto">
                                 {facebookPages.length === 0 ? (
