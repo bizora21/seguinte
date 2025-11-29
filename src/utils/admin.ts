@@ -56,9 +56,9 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
     const state = JSON.stringify({ platform: 'facebook', tab: 'settings' })
     const encodedState = encodeURIComponent(state)
     
-    // CORREÇÃO: Removidos escopos do Instagram que causavam erro se o App não estiver configurado para Instagram API
-    // Adicionado pages_manage_metadata para obter mais detalhes da página
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata'
+    // CORREÇÃO: Removido 'pages_manage_metadata' que estava causando erro.
+    // Mantidos apenas os escopos essenciais e estáveis.
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts'
     
     const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
     
