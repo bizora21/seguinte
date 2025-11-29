@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
-import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag, Instagram } from 'lucide-react'
+import { Link, Facebook, TrendingUp, CheckCircle, Loader2, RefreshCw, AlertTriangle, Copy, Trash2, Calendar, ShieldCheck, Database, Info, Activity, Flag, Instagram, Lock, ExternalLink } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { generateOAuthUrl } from '../../utils/admin' 
@@ -19,7 +19,9 @@ interface FacebookPage {
   id: string
   name: string
   category: string
-  instagram_id?: string | null // Novo campo
+  instagram_id?: string | null
+  access_token?: string // Verifica se temos token
+  tasks?: string[] // Lista de permissões reais (MODERATE, CREATE_CONTENT, etc)
 }
 
 const IntegrationSettingsTab = () => {
@@ -34,17 +36,11 @@ const IntegrationSettingsTab = () => {
   const fetchIntegrations = async () => {
     setLoading(true)
     try {
-      console.log("Buscando integrações...")
       const { data, error } = await supabase
         .from('integrations')
         .select('*')
         
-      if (error) {
-        console.error('Erro Supabase:', error)
-        throw error
-      }
-      
-      console.log("Integrações encontradas:", data)
+      if (error) throw error
       setIntegrations(data as Integration[] || [])
     } catch (error: any) {
       console.error('Error fetching integrations:', error)
@@ -77,7 +73,7 @@ const IntegrationSettingsTab = () => {
           dismissToast(toastId);
           if (error) throw error;
           if (data && data.success) {
-              showSuccess(`Sucesso! Servidor respondeu: "${data.message}". Logs gravados.`);
+              showSuccess(`Sucesso! Servidor respondeu: "${data.message}".`);
           } else {
               showError('Servidor respondeu, mas indicou falha.');
           }
@@ -89,7 +85,7 @@ const IntegrationSettingsTab = () => {
 
   const handleSyncPages = async (silent = false) => {
     if (!silent) setSubmitting(true)
-    const toastId = !silent ? showLoading('Listando páginas do Facebook...') : null
+    const toastId = !silent ? showLoading('Analisando permissões das páginas...') : null
     
     try {
         const { data, error } = await supabase.functions.invoke('social-auth', {
@@ -104,9 +100,9 @@ const IntegrationSettingsTab = () => {
         
         if (data.success && data.pages) {
             setFacebookPages(data.pages)
-            if (!silent) showSuccess(`${data.pages.length} página(s) encontrada(s)!`)
+            if (!silent) showSuccess(`${data.pages.length} página(s) encontradas.`)
         } else {
-            if (!silent) showError('Conexão ativa, mas nenhuma página encontrada.')
+            if (!silent) showError('Conexão ativa, mas nenhuma página retornada pelo Facebook.')
         }
     } catch (error: any) {
         if (toastId) dismissToast(toastId)
@@ -117,33 +113,26 @@ const IntegrationSettingsTab = () => {
   }
 
   const handleDisconnect = async (platform: string) => {
-    if (!confirm('Tem certeza que deseja desconectar? Isso impedirá novas publicações.')) return;
+    if (!confirm('Tem certeza? Isso removerá o token de acesso.')) return;
     setSubmitting(true);
     const toastId = showLoading('Desconectando...');
     try {
-        const { error } = await supabase
-            .from('integrations')
-            .delete()
-            .eq('platform', platform);
+        const { error } = await supabase.from('integrations').delete().eq('platform', platform);
         if (error) throw error;
-        
         dismissToast(toastId);
-        showSuccess('Conta desconectada com sucesso.');
+        showSuccess('Desconectado.');
         setIntegrations(prev => prev.filter(i => i.platform !== platform));
         setFacebookPages([]); 
-        setPagesLoaded(false);
     } catch (error: any) {
         dismissToast(toastId);
-        showError('Erro ao desconectar: ' + error.message);
+        showError('Erro: ' + error.message);
     } finally {
         setSubmitting(false);
     }
   };
 
   const getIntegrationStatus = (platform: string) => {
-    const integration = integrations.find(i => i.platform === platform)
-    if (!integration) return null
-    return integration
+    return integrations.find(i => i.platform === platform)
   }
 
   const isPending = (integration: Integration | null) => {
@@ -151,11 +140,6 @@ const IntegrationSettingsTab = () => {
   }
 
   const handleConnectOAuth = (platform: 'facebook' | 'google_analytics' | 'google_search_console') => {
-    const current = getIntegrationStatus(platform === 'facebook' ? 'facebook' : platform);
-    if (current && !isPending(current)) {
-        if (!confirm('Esta conta já parece conectada. Deseja reconectar para renovar o token?')) return;
-    }
-
     setSubmitting(true)
     try {
       const authUrl = generateOAuthUrl(platform)
@@ -165,19 +149,21 @@ const IntegrationSettingsTab = () => {
       }
       window.location.href = authUrl
     } catch (error: any) {
-      showError('Erro ao iniciar conexão: ' + error.message)
+      showError('Erro: ' + error.message)
       setSubmitting(false)
     }
   }
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    showSuccess('URL copiada para a área de transferência!')
+    showSuccess('Copiado!')
   }
   
-  const formatDate = (dateStr?: string | null) => {
-      if (!dateStr) return 'N/A'
-      return new Date(dateStr).toLocaleDateString('pt-MZ')
+  // Função para verificar se a página tem permissão de criação de conteúdo
+  const hasPublishPermission = (page: FacebookPage) => {
+      if (!page.tasks) return false;
+      // CREATE_CONTENT é a permissão chave para postar
+      return page.tasks.includes('CREATE_CONTENT') || page.tasks.includes('MANAGE');
   }
 
   if (loading) {
@@ -195,178 +181,138 @@ const IntegrationSettingsTab = () => {
             Central de Integrações
           </CardTitle>
           <div className="flex gap-2">
-            <Button onClick={handleTestConnection} variant="outline" size="sm" title="Testar servidor de logs">
-                <Activity className="w-4 h-4 mr-2 text-blue-600" /> Diagnóstico de Rede
-            </Button>
-            <Button onClick={fetchIntegrations} variant="ghost" size="sm" title="Recarregar dados">
+            <Button onClick={fetchIntegrations} variant="ghost" size="sm" title="Recarregar">
                 <RefreshCw className="w-4 h-4 text-gray-500" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-8 p-6">
           
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm space-y-3 shadow-sm">
-              <h3 className="font-bold text-amber-800 flex items-center"><Info className="w-4 h-4 mr-2" /> AÇÃO NECESSÁRIA NO FACEBOOK</h3>
-              <p className="text-amber-700">
-                  Para garantir a conexão, adicione esta URL exata nas configurações de Login do Facebook:
-                  <br/><strong> "Login do Facebook" &gt; "Configurações" &gt; "URIs de Redirecionamento do OAuth Válidos"</strong>.
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm space-y-2 shadow-sm">
+              <h3 className="font-bold text-blue-800 flex items-center"><Info className="w-4 h-4 mr-2" /> SOLUÇÃO DE PROBLEMAS</h3>
+              <p className="text-blue-700">
+                  Se a sua página aparece na lista mas <strong>não conecta</strong> (aparece com cadeado vermelho), você precisa:
+                  <br/>1. Clicar em <a href="https://www.facebook.com/settings?tab=business_tools" target="_blank" rel="noopener noreferrer" className="underline font-bold">Integrações Comerciais do Facebook</a>.
+                  <br/>2. Remover o app "LojaRápida".
+                  <br/>3. Voltar aqui e clicar em "Reconectar".
+                  <br/>4. Na tela do Facebook, clique em <strong>"Editar Configurações"</strong> e selecione TODAS as páginas.
               </p>
-              <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white p-3 rounded border border-amber-200 font-mono text-xs break-all text-gray-700 select-all font-bold">
-                      {CALLBACK_URL}
-                  </code>
-                  <Button size="sm" variant="outline" onClick={() => copyToClipboard(CALLBACK_URL)} title="Copiar URL">
-                      <Copy className="w-4 h-4" />
-                  </Button>
-              </div>
           </div>
           
-          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${fbIntegration ? 'ring-1 ring-green-500 border-green-500' : 'hover:border-blue-300'}`}>
-            <div className="bg-gray-50 p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className={`border rounded-xl overflow-hidden shadow-sm transition-all duration-300 ${fbIntegration ? 'ring-1 ring-green-500 border-green-500' : ''}`}>
+            <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-[#1877F2] p-2.5 rounded-lg text-white shadow-sm">
                         <Facebook className="w-6 h-6" />
                     </div>
                     <div>
                         <h3 className="font-bold text-gray-900 text-lg">Facebook & Instagram</h3>
-                        <p className="text-sm text-gray-500">Postagem automática de produtos</p>
                     </div>
                 </div>
                 {fbIntegration ? (
-                    isPending(fbIntegration) ? (
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 px-3 py-1 text-sm font-bold flex items-center">
-                            <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> AGUARDANDO CONEXÃO
-                        </Badge>
-                    ) : (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 px-3 py-1 text-sm font-bold flex items-center shadow-sm">
-                            <CheckCircle className="w-4 h-4 mr-1.5" /> CONECTADO
-                        </Badge>
-                    )
+                    <Badge className="bg-green-100 text-green-700 border-green-200 px-3 py-1 flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1.5" /> CONECTADO
+                    </Badge>
                 ) : (
-                    <Badge variant="outline" className="text-gray-500 bg-white">Não Conectado</Badge>
+                    <Badge variant="outline" className="text-gray-500 bg-white">Desconectado</Badge>
                 )}
             </div>
             
             <div className="p-6 bg-white">
                 {fbIntegration && !isPending(fbIntegration) ? (
                     <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">ID do Usuário</span>
-                                <div className="font-mono text-sm text-gray-700 mt-1 truncate">
-                                    {fbIntegration.metadata?.user_id || '-'}
-                                </div>
+                        {/* LISTA DE PÁGINAS COM DIAGNÓSTICO */}
+                        <div className="border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 px-4 py-3 border-b flex justify-between items-center">
+                                <h4 className="font-bold text-sm text-gray-700 flex items-center">
+                                    <Flag className="w-4 h-4 mr-2 text-blue-600" /> 
+                                    Suas Páginas ({facebookPages.length})
+                                </h4>
+                                <Button onClick={() => handleSyncPages(false)} size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 hover:text-blue-800">
+                                    <RefreshCw className={`w-3 h-3 mr-1 ${submitting ? 'animate-spin' : ''}`} /> Atualizar Lista
+                                </Button>
                             </div>
-                            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> Token Expira em
-                                </span>
-                                <div className="font-medium text-gray-900 mt-1">
-                                    {formatDate(fbIntegration.expires_at)}
-                                </div>
+                            <div className="divide-y max-h-60 overflow-y-auto">
+                                {facebookPages.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">
+                                        Nenhuma página encontrada. Verifique se sua conta do Facebook é administradora da página.
+                                    </div>
+                                ) : (
+                                    facebookPages.map(page => {
+                                        const canPublish = hasPublishPermission(page);
+                                        return (
+                                            <div key={page.id} className={`px-4 py-3 flex justify-between items-center ${canPublish ? 'hover:bg-green-50' : 'bg-red-50'}`}>
+                                                <div>
+                                                    <p className="font-medium text-sm text-gray-900 flex items-center">
+                                                        {page.name}
+                                                        {page.instagram_id && (
+                                                            <span className="ml-2 flex items-center text-xs text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100">
+                                                                <Instagram className="w-3 h-3 mr-1" /> +Insta
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        <span className="font-mono">ID: {page.id}</span>
+                                                        <span className="mx-1">•</span>
+                                                        <span>Permissões: {page.tasks ? page.tasks.join(', ') : 'NENHUMA'}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                {canPublish ? (
+                                                    <Badge className="bg-green-100 text-green-700 border-green-200 shadow-none">
+                                                        <CheckCircle className="w-3 h-3 mr-1" /> PRONTA
+                                                    </Badge>
+                                                ) : (
+                                                    <div className="text-right">
+                                                        <Badge variant="destructive" className="flex items-center mb-1">
+                                                            <Lock className="w-3 h-3 mr-1" /> RESTRITA
+                                                        </Badge>
+                                                        <p className="text-[10px] text-red-600 font-medium">Falta permissão de criar conteúdo</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    })
+                                )}
                             </div>
                         </div>
-
-                        {/* LISTA DE PÁGINAS DO FACEBOOK */}
-                        {facebookPages.length > 0 ? (
-                            <div className="border rounded-lg overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
-                                    <h4 className="font-bold text-sm text-gray-700 flex items-center">
-                                        <Flag className="w-4 h-4 mr-2 text-blue-600" /> 
-                                        Páginas Gerenciadas ({facebookPages.length})
-                                    </h4>
-                                </div>
-                                <div className="divide-y max-h-48 overflow-y-auto">
-                                    {facebookPages.map(page => (
-                                        <div key={page.id} className="px-4 py-3 flex justify-between items-center hover:bg-gray-50">
-                                            <div>
-                                                <p className="font-medium text-sm text-gray-900 flex items-center">
-                                                    {page.name}
-                                                    {page.instagram_id && (
-                                                        <span className="ml-2 flex items-center text-xs text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded border border-pink-100">
-                                                            <Instagram className="w-3 h-3 mr-1" /> +Instagram
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                <p className="text-xs text-gray-500">ID: {page.id} • {page.category}</p>
-                                            </div>
-                                            <Badge variant="outline" className="text-xs">Pronta</Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : pagesLoaded && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="flex items-start">
-                                    <AlertTriangle className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
-                                    <div>
-                                        <h4 className="font-bold text-red-800 text-sm">Nenhuma Página Encontrada</h4>
-                                        <p className="text-xs text-red-700 mt-1">
-                                            O Facebook diz que você não tem páginas ou não deu permissão para vê-las.
-                                        </p>
-                                        <div className="mt-3">
-                                            <p className="text-xs font-semibold text-red-800 mb-1">Solução:</p>
-                                            <Button 
-                                                size="sm" 
-                                                className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
-                                                onClick={() => handleConnectOAuth('facebook')}
-                                            >
-                                                Reconectar e Editar Permissões
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                         
                         <div className="flex justify-end gap-3 pt-4 border-t">
                             <Button 
-                                onClick={() => handleSyncPages(false)} 
+                                onClick={() => handleConnectOAuth('facebook')} 
                                 disabled={submitting} 
-                                variant="outline"
-                                className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
                             >
-                                <RefreshCw className={`w-4 h-4 mr-2 ${submitting ? 'animate-spin' : ''}`} />
-                                {facebookPages.length > 0 ? 'Atualizar Lista' : 'Buscar Páginas Novamente'}
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Forçar Reconexão (Resolver Problemas)
                             </Button>
                             <Button 
                                 onClick={() => handleDisconnect('facebook')} 
                                 disabled={submitting} 
                                 variant="destructive"
-                                className="bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 hover:text-red-700"
+                                className="bg-white text-red-600 border border-red-200 hover:bg-red-50"
                             >
-                                <Trash2 className="w-4 h-4 mr-2" />
                                 Desconectar
                             </Button>
                         </div>
                     </div>
                 ) : (
                     <div className="text-center py-8 px-4">
-                        {isPending(fbIntegration) && (
-                            <p className="text-yellow-600 mb-4 font-medium flex items-center justify-center">
-                                <AlertTriangle className="w-4 h-4 mr-2" />
-                                Detectamos um registro de teste. Por favor, conecte novamente para ativar.
-                            </p>
-                        )}
                         <p className="text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
-                            Conecte sua conta para permitir que a LojaRápida publique produtos automaticamente na sua Página do Facebook e Instagram.
+                            Conecte sua conta para permitir que a LojaRápida publique produtos automaticamente.
                         </p>
                         <Button 
                             onClick={() => handleConnectOAuth('facebook')}
                             disabled={submitting}
                             size="lg"
-                            className="bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold px-8 h-12 shadow-lg transition-all hover:scale-105 transform active:scale-95"
+                            className="bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold px-8 h-12 shadow-lg transition-all hover:scale-105"
                         >
                             {submitting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Facebook className="w-5 h-5 mr-2" />}
-                            {isPending(fbIntegration) ? 'Reconectar Facebook Agora' : 'Conectar Facebook Agora'}
+                            Conectar Facebook
                         </Button>
                     </div>
                 )}
             </div>
-          </div>
-          
-          <div className="text-center pt-4">
-             <p className="text-xs text-gray-400">Ambiente Seguro • Dados Criptografados</p>
           </div>
         </CardContent>
       </Card>
