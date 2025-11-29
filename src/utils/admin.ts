@@ -39,7 +39,6 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'google_search_console'): string => {
   
   // URL do Frontend onde o usuário deve cair após o login
-  // NOVA URL DEDICADA para evitar problemas de roteamento
   const origin = window.location.origin.replace(/\/$/, '')
   const redirectUri = `${origin}/oauth-callback`
   
@@ -57,8 +56,9 @@ export const generateOAuthUrl = (platform: 'facebook' | 'google_analytics' | 'go
     const state = JSON.stringify({ platform: 'facebook', tab: 'settings' })
     const encodedState = encodeURIComponent(state)
     
-    // ATUALIZADO: Adicionados escopos do Instagram
-    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_content_publish'
+    // CORREÇÃO: Removidos escopos do Instagram que causavam erro se o App não estiver configurado para Instagram API
+    // Adicionado pages_manage_metadata para obter mais detalhes da página
+    const scope = 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata'
     
     const url = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${encodedRedirectUri}&scope=${scope}&state=${encodedState}&response_type=code`
     

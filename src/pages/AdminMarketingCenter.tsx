@@ -14,7 +14,7 @@ import EmailTemplateManagerTab from '../components/Marketing/EmailTemplateManage
 import EmailBroadcastTab from '../components/Marketing/EmailBroadcastTab'
 import MarketingOverview from '../components/Marketing/MarketingOverview'
 import SocialContentGenerator from '../components/Marketing/SocialContentGenerator'
-import ProgrammaticSEOManager from '../components/Marketing/ProgrammaticSEOManager' // NOVO IMPORT
+import TrafficMatrix from '../components/Marketing/TrafficMatrix' // IMPORT ATUALIZADO
 import OAuthCallbackModal from '../components/Marketing/OAuthCallbackModal'
 
 const AdminMarketingCenter = () => {
@@ -24,20 +24,17 @@ const AdminMarketingCenter = () => {
   
   // Determinar aba inicial
   const getInitialTab = () => {
-    // Se tiver code, não importa a aba, vamos processar. Depois voltamos para settings.
     if (codeParam) return 'settings'
     return searchParams.get('tab') || 'overview'
   }
 
   const [activeTab, setActiveTab] = useState(getInitialTab())
 
-  // Sincronizar URL
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     const newParams = new URLSearchParams(searchParams)
     newParams.set('tab', value)
     
-    // Limpar lixo de OAuth
     newParams.delete('code')
     newParams.delete('state')
     
@@ -47,24 +44,20 @@ const AdminMarketingCenter = () => {
   const handleOAuthComplete = () => {
     console.log("OAuth Completo. Limpando estado...")
     
-    // Forçar a remoção dos parâmetros da URL sem recarregar a página
     const url = new URL(window.location.href)
     url.searchParams.delete('code')
     url.searchParams.delete('state')
     url.searchParams.set('tab', 'settings')
     window.history.replaceState({}, '', url.toString())
     
-    // Sincronizar estado do React Router
     setSearchParams({ tab: 'settings' })
     setActiveTab('settings')
     
-    // Pequeno delay para garantir que o componente IntegrationSettingsTab remonte/atualize
     setTimeout(() => {
         window.dispatchEvent(new Event('oauth-success'))
     }, 100)
   }
 
-  // INTERCEPTAÇÃO: Se houver código, mostra o modal SOBRE TUDO
   if (codeParam) {
     return (
         <OAuthCallbackModal 
@@ -78,7 +71,6 @@ const AdminMarketingCenter = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Principal */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
             <Button
@@ -101,19 +93,18 @@ const AdminMarketingCenter = () => {
           </div>
           <div className="mt-4 md:mt-0 flex space-x-3">
              <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center">
-                <Database className="w-3 h-3 mr-1" /> Sistema v2.2 (Hyper-Growth)
+                <Database className="w-3 h-3 mr-1" /> Sistema v3.0 (Traffic Matrix)
              </div>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
           
-          {/* Navegação Principal */}
           <div className="sticky top-0 z-20 bg-gray-50 pt-2 pb-4">
             <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border rounded-xl shadow-sm">
               <TabsTrigger value="overview" className="py-2.5 px-4"><LayoutDashboard className="w-4 h-4 mr-2" /> Visão Geral</TabsTrigger>
               <TabsTrigger value="content" className="py-2.5 px-4"><FileText className="w-4 h-4 mr-2" /> SEO & Blog</TabsTrigger>
-              <TabsTrigger value="traffic_matrix" className="py-2.5 px-4"><Rocket className="w-4 h-4 mr-2" /> Matriz de Tráfego</TabsTrigger>
+              <TabsTrigger value="traffic_matrix" className="py-2.5 px-4 bg-indigo-50 data-[state=active]:bg-indigo-600 data-[state=active]:text-white"><Rocket className="w-4 h-4 mr-2" /> Matriz de Tráfego</TabsTrigger>
               <TabsTrigger value="social" className="py-2.5 px-4"><Share2 className="w-4 h-4 mr-2" /> Social</TabsTrigger>
               <TabsTrigger value="leads" className="py-2.5 px-4"><Users className="w-4 h-4 mr-2" /> Leads</TabsTrigger>
               <TabsTrigger value="broadcast" className="py-2.5 px-4"><Send className="w-4 h-4 mr-2" /> E-mail</TabsTrigger>
@@ -122,8 +113,6 @@ const AdminMarketingCenter = () => {
             </TabsList>
           </div>
 
-          {/* Conteúdo das Abas */}
-          
           <TabsContent value="overview">
             <MarketingOverview />
             <div className="mt-8">
@@ -143,32 +132,8 @@ const AdminMarketingCenter = () => {
             </div>
           </TabsContent>
           
-          {/* Nova Aba de Matriz */}
           <TabsContent value="traffic_matrix" className="space-y-6">
-             <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">Motor de Tráfego Programático</h2>
-                    <p className="text-gray-600">Gere conteúdo em escala para dominar o Google em todas as cidades.</p>
-                </div>
-            </div>
-            <ProgrammaticSEOManager />
-            <div className="mt-8">
-                <h3 className="text-lg font-bold mb-4 text-gray-700">Como funciona?</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="p-4 bg-white border rounded-lg">
-                        <span className="text-xl font-bold text-indigo-600">1. Combinação</span>
-                        <p className="text-sm text-gray-600 mt-2">O sistema cruza cidades (ex: Maputo) com categorias (ex: Carros) para criar tópicos únicos.</p>
-                    </div>
-                    <div className="p-4 bg-white border rounded-lg">
-                        <span className="text-xl font-bold text-indigo-600">2. Geração AI</span>
-                        <p className="text-sm text-gray-600 mt-2">A IA escreve um artigo otimizado para cada combinação, focado em SEO local.</p>
-                    </div>
-                    <div className="p-4 bg-white border rounded-lg">
-                        <span className="text-xl font-bold text-indigo-600">3. Indexação</span>
-                        <p className="text-sm text-gray-600 mt-2">O Google indexa essas milhares de páginas, trazendo tráfego orgânico gratuito.</p>
-                    </div>
-                </div>
-            </div>
+             <TrafficMatrix /> {/* COMPONENTE PRINCIPAL SUBSTITUÍDO */}
           </TabsContent>
           
           <TabsContent value="social">
@@ -201,7 +166,6 @@ const AdminMarketingCenter = () => {
           
           <TabsContent value="settings">
             <div className="space-y-6">
-              {/* Force remount if needed by adding a key, though usually fetch on mount is enough */}
               <IntegrationSettingsTab />
               <AdvancedMetricsTab />
             </div>
