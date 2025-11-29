@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle, Flag, Link as LinkIcon, RefreshCw, Check } from 'lucide-react'
+import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { Textarea } from '../ui/textarea'
 import { Input } from '../ui/input'
@@ -12,35 +12,13 @@ import { Label } from '../ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { getFirstImageUrl } from '../../utils/images'
 import { useDebounce } from '../../hooks/useDebounce'
-import toast from 'react-hot-toast'
-import { useNavigate } from 'react-router-dom'
-import { Badge } from '../ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-
-interface FacebookPage {
-  id: string
-  name: string
-  category: string
-}
 
 const SocialContentGenerator = () => {
-  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [generating, setGenerating] = useState(false)
-  const [publishing, setPublishing] = useState(false)
-  const [shortening, setShortening] = useState(false)
-  
-  // Estado para Páginas do Facebook
-  const [fbPages, setFbPages] = useState<FacebookPage[]>([])
-  const [selectedPageId, setSelectedPageId] = useState<string>('')
-  const [loadingPages, setLoadingPages] = useState(false)
-  
-  // Estado do Link Personalizado
-  const [customLink, setCustomLink] = useState('')
-  const [useShortLink, setUseShortLink] = useState(false)
   
   const [generatedContent, setGeneratedContent] = useState({
     whatsapp: '',
@@ -48,31 +26,7 @@ const SocialContentGenerator = () => {
     instagram: ''
   })
 
-  // Buscar Páginas do Facebook
-  useEffect(() => {
-    const fetchPages = async () => {
-        setLoadingPages(true)
-        try {
-            const { data } = await supabase.functions.invoke('social-auth', {
-                method: 'POST',
-                body: { action: 'get_connected_pages' }
-            })
-            
-            if (data?.success && data?.pages) {
-                setFbPages(data.pages)
-                if (data.pages.length > 0) {
-                    setSelectedPageId(data.pages[0].id)
-                }
-            }
-        } catch (e) {
-            console.error("Erro ao buscar páginas:", e)
-        } finally {
-            setLoadingPages(false)
-        }
-    }
-    fetchPages()
-  }, [])
-
+  // Buscar produtos para seleção
   const searchProducts = async (term: string) => {
     setLoadingProducts(true)
     try {
@@ -112,20 +66,6 @@ const SocialContentGenerator = () => {
     return products.find(p => p.id === selectedProductId)
   }, [selectedProductId, products])
 
-  // Resetar link customizado quando muda o produto
-  useEffect(() => {
-    if (selectedProduct) {
-        // CORREÇÃO: Usar o domínio atual da janela para evitar erros de link quebrado
-        // Se estiver em localhost, usa o domínio de produção padrão
-        const baseUrl = window.location.hostname.includes('localhost') 
-            ? 'https://lojarapidamz.com' 
-            : window.location.origin;
-            
-        setCustomLink(`${baseUrl}/produto/${selectedProduct.id}?utm_source=social&utm_medium=post`)
-        setUseShortLink(false)
-    }
-  }, [selectedProduct])
-
   const imageUrl = useMemo(() => getFirstImageUrl(selectedProduct?.image_url), [selectedProduct])
 
   const formatPrice = (price: number) => {
@@ -134,28 +74,6 @@ const SocialContentGenerator = () => {
       currency: 'MZN',
       minimumFractionDigits: 0
     }).format(price)
-  }
-
-  // --- FUNÇÃO MÁGICA DE ENCURTAMENTO ---
-  const handleShortenLink = async () => {
-    if (!customLink) return
-    setShortening(true)
-    try {
-        const { data, error } = await supabase.functions.invoke('social-media-manager', {
-            method: 'POST',
-            body: { action: 'shorten_link', url: customLink }
-        })
-
-        if (error || !data?.shortUrl) throw new Error('Falha ao encurtar')
-        
-        setCustomLink(data.shortUrl)
-        setUseShortLink(true)
-        showSuccess('Link encurtado e pronto para uso!')
-    } catch (error) {
-        showError('Não foi possível encurtar o link.')
-    } finally {
-        setShortening(false)
-    }
   }
 
   const handleGenerateWithAI = async () => {
@@ -188,21 +106,12 @@ const SocialContentGenerator = () => {
 
       const caption = data.data.caption
       const hashtags = data.data.hashtags || '#LojaRapida #Mocambique #VendasOnline'
+      const productLink = `https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social_share`
 
-      // Usar o link customizado (encurtado ou não)
-      // Se o link encurtado não estiver definido, regenera-o com base no atual
-      const baseUrl = window.location.hostname.includes('localhost') 
-            ? 'https://lojarapidamz.com' 
-            : window.location.origin;
-      const defaultLink = `${baseUrl}/produto/${selectedProduct.id}`;
-      const finalLink = customLink || defaultLink;
-
-      const fbContent = `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${finalLink}\n\n${hashtags}`
-      
       setGeneratedContent({
-        instagram: fbContent,
-        facebook: fbContent,
-        whatsapp: `*${selectedProduct.name}*\n🔥 Apenas ${formatPrice(selectedProduct.price)}\n\n${caption.substring(0, 150)}...\n\n👉 Peça aqui: ${finalLink}`
+        instagram: `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${productLink}\n\n${hashtags}`,
+        facebook: `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${productLink}\n\n${hashtags}`,
+        whatsapp: `*${selectedProduct.name}*\n🔥 Apenas ${formatPrice(selectedProduct.price)}\n\n${caption.substring(0, 150)}...\n\n👉 Peça aqui: ${productLink}`
       })
 
       dismissToast(toastId)
@@ -214,77 +123,6 @@ const SocialContentGenerator = () => {
       showError('Erro ao gerar com IA. Tente novamente.')
     } finally {
       setGenerating(false)
-    }
-  }
-
-  const handlePublishToFacebook = async () => {
-    if (!generatedContent.facebook || !selectedProduct) return
-    if (!selectedPageId) {
-        showError("Selecione uma Página do Facebook primeiro.")
-        return
-    }
-    
-    setPublishing(true)
-    const toastId = showLoading('Publicando na Página do Facebook...')
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      const response = await fetch('https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/social-media-manager', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
-          action: 'publish_now',
-          platform: 'facebook',
-          pageId: selectedPageId,
-          content: generatedContent.facebook,
-          imageUrl: imageUrl 
-        })
-      })
-      
-      const result = await response.json()
-      dismissToast(toastId)
-
-      if (response.status === 412 || result.error === 'INTEGRATION_NOT_FOUND') {
-        toast((t) => (
-          <div className="flex flex-col gap-2">
-            <div className="font-semibold flex items-center text-red-600">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              Conexão Necessária
-            </div>
-            <div className="text-sm text-gray-600">
-              {result.message || 'Sua conta do Facebook não está conectada.'}
-            </div>
-            <Button 
-              size="sm" 
-              className="w-full mt-1 bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => {
-                toast.dismiss(t.id)
-                navigate('?tab=settings')
-              }}
-            >
-              Conectar Agora
-            </Button>
-          </div>
-        ), { duration: 8000, position: 'top-center' })
-        return
-      }
-      
-      if (!response.ok || result.error) {
-        throw new Error(result.message || result.error || 'Erro na publicação')
-      }
-      
-      showSuccess('Publicado com sucesso no Facebook!')
-      
-    } catch (error: any) {
-      console.error('Publish Error:', error)
-      dismissToast(toastId)
-      showError(`Falha ao publicar: ${error.message}`)
-    } finally {
-      setPublishing(false)
     }
   }
 
@@ -364,67 +202,6 @@ const SocialContentGenerator = () => {
                 </div>
               </div>
               
-              {/* --- EDITOR DE LINK MODERNO --- */}
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-                <div className="flex justify-between items-center mb-2">
-                    <Label className="text-xs font-bold text-blue-800 uppercase flex items-center">
-                        <LinkIcon className="w-3 h-3 mr-1" /> Link do Produto
-                    </Label>
-                    {useShortLink && <Badge variant="secondary" className="bg-green-200 text-green-800 text-[10px] h-5">Encurtado</Badge>}
-                </div>
-                
-                <div className="flex gap-2">
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
-                                {useShortLink ? customLink : 'Personalizar Link'}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-4">
-                            <div className="space-y-3">
-                                <h4 className="font-medium text-sm">Editor de Link</h4>
-                                <Input 
-                                    value={customLink} 
-                                    onChange={(e) => {
-                                        setCustomLink(e.target.value)
-                                        setUseShortLink(false) 
-                                    }}
-                                    className="text-xs"
-                                />
-                                <div className="flex gap-2">
-                                    <Button 
-                                        size="sm" 
-                                        onClick={handleShortenLink} 
-                                        disabled={shortening || useShortLink}
-                                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
-                                    >
-                                        {shortening ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Encurtar (Mágico)'}
-                                    </Button>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline"
-                                        onClick={() => {
-                                            // Resetar para o link padrão atual
-                                            const baseUrl = window.location.hostname.includes('localhost') 
-                                                ? 'https://lojarapidamz.com' 
-                                                : window.location.origin;
-                                            setCustomLink(`${baseUrl}/produto/${selectedProduct.id}?utm_source=social`)
-                                            setUseShortLink(false)
-                                        }}
-                                        title="Resetar"
-                                    >
-                                        <RefreshCw className="w-3 h-3" />
-                                    </Button>
-                                </div>
-                                <p className="text-[10px] text-gray-500">
-                                    Dica: Links curtos (TinyURL) aumentam cliques em até 34%.
-                                </p>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-              </div>
-
               <Button 
                 onClick={handleGenerateWithAI} 
                 disabled={generating} 
@@ -440,55 +217,28 @@ const SocialContentGenerator = () => {
               <Tabs defaultValue="facebook" className="w-full h-full flex flex-col">
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="facebook" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 py-3">
-                        <Facebook className="w-4 h-4 mr-2" /> Facebook (Auto)
+                        <Facebook className="w-4 h-4 mr-2" /> Facebook / Instagram
                     </TabsTrigger>
                     <TabsTrigger value="whatsapp" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 py-3">
-                        <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp (Manual)
+                        <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="facebook" className="flex-1 space-y-4">
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg h-full flex flex-col">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-semibold text-blue-800 flex items-center">
-                                <Send className="w-4 h-4 mr-2" /> Postagem Automática
-                            </h4>
-                            {/* Seleção de Página */}
-                            {fbPages.length > 0 && (
-                                <Select value={selectedPageId} onValueChange={setSelectedPageId}>
-                                    <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
-                                        <SelectValue placeholder="Escolha a Página" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {fbPages.map(page => (
-                                            <SelectItem key={page.id} value={page.id}>{page.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </div>
-                        
+                        <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                            <Send className="w-4 h-4 mr-2" />
+                            Legenda de Engajamento
+                        </h4>
                         <Textarea 
                             value={generatedContent.facebook} 
-                            onChange={(e) => setGeneratedContent({...generatedContent, facebook: e.target.value})}
-                            rows={8} 
+                            readOnly 
+                            className="text-sm bg-white border-blue-200 flex-1 min-h-[200px] resize-none focus:ring-blue-500" 
                             placeholder="A legenda gerada pela IA aparecerá aqui..."
-                            className="text-sm bg-white border-blue-200 flex-1 min-h-[150px] resize-none focus:ring-blue-500" 
                         />
-                        
-                        <div className="mt-4 flex gap-3">
-                            <Button 
-                                onClick={handlePublishToFacebook} 
-                                disabled={publishing || !generatedContent.facebook || !selectedPageId}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold h-12"
-                            >
-                                {publishing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Facebook className="w-5 h-5 mr-2" />}
-                                {publishing ? 'Publicando...' : 'Publicar Agora'}
-                            </Button>
-                            <Button onClick={() => handleCopy(generatedContent.facebook, 'Facebook')} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-100 h-12 w-12 p-0">
-                                <Copy className="w-5 h-5" />
-                            </Button>
-                        </div>
+                        <Button onClick={() => handleCopy(generatedContent.facebook, 'Facebook')} className="w-full mt-3 bg-blue-600 hover:bg-blue-700 h-12 font-bold">
+                            <Copy className="w-5 h-5 mr-2" /> Copiar para Publicar
+                        </Button>
                     </div>
                 </TabsContent>
                 
@@ -499,9 +249,8 @@ const SocialContentGenerator = () => {
                             Texto Otimizado para WhatsApp
                         </h4>
                         <Textarea 
-                            value={generatedContent.whatsapp}
-                            onChange={(e) => setGeneratedContent({...generatedContent, whatsapp: e.target.value})}
-                            rows={12} 
+                            value={generatedContent.whatsapp} 
+                            readOnly 
                             className="text-sm font-mono bg-white border-green-200 focus:ring-green-500 flex-1 min-h-[200px] resize-none" 
                             placeholder="Texto curto e direto para grupos..."
                         />

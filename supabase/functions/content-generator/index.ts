@@ -58,13 +58,41 @@ serve(async (req) => {
     // --- AÇÃO: GERAR LEGENDA SOCIAL ---
     if (action === 'generate_social_caption') {
         const { productName, productDescription, price, platform } = payload;
-        const prompt = `ATUE COMO: Especialista em Marketing Digital Moçambicano. Venda: ${productName} (${price} MZN). Descrição: ${productDescription}. Plataforma: ${platform}. Foco: Pagamento na Entrega. JSON output: { "caption": "...", "hashtags": "..." }`;
+        
+        const prompt = `
+            Atue como um Especialista em Marketing Digital focado em Moçambique.
+            Crie uma legenda viral para vender o seguinte produto:
+            Produto: ${productName}
+            Descrição Base: ${productDescription}
+            Preço: ${price} MZN
+            Plataforma Alvo: ${platform} (Facebook/Instagram/WhatsApp)
+            
+            REGRAS OBRIGATÓRIAS:
+            1. Use emojis chamativos (🔥, 🚀, 🇲🇿, 📦).
+            2. Enfatize: "Pagamento na Entrega" e "Frete Grátis".
+            3. Crie senso de urgência ("Estoque limitado", "Oferta relâmpago").
+            4. Inclua hashtags populares em Moçambique (#Maputo, #Mocambique, #VendasOnline).
+            5. O tom deve ser entusiasmado e confiável.
+            
+            Retorne APENAS um JSON no formato: { "caption": "texto do post aqui...", "hashtags": "#tags..." }
+        `;
         
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
-            body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' } }),
+            body: JSON.stringify({ 
+                model: 'gpt-4o-mini', 
+                messages: [{ role: 'user', content: prompt }], 
+                response_format: { type: 'json_object' },
+                temperature: 0.8 // Mais criativo
+            }),
         });
+
+        if (!openaiResponse.ok) {
+            const err = await openaiResponse.json();
+            throw new Error(`OpenAI Error: ${err.error?.message}`);
+        }
+
         const data = await openaiResponse.json();
         return new Response(JSON.stringify({ success: true, data: JSON.parse(data.choices[0].message.content) }), { headers: corsHeaders, status: 200 });
     }
@@ -134,7 +162,6 @@ serve(async (req) => {
       if (UNSPLASH_ACCESS_KEY) {
         try {
             // Lógica de Limpeza de Query para Imagem
-            // Removemos verbos e preposições que confundem a busca de imagens
             let imageQuery = keyword
                 .toLowerCase()
                 .replace('comprar', '')
@@ -143,10 +170,9 @@ serve(async (req) => {
                 .replace('melhores', '')
                 .replace('preço', '')
                 .replace(' em ', ' ')
-                .replace(context.toLowerCase(), '') // Remove a cidade para focar no objeto
+                .replace(context.toLowerCase(), '')
                 .trim();
 
-            // Se ficou vazio ou muito curto, usa termos genéricos seguros
             if (imageQuery.length < 3) imageQuery = "shopping africa market";
             
             log(`Searching Unsplash for: "${imageQuery}"`);
@@ -159,8 +185,7 @@ serve(async (req) => {
                 if (unsplashData.results && unsplashData.results.length > 0) {
                     finalImageUrl = unsplashData.results[0].urls.regular
                 } else {
-                    // Fallback se não encontrar nada específico
-                    finalImageUrl = "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1000&q=80" // Imagem genérica de e-commerce
+                    finalImageUrl = "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1000&q=80"
                 }
             }
         } catch (imgError) {
@@ -183,7 +208,7 @@ serve(async (req) => {
           keyword: keyword,
           context: context,
           audience: audience,
-          seo_score: 85, // Score base inicial para drafts longos
+          seo_score: 85, 
           readability_score: 'Bom',
           model: 'gpt-4o-mini-seo-matrix-v2'
         })
