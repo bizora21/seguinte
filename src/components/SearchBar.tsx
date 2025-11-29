@@ -4,6 +4,7 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Search, Filter, X } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 interface SearchBarProps {
   onSearch?: (query: string, category: string, maxPrice: string) => void
@@ -38,7 +39,24 @@ const SearchBar = ({ onSearch, showFilters = true }: SearchBarProps) => {
     setSearchParams(params)
   }, [query, category, maxPrice, setSearchParams])
 
+  // Função para registrar a busca no banco de dados (Analytics)
+  const logSearch = async (searchTerm: string, cat: string) => {
+    if (!searchTerm.trim()) return;
+    try {
+        await supabase.from('search_logs').insert({
+            query: searchTerm,
+            category_filter: cat === 'todos' ? null : cat,
+            // results_count será preenchido na página de resultados, aqui registramos a intenção
+        });
+    } catch (e) {
+        // Falha silenciosa para não atrapalhar o usuário
+        console.error("Search log error", e);
+    }
+  }
+
   const handleSearch = () => {
+    logSearch(query, category); // Registrar a busca
+
     const params = new URLSearchParams()
     if (query) params.set('q', query)
     if (category !== 'todos') params.set('categoria', category)

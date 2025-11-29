@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, RefreshCw, Zap } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, Package, RefreshCw, Zap, BrainCircuit } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showError } from '../utils/toast'
 import DeliveredOrdersCard from '../components/Admin/DeliveredOrdersCard'
 import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
 import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab'
 import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard'
-import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard' // NOVO IMPORT
+import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard'
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -81,14 +81,18 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-gray-900">Painel do Administrador</h1>
             <p className="text-gray-600 mt-1">Bem-vindo(a), {user?.email}.</p>
           </div>
-          <div className="flex items-center space-x-4 mt-4 md:mt-0">
+          <div className="flex items-center space-x-2 mt-4 md:mt-0">
             <Button onClick={fetchDashboardData} variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
             </Button>
-            <Button onClick={() => navigate('/dashboard/admin/marketing')} className="bg-yellow-500 hover:bg-yellow-600">
+            <Button onClick={() => navigate('/dashboard/admin/marketing')} className="bg-yellow-500 hover:bg-yellow-600 text-white">
               <Zap className="w-4 h-4 mr-2" />
               Marketing
+            </Button>
+            <Button onClick={() => navigate('/dashboard/admin/intelligence')} className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg">
+              <BrainCircuit className="w-4 h-4 mr-2" />
+              NEXUS AI
             </Button>
           </div>
         </div>
@@ -138,7 +142,7 @@ const AdminDashboard = () => {
 
           {/* Coluna Lateral (Histórico e Pendências) */}
           <div className="lg:col-span-1 space-y-8">
-            <PendingCommissionsCard /> {/* NOVO CARTÃO */}
+            <PendingCommissionsCard />
             <CommissionsHistoryCard lastUpdated={lastUpdated} />
           </div>
         </div>

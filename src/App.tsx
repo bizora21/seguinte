@@ -23,7 +23,7 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
-import OAuthCallbackPage from "./pages/OAuthCallbackPage"; // NOVO IMPORT
+import OAuthCallbackPage from "./pages/OAuthCallbackPage"; 
 
 // Rotas Lazy Loaded (Code Splitting)
 const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
@@ -31,6 +31,7 @@ const LojasPage = React.lazy(() => import("./pages/LojasPage"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const AdminMarketingCenter = React.lazy(() => import("./pages/AdminMarketingCenter"));
+const AdminIntelligence = React.lazy(() => import("./components/Admin/AdminIntelligence")); // NOVO IMPORT
 const ManageProduct = React.lazy(() => import("./pages/ManageProduct"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
 const Cart = React.lazy(() => import("./pages/Cart"));
@@ -83,10 +84,10 @@ const App = () => (
                       
                       <Route path="/teste-social" element={<TestSocial />} />
                       
-                      {/* ROTA DE CALLBACK OAUTH - DEDICADA */}
+                      {/* ROTA DE CALLBACK OAUTH */}
                       <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
 
-                      {/* Redirecionamento de rotas antigas para a nova estrutura */}
+                      {/* Redirecionamento de rotas antigas */}
                       <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />
                       <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />
 
@@ -115,8 +116,19 @@ const App = () => (
                           </AdminRoute>
                         } 
                       />
+                      {/* NOVA ROTA DE INTELIGÊNCIA */}
+                      <Route 
+                        path="/dashboard/admin/intelligence" 
+                        element={
+                          <AdminRoute>
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                                <AdminIntelligence />
+                            </div>
+                          </AdminRoute>
+                        } 
+                      />
                       
-                      {/* Rota de Cliente (Usando /lojas como área principal do cliente) */}
+                      {/* Rota de Cliente */}
                       <Route 
                         path="/account/customer" 
                         element={
@@ -134,17 +146,13 @@ const App = () => (
                           </ProtectedRoute>
                         } 
                       />
-                      {/* Rota de Detalhes do Produto (agora com chat integrado) */}
                       <Route path="/produto/:id" element={<ProductDetail />} />
-                      {/* ROTAS INFORMATIVAS */}
                       <Route path="/sobre-nos" element={<SobreNosPage />} />
                       <Route path="/blog" element={<BlogPage />} />
-                      {/* Rota de Artigo Dinâmico (NOVA) */}
                       <Route path="/blog/:slug" element={<BlogDetail />} />
                       
                       <Route path="/faq" element={<FaqPage />} />
                       <Route path="/contato" element={<ContatoPage />} />
-                      {/* ROTAS DE ENCOMENDA */}
                       <Route 
                         path="/confirmar-encomenda/:productId" 
                         element={
@@ -161,11 +169,9 @@ const App = () => (
                           </ProtectedRoute>
                         } 
                       />
-                      {/* ROTAS DE POLÍTICAS LEGAIS */}
                       <Route path="/termos" element={<TermosDeUsoPage />} />
                       <Route path="/privacidade" element={<PoliticaDePrivacidadePage />} />
                       <Route path="/politica-vendedor" element={<PoliticaVendedorPage />} />
-                      {/* ROTAS DE PEDIDOS */}
                       <Route 
                         path="/meus-pedidos" 
                         element={
@@ -182,7 +188,6 @@ const App = () => (
                           </ProtectedRoute>
                         } 
                       />
-                      {/* ROTAS ANTIGAS (MANTIDAS PARA COMPATIBILIDADE) */}
                       <Route 
                         path="/carrinho" 
                         element={
@@ -215,7 +220,6 @@ const App = () => (
                           </ProtectedRoute>
                         } 
                       />
-                      {/* ROTA DE CHAT DEDICADA */}
                       <Route 
                         path="/chat/:chatId" 
                         element={
@@ -233,7 +237,6 @@ const App = () => (
                 <Footer />
                 <BackToHomeButton />
                 <Chatbot />
-                {/* Adicionar o Pop-up de Captura de Leads no nível mais alto */}
                 <LeadCapturePopup /> 
               </div>
               <Toaster />
