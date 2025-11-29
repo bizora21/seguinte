@@ -50,13 +50,12 @@ serve(async (req) => {
     const reqBody = await req.json()
     const { action, code, platform, redirect_uri } = reqBody
     
-    // --- ROTA DE TESTE (NOVO) ---
     if (action === 'ping') {
-        await dbLog('info', 'PING RECEBIDO: O sistema de logs está funcionando!', { time: new Date().toISOString() });
+        await dbLog('info', 'PING RECEBIDO', { time: new Date().toISOString() });
         return new Response(JSON.stringify({ success: true, message: 'Pong!' }), { headers: corsHeaders, status: 200 });
     }
 
-    await dbLog('info', `Ação iniciada: ${action}`, { platform, redirect_uri_provided: !!redirect_uri });
+    await dbLog('info', `Ação iniciada: ${action}`, { platform });
 
     // --- AÇÃO 1: TROCA DE TOKEN (CALLBACK DO OAUTH) ---
     if (action === 'exchange_token') {
@@ -95,25 +94,12 @@ serve(async (req) => {
             userAccessToken = longData.access_token || tokenData.access_token;
             expiresIn = longData.expires_in || tokenData.expires_in;
 
-            // BUSCAR DADOS DO USUÁRIO E PÁGINAS (com Instagram)
-            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name,accounts{access_token,name,id,category,instagram_business_account}&access_token=${userAccessToken}`);
+            // BUSCAR DADOS DO USUÁRIO
+            const meResp = await fetch(`https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${userAccessToken}`);
             const meData = await meResp.json();
             
-            if (meData.error) {
-                await dbLog('error', "Erro ao buscar perfil do usuário", meData.error);
-            } else {
-                metadata.user_id = meData.id;
-                metadata.user_name = meData.name;
-                
-                if (meData.accounts && meData.accounts.data.length > 0) {
-                    // Contar quantas têm Instagram conectado
-                    const instagramCount = meData.accounts.data.filter((p: any) => p.instagram_business_account).length;
-                    metadata.total_pages = meData.accounts.data.length;
-                    metadata.pages_with_instagram = instagramCount;
-                } else {
-                    metadata.warning = "Nenhuma página encontrada.";
-                }
-            }
+            metadata.user_id = meData.id;
+            metadata.user_name = meData.name;
         } 
         
         const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : null;
@@ -151,29 +137,31 @@ serve(async (req) => {
             return new Response(JSON.stringify({ success: false, error: 'Não conectado.' }), { headers: corsHeaders, status: 200 });
         }
         
-        await dbLog('info', 'Buscando páginas do Facebook...', { userId: integration.metadata?.user_id });
+        await dbLog('info', 'Iniciando busca de páginas...', { userId: integration.metadata?.user_id });
 
-        // ATUALIZADO: Pedindo o campo instagram_business_account
-        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,access_token,instagram_business_account&access_token=${integration.access_token}&limit=100`);
+        // Tenta buscar as páginas. Se houver erro de permissão, o Facebook vai retornar aqui.
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,access_token,instagram_business_account,tasks&access_token=${integration.access_token}&limit=100`);
         const pagesData = await pagesResp.json();
         
+        // Logar a resposta RAW para debug
+        await dbLog('info', 'Resposta RAW do Facebook (/me/accounts)', { 
+            data_length: pagesData.data?.length,
+            error: pagesData.error,
+            raw_data: pagesData.data ? JSON.stringify(pagesData.data).substring(0, 500) : 'null' // Logar primeiros 500 chars
+        });
+
         if (pagesData.error) {
              await dbLog('error', 'Erro ao buscar páginas no Graph API', pagesData.error);
              return new Response(JSON.stringify({ success: false, error: pagesData.error.message }), { status: 200, headers: corsHeaders });
         }
 
-        // LOG DO DIAGNÓSTICO
-        await dbLog('info', 'Resposta do Facebook', { 
-            count: pagesData.data?.length || 0,
-            has_instagram: pagesData.data?.some((p: any) => p.instagram_business_account)
-        });
-
-        const pages = pagesData.data.map((p: any) => ({
+        const pages = (pagesData.data || []).map((p: any) => ({
             id: p.id,
             name: p.name,
             category: p.category,
             access_token: p.access_token,
-            instagram_id: p.instagram_business_account?.id || null // Retorna o ID do Insta se existir
+            instagram_id: p.instagram_business_account?.id || null,
+            tasks: p.tasks // Útil para saber o nível de permissão (MODERATE, CREATE_CONTENT, etc)
         }));
         
         return new Response(JSON.stringify({ success: true, pages }), { headers: corsHeaders, status: 200 });
