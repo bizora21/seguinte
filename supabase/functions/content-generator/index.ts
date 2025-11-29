@@ -17,21 +17,21 @@ const supabaseServiceRole = createClient(
   { auth: { persistSession: false } }
 )
 
-// Helper para injetar contexto local real
+// Helper para injetar contexto local real e rico
 const getLocalContext = (city: string) => {
   const contexts: Record<string, string> = {
-    'Maputo': 'bairros como Polana, Alto Maé, Coop e Sommerschield',
-    'Matola': 'zonas como Machava, Liberdade, Matola Rio e Fomento',
-    'Beira': 'áreas como Macuti, Ponta Gêa, Manga e Munhava',
-    'Nampula': 'bairros como Muahivire, Namicopo e zona de Cimento',
-    'Tete': 'bairros como Chingodzi e Matundo',
-    'Quelimane': 'zonas próximas à Marginal e Sagrada Família',
-    'Chimoio': 'bairros como Vila Nova e 7 de Abril',
-    'Xai-Xai': 'zonas da Praia e Marien Ngouabi',
-    'Inhambane': 'bairros Balane e Liberdade',
-    'Pemba': 'zonas de Wimbe, Chuiba e Alto Gingone'
+    'Maputo': 'bairros movimentados como Polana Cimento, Alto Maé, Coop, Malhangalene e Sommerschield',
+    'Matola': 'zonas industriais e residenciais como Machava, Liberdade, Matola Rio, Fomento e Mussumbuluco',
+    'Beira': 'áreas costeiras e centrais como Macuti, Ponta Gêa, Manga, Munhava e Chaimite',
+    'Nampula': 'bairros comerciais como Muahivire, Namicopo, Carrupeia e a zona de Cimento',
+    'Tete': 'bairros como Chingodzi, Matundo e a zona da Ponte Samora Machel',
+    'Quelimane': 'zonas próximas à Marginal, Sagrada Família e o centro da cidade das bicicletas',
+    'Chimoio': 'bairros como Vila Nova, 7 de Abril e a zona do Cabeça do Velho',
+    'Xai-Xai': 'zonas da Praia, Marien Ngouabi e a parte baixa da cidade',
+    'Inhambane': 'bairros históricos como Balane e Liberdade',
+    'Pemba': 'zonas turísticas de Wimbe, Chuiba e o centro expandido de Alto Gingone'
   };
-  return contexts[city] || 'todas as zonas da cidade';
+  return contexts[city] || 'todas as zonas e bairros da cidade';
 }
 
 // @ts-ignore
@@ -55,9 +55,8 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured.')
 
-    // --- NOVA AÇÃO: GERAR LEGENDA SOCIAL ---
+    // --- AÇÃO: GERAR LEGENDA SOCIAL ---
     if (action === 'generate_social_caption') {
-        // ... (código existente mantido para social) ...
         const { productName, productDescription, price, platform } = payload;
         const prompt = `ATUE COMO: Especialista em Marketing Digital Moçambicano. Venda: ${productName} (${price} MZN). Descrição: ${productDescription}. Plataforma: ${platform}. Foco: Pagamento na Entrega. JSON output: { "caption": "...", "hashtags": "..." }`;
         
@@ -77,39 +76,37 @@ serve(async (req) => {
       log(`Starting SEO Domination generation for: "${keyword}" in ${context}`);
 
       const prompt = `
-        **FUNÇÃO:** Especialista Sênior em SEO Local para Moçambique.
-        **MISSÃO:** Criar uma página de entrada (Landing Page de Conteúdo) para dominar a busca: "${keyword}".
-        **LOCALIZAÇÃO:** ${context} (Mencione ${localNuance}).
+        **IDENTIDADE:** Você é um Especialista Sênior em SEO e Copywriting para o mercado de Moçambique.
+        **OBJETIVO:** Criar um artigo autoritário, longo e altamente relevante para dominar a busca: "${keyword}".
+        **LOCALIZAÇÃO:** ${context} (Incorpore referências a: ${localNuance}).
         **PÚBLICO:** ${audience}.
-        **PLATAFORMA:** LojaRápida (Marketplace com Pagamento na Entrega).
+        **TOM DE VOZ:** Profissional, útil, persuasivo e local (PT-MZ).
 
-        **ESTRUTURA DE CONTEÚDO (HTML OTIMIZADO):**
-        1. **H2: Onde encontrar ${keyword.replace('comprar ', '').replace(' em ' + context, '')} em ${context}?**
-           - Explique que a LojaRápida conecta vendedores de ${context} diretamente com compradores.
-           - Mencione a facilidade de entrega nos bairros locais (${localNuance}).
-        2. **H2: Vantagens de comprar online em ${context}**
-           - Fale sobre evitar o trânsito/calor.
-           - Foco total em **Pagamento na Entrega** (segurança).
-        3. **H2: Preços médios de ${keyword} em Moçambique**
-           - Dê uma estimativa realista em Meticais (MZN).
-        4. **H2: Como vender ${keyword} na LojaRápida**
-           - Convide vendedores locais de ${context} a se cadastrarem.
-        5. **H3: Conclusão**
-           - Chamada para ação forte (Comprar ou Vender agora).
+        **REQUISITOS CRÍTICOS DE CONTEÚDO (NÃO IGNORE):**
+        1. **EXTENSÃO:** O artigo DEVE ter no mínimo **800 palavras**. Desenvolva cada parágrafo com profundidade.
+        2. **LINKS INTERNOS:** Você DEVE inserir organicamente no HTML os seguintes links (pelo menos 3 vezes no texto):
+           - <a href="https://lojarapidamz.com/register">começar a vender na LojaRápida</a>
+           - <a href="https://lojarapidamz.com/produtos">ver ofertas disponíveis</a>
+           - <a href="https://lojarapidamz.com/lojas">encontrar vendedores em ${context}</a>
+        3. **FORMATO:** HTML limpo (apenas tags de corpo: <h2>, <h3>, <p>, <ul>, <li>, <strong>). Não use markdown, não use tags <html> ou <body>.
 
-        **REGRAS DE SEO:**
-        - Repita a palavra-chave "${keyword}" pelo menos 3 vezes de forma natural.
-        - Use negrito (<strong>) para termos locais e benefícios.
-        - O texto deve ter entre 600 a 1000 palavras (focado e denso).
+        **ESTRUTURA DO ARTIGO:**
+        1. **Introdução Cativante:** Aborde a dor do cliente (ex: dificuldade de achar ${keyword} em ${context}) e apresente a solução (comprar online seguro).
+        2. **H2: O Panorama do Mercado de ${keyword} em ${context}:** Fale sobre disponibilidade, preços médios em Meticais e onde as pessoas costumam ir (${localNuance}).
+        3. **H2: Por que Comprar Online é Mais Seguro e Prático:** Foco total no **Pagamento na Entrega** (evita burlas) e entrega ao domicílio (evita chapa/trânsito).
+        4. **H2: Guia Passo-a-Passo para Encomendar na LojaRápida:** Explique como funciona.
+        5. **H2: Oportunidade para Vendedores:** Se você vende ${keyword}, explique por que devem se cadastrar.
+        6. **H2: Perguntas Frequentes (FAQ):** Crie 3 perguntas e respostas relevantes sobre ${keyword}.
+        7. **Conclusão:** Resumo e Call-to-Action forte.
 
         **SAÍDA JSON OBRIGATÓRIA:**
         {
-          "title": "Título SEO Otimizado (Ex: Melhores Ofertas de [Produto] em [Cidade])",
-          "meta_description": "Descrição atrativa com foco local e Call-to-Action. Máx 160 chars.",
-          "content_html": "Conteúdo HTML completo (tags <p>, <h2>, <h3>, <ul>, <li>).",
-          "image_prompt": "Imagem realista de alguém usando/segurando ${keyword} em um cenário urbano africano moderno, luz natural",
-          "image_alt_text": "${keyword} disponível para entrega imediata",
-          "secondary_keywords": ["${context} vendas", "loja online ${context}", "preço ${keyword} mzn"]
+          "title": "Título SEO Otimizado (Ex: Guia Completo: Onde Comprar [Keyword] em [Cidade])",
+          "meta_description": "Resumo atrativo com foco local e Call-to-Action. Máx 160 chars.",
+          "content_html": "O conteúdo HTML completo e extenso aqui...",
+          "image_prompt": "Fotografia profissional de ${keyword.replace('comprar ', '').replace('vender ', '')} em um contexto moderno, iluminação de estúdio, alta resolução",
+          "image_alt_text": "${keyword} disponível para entrega em ${context}",
+          "secondary_keywords": ["${context} vendas online", "loja ${context}", "preço ${keyword} mzn", "pagamento na entrega moçambique"]
         }
       `
       
@@ -117,10 +114,10 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
         body: JSON.stringify({ 
-            model: 'gpt-4o-mini', // Modelo rápido e eficiente para volume
+            model: 'gpt-4o-mini', 
             messages: [{ role: 'user', content: prompt }], 
             response_format: { type: 'json_object' },
-            temperature: 0.6 
+            temperature: 0.7 // Um pouco mais criativo para gerar texto mais longo
         }),
       })
 
@@ -129,22 +126,41 @@ serve(async (req) => {
       const openaiData = await openaiResponse.json()
       const generated = JSON.parse(openaiData.choices[0].message.content)
 
-      // --- GERAÇÃO DE IMAGEM (Unsplash) ---
+      // --- GERAÇÃO DE IMAGEM OTIMIZADA (Unsplash) ---
       // @ts-ignore
       const UNSPLASH_ACCESS_KEY = Deno.env.get('UNSPLASH_ACCESS_KEY')
       let finalImageUrl = null;
 
       if (UNSPLASH_ACCESS_KEY) {
         try {
-            // Busca mais genérica para garantir resultados
-            const searchTerms = keyword.replace('comprar ', '').replace('vender ', '').replace(/ em .*/, '');
-            const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerms)}&per_page=1&orientation=landscape`
+            // Lógica de Limpeza de Query para Imagem
+            // Removemos verbos e preposições que confundem a busca de imagens
+            let imageQuery = keyword
+                .toLowerCase()
+                .replace('comprar', '')
+                .replace('vender', '')
+                .replace('alugar', '')
+                .replace('melhores', '')
+                .replace('preço', '')
+                .replace(' em ', ' ')
+                .replace(context.toLowerCase(), '') // Remove a cidade para focar no objeto
+                .trim();
+
+            // Se ficou vazio ou muito curto, usa termos genéricos seguros
+            if (imageQuery.length < 3) imageQuery = "shopping africa market";
+            
+            log(`Searching Unsplash for: "${imageQuery}"`);
+
+            const unsplashUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(imageQuery)}&per_page=1&orientation=landscape&content_filter=high`
             const unsplashResponse = await fetch(unsplashUrl, { headers: { 'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}` } })
             
             if (unsplashResponse.ok) {
                 const unsplashData = await unsplashResponse.json()
                 if (unsplashData.results && unsplashData.results.length > 0) {
                     finalImageUrl = unsplashData.results[0].urls.regular
+                } else {
+                    // Fallback se não encontrar nada específico
+                    finalImageUrl = "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1000&q=80" // Imagem genérica de e-commerce
                 }
             }
         } catch (imgError) {
@@ -152,6 +168,7 @@ serve(async (req) => {
         }
       }
       
+      // Inserção no Banco
       const { data: newRecord, error: insertError } = await supabaseServiceRole
         .from('content_drafts')
         .insert({
@@ -166,7 +183,9 @@ serve(async (req) => {
           keyword: keyword,
           context: context,
           audience: audience,
-          model: 'gpt-4o-mini-seo-matrix'
+          seo_score: 85, // Score base inicial para drafts longos
+          readability_score: 'Bom',
+          model: 'gpt-4o-mini-seo-matrix-v2'
         })
         .select('id')
         .single()
