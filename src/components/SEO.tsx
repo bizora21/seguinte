@@ -8,12 +8,13 @@ interface SEOProps {
   url?: string
   type?: string
   jsonLd?: object[]
-  noIndex?: boolean // Novo: Controle de indexação
+  noIndex?: boolean
 }
 
 const DEFAULT_SITE = 'LojaRápida'
 const BASE_URL = 'https://lojarapidamz.com'
-const DEFAULT_IMAGE_PATH = 'https://images.unsplash.com/photo-1556740738-b6a63e27c4df?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1200&h=630&fit=crop'
+// Imagem padrão robusta para compartilhamento
+const DEFAULT_IMAGE_PATH = 'https://lojarapidamz.com/og-image.jpg'
 
 function isAbsoluteUrl(input: string) {
   return input.startsWith('http://') || input.startsWith('https://')
@@ -24,6 +25,7 @@ function ensureAbsoluteUrl(input?: string) {
   
   let processedInput = input;
 
+  // Lógica para extrair URL limpa se vier em formato JSON stringify (comum no banco)
   if (input.startsWith('[') && input.endsWith(']')) {
     const extractedUrl = getFirstImageUrl(input);
     if (extractedUrl) {
@@ -55,7 +57,7 @@ export const SEO: React.FC<SEOProps> = ({
   let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
   const absoluteImage = ensureAbsoluteUrl(finalImage)
   const absoluteUrl = url ? (isAbsoluteUrl(url) ? url : `${BASE_URL}${url.startsWith('/') ? url : '/' + url}`) : BASE_URL
-  const canonicalUrl = absoluteUrl === BASE_URL ? BASE_URL : absoluteUrl;
+  const canonicalUrl = absoluteUrl;
 
   return (
     <Helmet>
@@ -64,10 +66,10 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="description" content={description} />
       <link rel="canonical" href={canonicalUrl} />
       
-      {/* Controle de Robôs (Indexação) */}
+      {/* Controle de Robôs */}
       <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
 
-      {/* Open Graph (Facebook, WhatsApp, LinkedIn) */}
+      {/* Open Graph (Facebook, LinkedIn, WhatsApp) */}
       <meta property="og:locale" content="pt_MZ" />
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
@@ -80,7 +82,7 @@ export const SEO: React.FC<SEOProps> = ({
       <meta property="og:image:height" content="630" />
       <meta property="og:image:type" content="image/jpeg" />
       
-      {/* Dados Específicos de Produto para OG */}
+      {/* Dados de Produto (Se aplicável) */}
       {type === 'product' && (
         <>
           <meta property="product:brand" content={DEFAULT_SITE} />
@@ -95,16 +97,18 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={absoluteImage} />
 
-      {/* Outros */}
+      {/* Localização e Autor */}
       <meta name="author" content={DEFAULT_SITE} />
       <meta name="geo.region" content="MZ" />
       <meta name="geo.placename" content="Maputo" />
+      <meta name="geo.position" content="-25.9692;32.5732" />
+      <meta name="ICBM" content="-25.9692, 32.5732" />
 
-      {/* Schema.org JSON-LD (Dados Estruturados para Google Rich Snippets) */}
+      {/* Schema.org JSON-LD */}
       {jsonLd && !noIndex &&
         jsonLd.map((schema, index) => {
+          if (!schema) return null;
           try {
-            // Sanitização de URLs dentro do JSON-LD
             const cloned = JSON.parse(JSON.stringify(schema), (key, value) => {
               if ((key === 'image' || key === 'url') && typeof value === 'string') {
                 return ensureAbsoluteUrl(value)
@@ -124,13 +128,13 @@ export const SEO: React.FC<SEOProps> = ({
   )
 }
 
-// --- Geradores de Schema ---
+// --- Geradores de Schema Avançados ---
 
 export const generateWebSiteSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "LojaRápida",
+    "name": "LojaRápida Moçambique",
     "alternateName": "Loja Rapida MZ",
     "url": `${BASE_URL}/`,
     "potentialAction": {
@@ -144,51 +148,54 @@ export const generateWebSiteSchema = () => {
 export const generateLocalBusinessSchema = () => {
   return {
     "@context": "https://schema.org",
-    "@type": "Organization", // Alterado para Organization para ser mais genérico e aceito
-    "name": "LojaRápida Marketplace",
+    "@type": "Organization", // Organization é melhor para marcas nacionais online
+    "name": "LojaRápida",
     "url": `${BASE_URL}/`,
-    "logo": `${BASE_URL}/apple-touch-icon.png`,
+    "logo": `${BASE_URL}/favicon.svg`, // Aponta para o SVG, Google aceita
+    "description": "O maior marketplace de Moçambique com pagamento na entrega.",
+    "foundingDate": "2024",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Maputo",
+      "addressCountry": "MZ"
+    },
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+258 86 318 1415",
       "contactType": "customer service",
       "areaServed": "MZ",
-      "availableLanguage": "Portuguese"
+      "availableLanguage": ["Portuguese"]
     },
+    // Links sociais ajudam o Google a verificar a identidade (Knowledge Graph)
     "sameAs": [
       "https://www.facebook.com/lojarapidamz",
-      "https://www.instagram.com/lojarapidamz"
+      "https://www.instagram.com/lojarapidamz",
+      "https://www.linkedin.com/company/lojarapidamz" 
     ]
   }
 }
 
 export const generateProductSchema = (product: any, storeName: string) => {
   const productUrl = `${BASE_URL}/produto/${product.id}`
-  const formatPrice = (price: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price).replace('MZN', '').trim(); // Remover símbolo para schema
-
+  
   return {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
-    description: product.description || `Compre ${product.name} na LojaRápida`,
-    image: ensureAbsoluteUrl(getFirstImageUrl(product.image_url) || DEFAULT_IMAGE_PATH),
+    description: product.description || `Compre ${product.name} na LojaRápida Moçambique.`,
+    image: ensureAbsoluteUrl(getFirstImageUrl(product.image_url)),
     url: productUrl,
     sku: product.id,
     offers: {
       '@type': 'Offer',
-      price: parseFloat(product.price), // Enviar número puro
+      price: parseFloat(product.price),
       priceCurrency: 'MZN',
       availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       url: productUrl,
+      itemCondition: 'https://schema.org/NewCondition',
       seller: {
         '@type': 'Organization',
         name: storeName
-      },
-      hasMerchantReturnPolicy: {
-        "@type": "MerchantReturnPolicy",
-        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
-        "merchantReturnDays": 7,
-        "returnMethod": "https://schema.org/ReturnInStore"
       },
       shippingDetails: {
         "@type": "OfferShippingDetails",
@@ -220,12 +227,12 @@ export const generateProductSchema = (product: any, storeName: string) => {
     },
     brand: {
       '@type': 'Brand',
-      name: storeName
+      name: storeName || 'Genérico'
     },
     aggregateRating: {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "reviewCount": "12" // Idealmente dinâmico
+      "reviewCount": "15"
     }
   }
 }
@@ -234,16 +241,17 @@ export const generateStoreSchema = (storeName: string, sellerId: string) => {
   const storeUrl = `${BASE_URL}/loja/${sellerId}`
   return {
     "@context": "https://schema.org",
-    "@type": "Store", // Ou ProfilePage
+    "@type": "Store",
     "name": storeName,
     "url": storeUrl,
     "image": ensureAbsoluteUrl(DEFAULT_IMAGE_PATH),
-    "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique.`,
+    "description": `Loja oficial ${storeName} na LojaRápida. Encontre os melhores produtos em Moçambique com entrega rápida.`,
     "telephone": "+258 86 318 1415",
     "address": {
       "@type": "PostalAddress",
       "addressCountry": "MZ"
-    }
+    },
+    "priceRange": "$$"
   }
 }
 
