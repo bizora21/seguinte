@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search } from 'lucide-react'
+import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, CheckCircle, AlertTriangle, Globe } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { Textarea } from '../ui/textarea'
 import { Input } from '../ui/input'
@@ -13,12 +13,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { getFirstImageUrl } from '../../utils/images'
 import { useDebounce } from '../../hooks/useDebounce'
 
+interface FacebookPage {
+  id: string
+  name: string
+  access_token?: string
+}
+
 const SocialContentGenerator = () => {
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  
+  // Estados para Publicação
+  const [connectedPages, setConnectedPages] = useState<FacebookPage[]>([])
+  const [selectedPageId, setSelectedPageId] = useState<string>('')
+  const [loadingPages, setLoadingPages] = useState(false)
   
   const [generatedContent, setGeneratedContent] = useState({
     whatsapp: '',
@@ -52,10 +64,35 @@ const SocialContentGenerator = () => {
     }
   }
 
+  // Buscar páginas conectadas
+  const fetchConnectedPages = async () => {
+    setLoadingPages(true)
+    try {
+        const { data, error } = await supabase.functions.invoke('social-auth', {
+            method: 'POST',
+            body: { action: 'get_connected_pages' }
+        })
+
+        if (error) throw error
+        if (data && data.success && data.pages) {
+            setConnectedPages(data.pages)
+            if (data.pages.length > 0) {
+                setSelectedPageId(data.pages[0].id)
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao buscar páginas:', error)
+        // Não mostramos erro intrusivo aqui, pois o usuário pode não ter conectado ainda
+    } finally {
+        setLoadingPages(false)
+    }
+  }
+
   const debouncedSearch = useDebounce(searchProducts, 500)
 
   useEffect(() => {
     searchProducts('')
+    fetchConnectedPages()
   }, [])
 
   useEffect(() => {
@@ -108,6 +145,7 @@ const SocialContentGenerator = () => {
       const hashtags = data.data.hashtags || '#LojaRapida #Mocambique #VendasOnline'
       const productLink = `https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social_share`
 
+      // Formatamos o conteúdo para ser pronto para publicação
       setGeneratedContent({
         instagram: `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${productLink}\n\n${hashtags}`,
         facebook: `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${productLink}\n\n${hashtags}`,
@@ -126,6 +164,44 @@ const SocialContentGenerator = () => {
     }
   }
 
+  const handlePublishNow = async () => {
+    if (!generatedContent.facebook) {
+        showError('Gere o conteúdo primeiro.')
+        return
+    }
+    if (!selectedPageId) {
+        showError('Selecione uma página do Facebook para publicar.')
+        return
+    }
+
+    setPublishing(true)
+    const toastId = showLoading('Publicando no Facebook...')
+
+    try {
+        const { error } = await supabase.functions.invoke('social-media-manager', {
+            method: 'POST',
+            body: {
+                action: 'publish_now',
+                content: generatedContent.facebook,
+                platform: 'facebook',
+                pageId: selectedPageId,
+                imageUrl: imageUrl // Envia a imagem do produto
+            }
+        })
+
+        if (error) throw error
+
+        dismissToast(toastId)
+        showSuccess('Publicado com sucesso no Facebook!')
+    } catch (error: any) {
+        dismissToast(toastId)
+        console.error('Publish Error:', error)
+        showError(`Falha ao publicar: ${error.message}`)
+    } finally {
+        setPublishing(false)
+    }
+  }
+
   const handleCopy = (text: string, platform: string) => {
     navigator.clipboard.writeText(text)
     showSuccess(`Legenda do ${platform} copiada!`)
@@ -138,7 +214,7 @@ const SocialContentGenerator = () => {
           <Share2 className="w-6 h-6 mr-2 text-purple-600" />
           Motor de Viralidade (Produtos)
         </CardTitle>
-        <p className="text-sm text-gray-500">Transforme produtos em posts virais em segundos.</p>
+        <p className="text-sm text-gray-500">Transforme produtos em posts virais e publique instantaneamente.</p>
       </CardHeader>
       <CardContent className="space-y-6 p-6">
         
@@ -226,19 +302,64 @@ const SocialContentGenerator = () => {
 
                 <TabsContent value="facebook" className="flex-1 space-y-4">
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg h-full flex flex-col">
-                        <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
-                            <Send className="w-4 h-4 mr-2" />
-                            Legenda de Engajamento
+                        <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-between">
+                            <span className="flex items-center"><Send className="w-4 h-4 mr-2" /> Legenda de Engajamento</span>
+                            
+                            {/* Status da Página */}
+                            {loadingPages ? (
+                                <span className="text-xs text-blue-500 flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Verificando páginas...</span>
+                            ) : connectedPages.length > 0 ? (
+                                <span className="text-xs text-green-600 flex items-center font-bold"><CheckCircle className="w-3 h-3 mr-1" /> Conectado</span>
+                            ) : (
+                                <span className="text-xs text-red-500 flex items-center font-bold cursor-pointer" onClick={() => window.open('/dashboard/admin/marketing?tab=settings')}>
+                                    <AlertTriangle className="w-3 h-3 mr-1" /> Sem página conectada
+                                </span>
+                            )}
                         </h4>
+                        
                         <Textarea 
                             value={generatedContent.facebook} 
-                            readOnly 
-                            className="text-sm bg-white border-blue-200 flex-1 min-h-[200px] resize-none focus:ring-blue-500" 
-                            placeholder="A legenda gerada pela IA aparecerá aqui..."
+                            onChange={(e) => setGeneratedContent(prev => ({ ...prev, facebook: e.target.value }))}
+                            className="text-sm bg-white border-blue-200 flex-1 min-h-[150px] resize-none focus:ring-blue-500 mb-3" 
+                            placeholder="A legenda gerada pela IA aparecerá aqui. Você pode editar antes de publicar."
                         />
-                        <Button onClick={() => handleCopy(generatedContent.facebook, 'Facebook')} className="w-full mt-3 bg-blue-600 hover:bg-blue-700 h-12 font-bold">
-                            <Copy className="w-5 h-5 mr-2" /> Copiar para Publicar
-                        </Button>
+
+                        {/* Controles de Publicação */}
+                        <div className="mt-auto space-y-3 pt-3 border-t border-blue-200">
+                            {connectedPages.length > 0 && (
+                                <div className="flex items-center space-x-2">
+                                    <Label className="text-xs text-blue-800 whitespace-nowrap">Publicar em:</Label>
+                                    <Select value={selectedPageId} onValueChange={setSelectedPageId} disabled={publishing}>
+                                        <SelectTrigger className="h-8 text-xs bg-white border-blue-300">
+                                            <SelectValue placeholder="Selecione a página" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {connectedPages.map(page => (
+                                                <SelectItem key={page.id} value={page.id}>{page.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            <div className="flex gap-2">
+                                <Button 
+                                    onClick={() => handleCopy(generatedContent.facebook, 'Facebook')} 
+                                    variant="outline"
+                                    className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-100"
+                                >
+                                    <Copy className="w-4 h-4 mr-2" /> Copiar
+                                </Button>
+                                <Button 
+                                    onClick={handlePublishNow} 
+                                    disabled={publishing || !generatedContent.facebook || connectedPages.length === 0}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                >
+                                    {publishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}
+                                    {publishing ? 'Publicando...' : 'Publicar Agora'}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </TabsContent>
                 
@@ -250,7 +371,7 @@ const SocialContentGenerator = () => {
                         </h4>
                         <Textarea 
                             value={generatedContent.whatsapp} 
-                            readOnly 
+                            onChange={(e) => setGeneratedContent(prev => ({ ...prev, whatsapp: e.target.value }))}
                             className="text-sm font-mono bg-white border-green-200 focus:ring-green-500 flex-1 min-h-[200px] resize-none" 
                             placeholder="Texto curto e direto para grupos..."
                         />
