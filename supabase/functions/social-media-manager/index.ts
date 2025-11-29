@@ -46,6 +46,22 @@ serve(async (req) => {
     
     const body = await req.json()
     
+    // --- NOVO: AÇÃO DE ENCURTAR LINK ---
+    if (body.action === 'shorten_link') {
+        const { url } = body;
+        if (!url) throw new Error('URL necessária');
+
+        // Usa a API pública do TinyURL (simples e robusta)
+        const tinyResponse = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+        
+        if (!tinyResponse.ok) {
+            throw new Error('Falha ao encurtar link no serviço externo.');
+        }
+
+        const shortUrl = await tinyResponse.text();
+        return new Response(JSON.stringify({ success: true, shortUrl }), { headers: corsHeaders, status: 200 });
+    }
+
     if (body.action === 'publish_now') {
         const { content, platform, imageUrl, pageId } = body;
         const targetPlatform = platform || 'facebook';

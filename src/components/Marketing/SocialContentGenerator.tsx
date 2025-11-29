@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle, Flag } from 'lucide-react'
+import { Copy, Share2, Facebook, MessageCircle, Send, Smartphone, Wand2, Loader2, Search, AlertCircle, Flag, Link as LinkIcon, RefreshCw, Check } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { Textarea } from '../ui/textarea'
 import { Input } from '../ui/input'
@@ -14,6 +14,8 @@ import { getFirstImageUrl } from '../../utils/images'
 import { useDebounce } from '../../hooks/useDebounce'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
+import { Badge } from '../ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 
 interface FacebookPage {
   id: string
@@ -29,11 +31,16 @@ const SocialContentGenerator = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [shortening, setShortening] = useState(false)
   
   // Estado para Páginas do Facebook
   const [fbPages, setFbPages] = useState<FacebookPage[]>([])
   const [selectedPageId, setSelectedPageId] = useState<string>('')
   const [loadingPages, setLoadingPages] = useState(false)
+  
+  // Estado do Link Personalizado
+  const [customLink, setCustomLink] = useState('')
+  const [useShortLink, setUseShortLink] = useState(false)
   
   const [generatedContent, setGeneratedContent] = useState({
     whatsapp: '',
@@ -41,12 +48,12 @@ const SocialContentGenerator = () => {
     instagram: ''
   })
 
-  // Buscar Páginas do Facebook ao carregar
+  // Buscar Páginas do Facebook
   useEffect(() => {
     const fetchPages = async () => {
         setLoadingPages(true)
         try {
-            const { data, error } = await supabase.functions.invoke('social-auth', {
+            const { data } = await supabase.functions.invoke('social-auth', {
                 method: 'POST',
                 body: { action: 'get_connected_pages' }
             })
@@ -86,7 +93,6 @@ const SocialContentGenerator = () => {
       setProducts(data || [])
     } catch (error) {
       console.error('Error fetching products:', error)
-      showError('Erro ao buscar produtos')
     } finally {
       setLoadingProducts(false)
     }
@@ -106,7 +112,14 @@ const SocialContentGenerator = () => {
     return products.find(p => p.id === selectedProductId)
   }, [selectedProductId, products])
 
-  const productLink = selectedProduct ? `https://lojarapidamz.com/produto/${selectedProduct.id}` : ''
+  // Resetar link customizado quando muda o produto
+  useEffect(() => {
+    if (selectedProduct) {
+        setCustomLink(`https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social&utm_medium=post`)
+        setUseShortLink(false)
+    }
+  }, [selectedProduct])
+
   const imageUrl = useMemo(() => getFirstImageUrl(selectedProduct?.image_url), [selectedProduct])
 
   const formatPrice = (price: number) => {
@@ -115,6 +128,28 @@ const SocialContentGenerator = () => {
       currency: 'MZN',
       minimumFractionDigits: 0
     }).format(price)
+  }
+
+  // --- FUNÇÃO MÁGICA DE ENCURTAMENTO ---
+  const handleShortenLink = async () => {
+    if (!customLink) return
+    setShortening(true)
+    try {
+        const { data, error } = await supabase.functions.invoke('social-media-manager', {
+            method: 'POST',
+            body: { action: 'shorten_link', url: customLink }
+        })
+
+        if (error || !data?.shortUrl) throw new Error('Falha ao encurtar')
+        
+        setCustomLink(data.shortUrl)
+        setUseShortLink(true)
+        showSuccess('Link encurtado e pronto para uso!')
+    } catch (error) {
+        showError('Não foi possível encurtar o link.')
+    } finally {
+        setShortening(false)
+    }
   }
 
   const handleGenerateWithAI = async () => {
@@ -148,12 +183,15 @@ const SocialContentGenerator = () => {
       const caption = data.data.caption
       const hashtags = data.data.hashtags || '#LojaRapida #Mocambique #VendasOnline'
 
-      const fbContent = `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${productLink}\n\n${hashtags}`
+      // Usar o link customizado (encurtado ou não)
+      const finalLink = customLink || `https://lojarapidamz.com/produto/${selectedProduct.id}`
+
+      const fbContent = `${caption}\n\n🔥 PREÇO: ${formatPrice(selectedProduct.price)}\n🛒 ENCOMENDE AQUI: ${finalLink}\n\n${hashtags}`
       
       setGeneratedContent({
         instagram: fbContent,
         facebook: fbContent,
-        whatsapp: `*${selectedProduct.name}*\n🔥 Apenas ${formatPrice(selectedProduct.price)}\n\n${caption.substring(0, 150)}...\n\n👉 Peça aqui: ${productLink}`
+        whatsapp: `*${selectedProduct.name}*\n🔥 Apenas ${formatPrice(selectedProduct.price)}\n\n${caption.substring(0, 150)}...\n\n👉 Peça aqui: ${finalLink}`
       })
 
       dismissToast(toastId)
@@ -190,17 +228,15 @@ const SocialContentGenerator = () => {
         body: JSON.stringify({
           action: 'publish_now',
           platform: 'facebook',
-          pageId: selectedPageId, // Envia o ID da página selecionada
+          pageId: selectedPageId,
           content: generatedContent.facebook,
           imageUrl: imageUrl 
         })
       })
       
       const result = await response.json()
-      
       dismissToast(toastId)
 
-      // --- TRATAMENTO DE ERRO ROBUSTO ---
       if (response.status === 412 || result.error === 'INTEGRATION_NOT_FOUND') {
         toast((t) => (
           <div className="flex flex-col gap-2">
@@ -293,8 +329,6 @@ const SocialContentGenerator = () => {
                   <SelectItem key={p.id} value={p.id}>
                     <span className="font-medium">{p.name}</span> 
                     <span className="text-gray-500 ml-2">({formatPrice(p.price)})</span>
-                    {/* @ts-ignore */}
-                    <span className="text-xs text-gray-400 ml-2">- {p.seller?.store_name}</span>
                   </SelectItem>
                 ))
               )}
@@ -304,13 +338,13 @@ const SocialContentGenerator = () => {
 
         {selectedProduct && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Coluna 1: Preview da Imagem e Ações */}
+            {/* Coluna 1: Preview e Ações */}
             <div className="lg:col-span-1 space-y-4">
               <div className="relative aspect-square w-full rounded-lg overflow-hidden shadow-lg border bg-white group">
                 <img 
                     src={imageUrl || '/placeholder.svg'} 
                     alt={selectedProduct.name} 
-                    className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" 
+                    className="w-full h-full object-contain p-2" 
                     onError={(e) => { e.currentTarget.src = '/placeholder.svg' }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-3 text-white backdrop-blur-sm">
@@ -319,13 +353,70 @@ const SocialContentGenerator = () => {
                 </div>
               </div>
               
+              {/* --- EDITOR DE LINK MODERNO --- */}
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <div className="flex justify-between items-center mb-2">
+                    <Label className="text-xs font-bold text-blue-800 uppercase flex items-center">
+                        <LinkIcon className="w-3 h-3 mr-1" /> Link do Produto
+                    </Label>
+                    {useShortLink && <Badge variant="secondary" className="bg-green-200 text-green-800 text-[10px] h-5">Encurtado</Badge>}
+                </div>
+                
+                <div className="flex gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
+                                {useShortLink ? customLink : 'Personalizar Link'}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-4">
+                            <div className="space-y-3">
+                                <h4 className="font-medium text-sm">Editor de Link</h4>
+                                <Input 
+                                    value={customLink} 
+                                    onChange={(e) => {
+                                        setCustomLink(e.target.value)
+                                        setUseShortLink(false) 
+                                    }}
+                                    className="text-xs"
+                                />
+                                <div className="flex gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        onClick={handleShortenLink} 
+                                        disabled={shortening || useShortLink}
+                                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                                    >
+                                        {shortening ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Encurtar (Mágico)'}
+                                    </Button>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => {
+                                            setCustomLink(`https://lojarapidamz.com/produto/${selectedProduct.id}?utm_source=social`)
+                                            setUseShortLink(false)
+                                        }}
+                                        title="Resetar"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                                <p className="text-[10px] text-gray-500">
+                                    Dica: Links curtos (TinyURL) aumentam cliques em até 34%.
+                                </p>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+              </div>
+
               <Button 
                 onClick={handleGenerateWithAI} 
                 disabled={generating} 
                 className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md font-bold"
               >
                 {generating ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Wand2 className="w-5 h-5 mr-2" />}
-                {generating ? 'Criando Copy...' : 'Gerar Legenda Viral (IA)'}
+                {generating ? 'Escrevendo Legenda...' : 'Gerar Post Completo'}
               </Button>
             </div>
 
@@ -347,35 +438,18 @@ const SocialContentGenerator = () => {
                             <h4 className="font-semibold text-blue-800 flex items-center">
                                 <Send className="w-4 h-4 mr-2" /> Postagem Automática
                             </h4>
-                            {!generatedContent.facebook && <span className="text-xs text-blue-600 animate-pulse">Gere a legenda primeiro</span>}
-                        </div>
-                        
-                        {/* Seletor de Página */}
-                        <div className="mb-4">
-                            <Label className="text-xs font-bold text-blue-800 mb-1 block">Publicar na Página:</Label>
-                            {loadingPages ? (
-                                <div className="text-sm text-gray-500 flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Carregando páginas...</div>
-                            ) : fbPages.length > 0 ? (
+                            {/* Seleção de Página */}
+                            {fbPages.length > 0 && (
                                 <Select value={selectedPageId} onValueChange={setSelectedPageId}>
-                                    <SelectTrigger className="bg-white border-blue-200 text-sm h-9">
-                                        <SelectValue placeholder="Selecione a página" />
+                                    <SelectTrigger className="w-[180px] h-8 text-xs bg-white">
+                                        <SelectValue placeholder="Escolha a Página" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {fbPages.map(page => (
-                                            <SelectItem key={page.id} value={page.id}>
-                                                <div className="flex items-center">
-                                                    <Flag className="w-3 h-3 mr-2 text-blue-500" />
-                                                    {page.name}
-                                                </div>
-                                            </SelectItem>
+                                            <SelectItem key={page.id} value={page.id}>{page.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            ) : (
-                                <div className="text-xs text-red-500 flex items-center bg-red-50 p-2 rounded border border-red-100">
-                                    <AlertCircle className="w-3 h-3 mr-1" />
-                                    Nenhuma página encontrada. <span className="underline ml-1 cursor-pointer" onClick={() => navigate('?tab=settings')}>Verifique as configurações</span>.
-                                </div>
                             )}
                         </div>
                         
@@ -384,7 +458,7 @@ const SocialContentGenerator = () => {
                             onChange={(e) => setGeneratedContent({...generatedContent, facebook: e.target.value})}
                             rows={8} 
                             placeholder="A legenda gerada pela IA aparecerá aqui..."
-                            className="text-sm bg-white border-blue-200 flex-1 min-h-[150px] resize-none" 
+                            className="text-sm bg-white border-blue-200 flex-1 min-h-[150px] resize-none focus:ring-blue-500" 
                         />
                         
                         <div className="mt-4 flex gap-3">
@@ -400,9 +474,6 @@ const SocialContentGenerator = () => {
                                 <Copy className="w-5 h-5" />
                             </Button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-2 text-center">
-                            Isso publicará a imagem do produto e o texto acima na sua Página do Facebook selecionada.
-                        </p>
                     </div>
                 </TabsContent>
                 
