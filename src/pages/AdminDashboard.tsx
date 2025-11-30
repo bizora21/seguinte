@@ -12,6 +12,7 @@ import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
 import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab'
 import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard'
 import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard'
+import AdminActivityFeed from '../components/Admin/AdminActivityFeed' // NOVO IMPORT
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -133,15 +134,20 @@ const AdminDashboard = () => {
 
         {/* Layout Principal */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Coluna Principal (Ações) */}
+          {/* Coluna Principal (Ações e Feed) */}
           <div className="lg:col-span-2 space-y-8">
             <AdminPaymentManagementTab />
+            
+            {/* Feed Global em Destaque */}
+            <AdminActivityFeed />
+            
             <DeliveredOrdersCard onUpdate={fetchDashboardData} />
-            <CancelledOrdersCard />
           </div>
 
-          {/* Coluna Lateral (Histórico e Pendências) */}
+          {/* Coluna Lateral (Pendências Específicas) */}
           <div className="lg:col-span-1 space-y-8">
+            {/* Cancelamentos no topo da lateral para visibilidade */}
+            <CancelledOrdersCard />
             <PendingCommissionsCard />
             <CommissionsHistoryCard lastUpdated={lastUpdated} />
           </div>
