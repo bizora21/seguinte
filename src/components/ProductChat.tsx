@@ -35,7 +35,9 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
   const [chatId, setChatId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Referência para o container de scroll (caixa de mensagens)
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user || !sellerId) {
@@ -112,8 +114,19 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
     }
   };
 
+  // CORREÇÃO AQUI: Em vez de scrollIntoView (que move a janela),
+  // ajustamos o scrollTop apenas deste container específico.
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollAreaRef.current) {
+        const { scrollHeight, clientHeight } = scrollAreaRef.current;
+        // Rola apenas se houver conteúdo suficiente para rolar
+        if (scrollHeight > clientHeight) {
+            scrollAreaRef.current.scrollTo({
+                top: scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
   };
 
   const fetchMessages = async (chatId: string) => {
@@ -258,7 +271,10 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div 
+                ref={scrollAreaRef}
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+            >
               {chatLoading ? (
                 <div className="text-center py-8"><LoadingSpinner /></div>
               ) : messages.length === 0 ? (
@@ -273,7 +289,6 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
                   </div>
                 ))
               )}
-              <div ref={messagesEndRef} />
             </div>
             <div className="bg-yellow-50 border-t border-yellow-200 p-3 mx-4 mb-2">
               <div className="flex items-start space-x-2 text-xs text-yellow-800">
