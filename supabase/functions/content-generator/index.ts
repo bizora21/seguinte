@@ -55,6 +55,41 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured.')
 
+    // --- NOVA AÇÃO: GERAR GANCHO CURTO ---
+    if (action === 'generate_hook') {
+      const { topic } = payload;
+      
+      const prompt = `
+        Crie uma frase de impacto EXTREMAMENTE CURTA (máximo 3 palavras) para um assunto de e-mail de vendas em Moçambique.
+        Tópico: ${topic || 'Oferta Especial'}.
+        Estilo: Urgente, Emocionante, Vendedor.
+        Exemplos: "Corre Aproveitar", "Só Hoje", "Baixou Tudo", "Imperdível Agora".
+        
+        Retorne APENAS o texto da frase, sem aspas, sem explicações.
+      `;
+
+      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ 
+            model: 'gpt-4o-mini', 
+            messages: [{ role: 'user', content: prompt }], 
+            temperature: 0.9,
+            max_tokens: 10
+        }),
+      });
+
+      if (!openaiResponse.ok) {
+          const err = await openaiResponse.json();
+          throw new Error(`OpenAI Error: ${err.error?.message}`);
+      }
+
+      const data = await openaiResponse.json();
+      const hook = data.choices[0].message.content.trim().replace(/^"|"$/g, ''); // Remove aspas extras
+      
+      return new Response(JSON.stringify({ success: true, hook }), { headers: corsHeaders, status: 200 });
+    }
+
     // --- AÇÃO: GERAR LEGENDA SOCIAL ---
     if (action === 'generate_social_caption') {
         const { productName, productDescription, price, platform } = payload;
