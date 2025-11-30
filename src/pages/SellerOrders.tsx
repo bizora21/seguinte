@@ -253,19 +253,18 @@ const SellerOrders = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-4">
+              <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-2 pl-0 hover:bg-transparent">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
               </Button>
-              <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
-              <p className="text-gray-600 mt-2">Gerencie o status dos seus pedidos em tempo real</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Meus Pedidos</h1>
             </div>
             <div className="flex space-x-2 mt-4 sm:mt-0">
-              <Button variant="outline" onClick={fetchOrders} className="flex items-center" disabled={loading}>
+              <Button variant="outline" size="sm" onClick={fetchOrders} className="flex items-center" disabled={loading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Atualizar
               </Button>
             </div>
@@ -277,14 +276,13 @@ const SellerOrders = () => {
             <div className="flex items-start space-x-3">
               <CheckCircle className="w-5 h-5 mt-1 text-blue-600 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold text-blue-800 mb-1">Fluxo de Pedidos (Confiança do Cliente)</h3>
-                <p className="text-sm text-blue-700">
+                <h3 className="font-semibold text-blue-800 mb-1 text-sm md:text-base">Fluxo de Pedidos (Confiança do Cliente)</h3>
+                <p className="text-xs md:text-sm text-blue-700">
                   Mantenha o cliente informado atualizando o status: 
                   <span className="font-bold"> Pendente </span> 
                   → <span className="font-bold"> Em Preparação </span> 
                   → <span className="font-bold"> A Caminho </span> 
                   → <span className="font-bold"> Entregue </span>. 
-                  O cliente confirmará o recebimento para finalizar o pedido como <span className="font-bold"> Concluído</span>.
                 </p>
               </div>
             </div>
@@ -312,36 +310,30 @@ const SellerOrders = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status)
               const nextStatuses = getNextStatuses(order.status)
               
               return (
                 <Card key={order.id} className="transition-all duration-300 hover:shadow-md">
-                  <CardHeader className="bg-white border-b border-gray-100">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                  <CardHeader className="bg-white border-b border-gray-100 p-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                       <div>
-                        <CardTitle className="text-lg flex items-center">
+                        <CardTitle className="text-base md:text-lg flex items-center">
                             Pedido #{order.id.slice(0, 8)}
-                            {order.status === 'cancelled' && <span className="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">CANCELADO</span>}
+                            {order.status === 'cancelled' && <span className="ml-2 text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">CANCELADO</span>}
                         </CardTitle>
-                        <div className="flex flex-wrap items-center gap-x-4 mt-2 text-sm text-gray-600">
+                        <div className="flex flex-wrap items-center gap-x-4 mt-1 text-xs md:text-sm text-gray-600">
                           <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
+                            <Calendar className="w-3 h-3 mr-1" />
                             {formatDate(order.created_at)}
                           </div>
-                          {order.updated_at !== order.created_at && (
-                            <div className="flex items-center text-blue-600 mt-1 sm:mt-0">
-                              <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                              <span className="text-blue-700">Atualizado recentemente</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mt-3 sm:mt-0">
-                        <Badge className={`${statusInfo.color} px-3 py-1 text-sm`}>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                        <Badge className={`w-fit ${statusInfo.color} px-2 py-1 text-xs`}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
                         
@@ -351,16 +343,16 @@ const SellerOrders = () => {
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                             disabled={updatingStatus === order.id}
                           >
-                            <SelectTrigger className="w-full sm:w-40 border-blue-200 hover:border-blue-400 focus:ring-blue-500">
+                            <SelectTrigger className="w-full sm:w-40 h-8 text-xs border-blue-200 hover:border-blue-400 focus:ring-blue-500">
                               {updatingStatus === order.id ? (
                                 <div className="flex items-center justify-center">
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-600" />
-                                  <span className="text-sm text-blue-600">Atualizando...</span>
+                                  <Loader2 className="w-3 h-3 mr-2 animate-spin text-blue-600" />
+                                  <span className="text-blue-600">Atualizando...</span>
                                 </div>
                               ) : (
                                 <>
                                   <SelectValue placeholder="Alterar Status" />
-                                  <ChevronDown className="w-4 h-4 opacity-50 ml-1" />
+                                  <ChevronDown className="w-3 h-3 opacity-50 ml-1" />
                                 </>
                               )}
                             </SelectTrigger>
@@ -376,10 +368,10 @@ const SellerOrders = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4 pt-4">
+                  <CardContent className="space-y-4 pt-4 p-4">
                     
-                    {/* NOVO: Informações do Cliente */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                    {/* Informações do Cliente */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
                         <div className="flex items-center space-x-2">
                             <User className="w-4 h-4 text-yellow-800 flex-shrink-0" />
                             <span className="text-sm font-bold text-yellow-900 truncate" title={order.customer_name}>
@@ -402,8 +394,8 @@ const SellerOrders = () => {
                     
                     <div className="space-y-3">
                       {order.order_items.map((item) => (
-                        <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border">
+                        <div key={item.id} className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="w-10 h-10 bg-white rounded overflow-hidden flex-shrink-0 border">
                             <img
                               src={getFirstImageUrl(item.product.image_url) || defaultImage}
                               alt={item.product.name}
@@ -412,10 +404,10 @@ const SellerOrders = () => {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate text-gray-900">{item.product.name}</h4>
-                            <p className="text-sm text-gray-600">{item.quantity}x {formatPrice(item.price)}</p>
+                            <h4 className="font-medium truncate text-gray-900 text-sm">{item.product.name}</h4>
+                            <p className="text-xs text-gray-600">{item.quantity}x {formatPrice(item.price)}</p>
                           </div>
-                          <div className="font-semibold text-gray-900">{formatPrice(item.price * item.quantity)}</div>
+                          <div className="font-semibold text-gray-900 text-sm">{formatPrice(item.price * item.quantity)}</div>
                         </div>
                       ))}
                     </div>
@@ -423,23 +415,22 @@ const SellerOrders = () => {
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-bold text-blue-900">Endereço Completo:</p>
-                        <p className="text-sm text-blue-800 break-words">{order.delivery_address}</p>
+                        <p className="text-xs font-bold text-blue-900">Endereço Completo:</p>
+                        <p className="text-xs md:text-sm text-blue-800 break-words">{order.delivery_address}</p>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center pt-2 border-t border-dashed">
-                      <span className="font-medium text-gray-600">Total do Pedido:</span>
-                      <span className="text-xl font-extrabold text-green-600">{formatPrice(order.total_amount)}</span>
+                      <span className="font-medium text-gray-600 text-sm">Total do Pedido:</span>
+                      <span className="text-lg font-extrabold text-green-600">{formatPrice(order.total_amount)}</span>
                     </div>
 
                     {order.status === 'delivered' && (
                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg animate-in fade-in">
-                        <div className="flex items-center text-green-800">
-                          <CheckCircle className="w-5 h-5 mr-2" />
+                        <div className="flex items-center text-green-800 text-sm">
+                          <CheckCircle className="w-4 h-4 mr-2" />
                           <span className="font-bold">Entregue! Aguardando confirmação.</span>
                         </div>
-                        <p className="text-sm text-green-700 mt-1 pl-7">O cliente foi notificado para confirmar o recebimento e o pagamento.</p>
                       </div>
                     )}
                   </CardContent>

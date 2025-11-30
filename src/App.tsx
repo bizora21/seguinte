@@ -31,7 +31,7 @@ const LojasPage = React.lazy(() => import("./pages/LojasPage"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const AdminMarketingCenter = React.lazy(() => import("./pages/AdminMarketingCenter"));
-const AdminIntelligence = React.lazy(() => import("./components/Admin/AdminIntelligence")); // NOVO IMPORT
+const AdminIntelligence = React.lazy(() => import("./components/Admin/AdminIntelligence"));
 const ManageProduct = React.lazy(() => import("./pages/ManageProduct"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
 const Cart = React.lazy(() => import("./pages/Cart"));
@@ -70,11 +70,11 @@ const App = () => (
               }}
             >
               <ScrollToTop />
-              <div className="min-h-screen bg-gray-50 flex flex-col">
+              <div className="min-h-screen bg-gray-50 flex flex-col w-full overflow-x-hidden">
                 <Header />
                 <PaymentBanner />
-                <main className="flex-1">
-                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
+                <main className="flex-1 w-full">
+                  <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
                     <Routes>
                       <Route path="/" element={<HomePage />} />
                       <Route path="/produtos" element={<ProductsPage />} />
@@ -83,15 +83,11 @@ const App = () => (
                       <Route path="/register" element={<Register />} />
                       
                       <Route path="/teste-social" element={<TestSocial />} />
-                      
-                      {/* ROTA DE CALLBACK OAUTH */}
                       <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
 
-                      {/* Redirecionamento de rotas antigas */}
                       <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />
                       <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />
 
-                      {/* ROTAS PROTEGIDAS POR PERFIL */}
                       <Route 
                         path="/dashboard/seller" 
                         element={
@@ -116,7 +112,6 @@ const App = () => (
                           </AdminRoute>
                         } 
                       />
-                      {/* NOVA ROTA DE INTELIGÊNCIA */}
                       <Route 
                         path="/dashboard/admin/intelligence" 
                         element={
@@ -128,7 +123,6 @@ const App = () => (
                         } 
                       />
                       
-                      {/* Rota de Cliente */}
                       <Route 
                         path="/account/customer" 
                         element={

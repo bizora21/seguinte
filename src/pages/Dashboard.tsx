@@ -1,30 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../components/ui/tooltip'
+import { TooltipProvider } from '../components/ui/tooltip'
 import { 
   Plus, 
   ShoppingBag, 
   Package, 
-  TrendingUp, 
-  MessageCircle,
-  Eye,
-  Store,
-  ArrowRight,
   DollarSign,
   BarChart3,
   Settings,
   CreditCard,
-  AlertTriangle,
-  User,
-  XCircle // Ícone para cancelados
+  XCircle,
+  Store 
 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import SellerFinanceTab from '../components/SellerFinanceTab'
 import StoreSettingsTab from '../components/StoreSettingsTab'
 import SellerProductsTab from '../components/SellerProductsTab'
@@ -34,6 +27,9 @@ import toast from 'react-hot-toast'
 const Dashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalOrders: 0,
@@ -192,97 +188,106 @@ const Dashboard = () => {
   }
 
   const statCards = [
-    { title: 'Total de Produtos', value: formatNumber(stats.totalProducts), icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-    { title: 'Pedidos Totais', value: formatNumber(stats.totalOrders), icon: ShoppingBag, color: 'text-green-600', bgColor: 'bg-green-50' },
-    { title: 'Receita (Concluídos)', value: formatPrice(stats.totalRevenue), icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-50' },
-    { title: 'Pedidos Pendentes', value: formatNumber(stats.pendingOrders), icon: BarChart3, color: 'text-orange-600', bgColor: 'bg-orange-50' }
-  ]
-  
-  const actionButtons = [
-    { name: 'Gerenciar Pedidos', href: '/meus-pedidos', icon: ShoppingBag, description: 'Visualize e atualize o status de todos os pedidos recebidos.', variant: 'default' as const },
-    { name: 'Meus Produtos', href: '/dashboard?tab=products', icon: Package, description: 'Adicione, edite ou exclua seus produtos.', variant: 'default' as const },
-    { name: 'Finanças e Comissões', href: '/dashboard?tab=finance', icon: CreditCard, description: 'Monitore suas comissões e gerencie pagamentos.', variant: 'default' as const },
-    { name: 'Configurações da Loja', href: '/dashboard?tab=settings', icon: Settings, description: 'Atualize o nome, descrição e categorias da sua loja.', variant: 'outline' as const },
+    { title: 'Produtos', value: formatNumber(stats.totalProducts), icon: Package, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { title: 'Pedidos', value: formatNumber(stats.totalOrders), icon: ShoppingBag, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { title: 'Receita', value: formatPrice(stats.totalRevenue), icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { title: 'Pendentes', value: formatNumber(stats.pendingOrders), icon: BarChart3, color: 'text-orange-600', bgColor: 'bg-orange-50' }
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <TooltipProvider>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-center space-x-4">
-            <Avatar className="h-16 w-16 bg-secondary text-white border-4 border-white shadow-lg">
-              <AvatarFallback className="text-2xl font-bold">{getAvatarFallbackText()}</AvatarFallback>
+          {/* Header Mobile Otimizado */}
+          <div className="mb-6 flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-4">
+            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 bg-secondary text-white border-2 border-white shadow-sm">
+              <AvatarFallback className="text-lg sm:text-2xl font-bold">{getAvatarFallbackText()}</AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">Dashboard Vendedor</h1>
-              <p className="text-gray-600">Bem-vindo(a), <span className="font-semibold">{user.profile?.store_name || user.email}!</span></p>
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">Dashboard</h1>
+              <p className="text-sm text-gray-600">Olá, <span className="font-semibold">{user.profile?.store_name || user.email}</span></p>
             </div>
           </div>
 
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto p-1">
-              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-              <TabsTrigger value="products">Produtos</TabsTrigger>
-              <TabsTrigger value="finance">Finanças</TabsTrigger>
-              <TabsTrigger value="settings">Configurações</TabsTrigger>
+          <Tabs defaultValue={tabParam || "overview"} className="space-y-6">
+            {/* Tabs Responsivas: 2 colunas no mobile, 4 no desktop */}
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1 bg-white border shadow-sm rounded-xl">
+              <TabsTrigger value="overview" className="py-2.5">Visão Geral</TabsTrigger>
+              <TabsTrigger value="products" className="py-2.5">Produtos</TabsTrigger>
+              <TabsTrigger value="finance" className="py-2.5">Finanças</TabsTrigger>
+              <TabsTrigger value="settings" className="py-2.5">Configurações</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="products"><SellerProductsTab /></TabsContent>
-            <TabsContent value="settings"><StoreSettingsTab /></TabsContent>
-            <TabsContent value="finance"><SellerFinanceTab /></TabsContent>
+            <TabsContent value="products" className="animate-in fade-in duration-300"><SellerProductsTab /></TabsContent>
+            <TabsContent value="settings" className="animate-in fade-in duration-300"><StoreSettingsTab /></TabsContent>
+            <TabsContent value="finance" className="animate-in fade-in duration-300"><SellerFinanceTab /></TabsContent>
             
-            <TabsContent value="overview">
+            <TabsContent value="overview" className="animate-in fade-in duration-300">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Coluna Principal (Ações) */}
+                {/* Coluna Principal */}
                 <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* Estatísticas Rápidas (Mobile Only - Cards Compactos) */}
+                  <div className="grid grid-cols-2 gap-3 md:hidden">
+                    {statCards.map((stat, index) => (
+                      <Card key={index} className="border shadow-sm">
+                        <CardContent className="p-3 flex flex-col items-center text-center">
+                          <div className={`p-1.5 rounded-full ${stat.bgColor} mb-2`}>
+                            <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium">{stat.title}</p>
+                          <p className="text-sm font-bold text-gray-900 truncate w-full">{stat.value}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pedidos Recentes */}
                   <Card>
-                    <CardHeader><CardTitle className="flex items-center text-lg"><ShoppingBag className="w-5 h-5 mr-2" />Pedidos Recentes (Ativos)</CardTitle></CardHeader>
-                    <CardContent>
+                    <CardHeader className="py-4"><CardTitle className="text-base flex items-center"><ShoppingBag className="w-4 h-4 mr-2" />Pedidos Ativos</CardTitle></CardHeader>
+                    <CardContent className="p-4 pt-0">
                       {recentOrders.length === 0 ? (
-                        <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido ativo.</p></div>
+                        <div className="text-center py-6"><p className="text-sm text-gray-500">Sem pedidos ativos.</p></div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           {recentOrders.map((order) => (
-                            <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div key={order.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg bg-gray-50/50 gap-2">
                               <div>
-                                <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                                <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleDateString('pt-MZ')}</p>
+                                <p className="font-semibold text-sm">#{order.id.slice(0, 8)}</p>
+                                <p className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString('pt-MZ')}</p>
                               </div>
-                              <div className="text-right">
-                                <p className="font-semibold">{formatPrice(order.total_amount)}</p>
-                                <Badge variant="secondary">{order.status}</Badge>
+                              <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                                <Badge variant="outline" className="bg-white text-xs">{order.status}</Badge>
+                                <p className="font-bold text-sm text-green-700">{formatPrice(order.total_amount)}</p>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
-                      <Button onClick={() => navigate('/meus-pedidos')} className="w-full mt-4">Ver Todos os Pedidos</Button>
+                      <Button onClick={() => navigate('/meus-pedidos')} variant="outline" size="sm" className="w-full mt-4">Ver Detalhes</Button>
                     </CardContent>
                   </Card>
 
-                  {/* 🔥 NOVO: Cartão de Pedidos Cancelados */}
-                  <Card className="border-red-200 bg-red-50">
-                    <CardHeader>
-                      <CardTitle className="flex items-center text-lg text-red-800">
-                        <XCircle className="w-5 h-5 mr-2" />
-                        Pedidos Cancelados Recentemente
+                  {/* Pedidos Cancelados */}
+                  <Card className="border-red-100 bg-red-50/30">
+                    <CardHeader className="py-4">
+                      <CardTitle className="text-base flex items-center text-red-800">
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Cancelados Recentemente
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 pt-0">
                       {cancelledOrders.length === 0 ? (
-                        <div className="text-center py-8"><p className="text-gray-600">Nenhum pedido cancelado recentemente.</p></div>
+                        <div className="text-center py-6"><p className="text-sm text-gray-500">Sem cancelamentos recentes.</p></div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           {cancelledOrders.map((order) => (
-                            <div key={order.id} className="flex items-center justify-between p-3 border border-red-200 bg-white rounded-lg">
+                            <div key={order.id} className="flex justify-between items-center p-3 border border-red-100 bg-white rounded-lg">
                               <div>
-                                <p className="font-medium">Pedido #{order.id.slice(0, 8)}</p>
-                                <p className="text-sm text-gray-600">Cancelado em: {new Date(order.updated_at).toLocaleDateString('pt-MZ')}</p>
+                                <p className="font-semibold text-sm text-red-900">#{order.id.slice(0, 8)}</p>
+                                <p className="text-xs text-gray-500">{new Date(order.updated_at).toLocaleDateString('pt-MZ')}</p>
                               </div>
-                              <div className="text-right">
-                                <p className="font-semibold line-through">{formatPrice(order.total_amount)}</p>
-                                <Badge variant="destructive">Cancelado</Badge>
-                              </div>
+                              <p className="font-medium text-sm line-through text-gray-400">{formatPrice(order.total_amount)}</p>
                             </div>
                           ))}
                         </div>
@@ -291,33 +296,32 @@ const Dashboard = () => {
                   </Card>
                 </div>
 
-                {/* Coluna Lateral (Estatísticas e Atalhos) */}
+                {/* Coluna Lateral (Estatísticas Desktop + Atalhos) */}
                 <div className="lg:col-span-1 space-y-6">
-                  <Card>
-                    <CardHeader><CardTitle className="text-lg">Estatísticas Rápidas</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
+                  {/* Estatísticas (Desktop Only) */}
+                  <Card className="hidden md:block">
+                    <CardHeader className="py-4"><CardTitle className="text-base">Resumo</CardTitle></CardHeader>
+                    <CardContent className="p-4 pt-0 space-y-3">
                       {statCards.map((stat, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                           <div className="flex items-center">
-                            <div className={`p-2 rounded-lg mr-3 ${stat.bgColor}`}>
-                              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                            <div className={`p-1.5 rounded-md mr-3 ${stat.bgColor}`}>
+                              <stat.icon className={`w-4 h-4 ${stat.color}`} />
                             </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                              <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                            </div>
+                            <span className="text-sm font-medium text-gray-600">{stat.title}</span>
                           </div>
+                          <span className="font-bold text-gray-900">{stat.value}</span>
                         </div>
                       ))}
                     </CardContent>
                   </Card>
                   
                   <Card>
-                    <CardHeader><CardTitle className="text-lg">Atalhos</CardTitle></CardHeader>
-                    <CardContent className="space-y-3">
-                      <Button onClick={() => navigate('/adicionar-produto')} className="w-full justify-start"><Plus className="w-4 h-4 mr-2" />Adicionar Novo Produto</Button>
-                      <Button onClick={() => navigate(`/loja/${user.id}`)} className="w-full justify-start" variant="outline"><Eye className="w-4 h-4 mr-2" />Ver Minha Loja</Button>
-                      <Button onClick={() => navigate('/meus-chats')} className="w-full justify-start" variant="outline"><MessageCircle className="w-4 h-4 mr-2" />Mensagens</Button>
+                    <CardHeader className="py-4"><CardTitle className="text-base">Acesso Rápido</CardTitle></CardHeader>
+                    <CardContent className="p-4 pt-0 space-y-2">
+                      <Button onClick={() => navigate('/adicionar-produto')} className="w-full justify-start h-10 text-sm" variant="default"><Plus className="w-4 h-4 mr-2" />Novo Produto</Button>
+                      <Button onClick={() => navigate('/meus-pedidos')} className="w-full justify-start h-10 text-sm" variant="secondary"><ShoppingBag className="w-4 h-4 mr-2" />Pedidos</Button>
+                      <Button onClick={() => navigate(`/loja/${user.id}`)} className="w-full justify-start h-10 text-sm" variant="outline"><Store className="w-4 h-4 mr-2" />Minha Loja Pública</Button>
                     </CardContent>
                   </Card>
                 </div>

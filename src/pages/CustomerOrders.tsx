@@ -137,17 +137,16 @@ const CustomerOrders = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <Button variant="ghost" onClick={() => navigate('/')} className="mb-2">
+            <Button variant="ghost" onClick={() => navigate('/')} className="mb-2 pl-0 hover:bg-transparent">
               <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
-            <p className="text-gray-600 mt-1">Acompanhe suas compras e entregas</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Meus Pedidos</h1>
           </div>
-          <Button variant="outline" onClick={fetchOrders} title="Atualizar Lista">
+          <Button variant="outline" size="sm" onClick={fetchOrders} title="Atualizar Lista">
             <RefreshCw className="w-4 h-4" />
           </Button>
         </div>
@@ -155,7 +154,7 @@ const CustomerOrders = () => {
         {orders.length === 0 ? (
           <Card><CardContent className="p-12 text-center"><Package className="w-16 h-16 text-gray-400 mx-auto mb-4" /><h2 className="text-xl font-semibold text-gray-900 mb-2">Você ainda não fez nenhum pedido</h2><p className="text-gray-600 mb-6">Comece a comprar para ver seus pedidos aqui.</p><Button onClick={() => navigate('/')}>Começar a Comprar</Button></CardContent></Card>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status)
               // Só permite cancelar se estiver pendente ou em preparação
@@ -163,37 +162,37 @@ const CustomerOrders = () => {
               
               return (
                 <Card key={order.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
-                  <CardHeader className="bg-white border-b pb-3">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                  <CardHeader className="bg-white border-b pb-3 p-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div>
-                        <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                        <div className="flex items-center mt-1 text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-1" /> {formatDate(order.created_at)}
+                        <CardTitle className="text-base md:text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
+                        <div className="flex items-center mt-1 text-xs md:text-sm text-gray-600">
+                          <Calendar className="w-3 h-3 mr-1" /> {formatDate(order.created_at)}
                         </div>
                       </div>
-                      <Badge className={`mt-2 sm:mt-0 ${statusInfo.color} text-sm px-3 py-1`}>{statusInfo.icon} {statusInfo.label}</Badge>
+                      <Badge className={`w-fit ${statusInfo.color} text-xs px-2 py-0.5`}>{statusInfo.icon} {statusInfo.label}</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-4">
+                  <CardContent className="p-4 space-y-4">
                     {order.order_items.map(item => (
-                      <div key={item.id} className="flex items-center space-x-4">
-                        <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+                      <div key={item.id} className="flex items-center space-x-3">
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
                             <img src={getFirstImageUrl(item.product.image_url) || defaultImage} alt={item.product.name} className="w-full h-full object-cover" />
                         </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.product.name}</p>
-                          <p className="text-sm text-gray-600">{item.quantity} x {formatPrice(item.price)}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm md:text-base truncate">{item.product.name}</p>
+                          <p className="text-xs md:text-sm text-gray-600">{item.quantity} x {formatPrice(item.price)}</p>
                         </div>
-                        <p className="font-semibold text-gray-900">{formatPrice(item.price * item.quantity)}</p>
+                        <p className="font-semibold text-gray-900 text-sm md:text-base">{formatPrice(item.price * item.quantity)}</p>
                       </div>
                     ))}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-dashed">
-                      <div className="font-bold text-lg">Total: <span className="text-green-600">{formatPrice(order.total_amount)}</span></div>
-                      <div className="flex space-x-2 mt-4 sm:mt-0 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-dashed gap-3">
+                      <div className="font-bold text-base md:text-lg">Total: <span className="text-green-600">{formatPrice(order.total_amount)}</span></div>
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                         {canCancel && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm" className="flex-1 sm:flex-none"><X className="w-4 h-4 mr-1" /> Cancelar</Button>
+                              <Button variant="destructive" size="sm" className="flex-1 sm:flex-none h-9 text-xs md:text-sm"><X className="w-4 h-4 mr-1" /> Cancelar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
@@ -208,9 +207,9 @@ const CustomerOrders = () => {
                           </AlertDialog>
                         )}
                         {order.status === 'delivered' && (
-                          <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"><Link to={`/meus-pedidos/${order.id}`}><CheckCircle className="w-4 h-4 mr-1" /> Confirmar Recebimento</Link></Button>
+                          <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none h-9 text-xs md:text-sm"><Link to={`/meus-pedidos/${order.id}`}><CheckCircle className="w-4 h-4 mr-1" /> Confirmar Recebimento</Link></Button>
                         )}
-                        <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none"><Link to={`/meus-pedidos/${order.id}`}>Ver Detalhes</Link></Button>
+                        <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none h-9 text-xs md:text-sm"><Link to={`/meus-pedidos/${order.id}`}>Ver Detalhes</Link></Button>
                       </div>
                     </div>
                   </CardContent>
