@@ -62,8 +62,6 @@ const CustomerOrders = () => {
   }
 
   const setupRealtimeSubscription = (userId: string) => {
-    console.log(`📡 Cliente: Iniciando subscrição para user_id=${userId}`)
-    
     const channel = supabase
       .channel(`customer_orders_${userId}`)
       .on(
@@ -72,45 +70,47 @@ const CustomerOrders = () => {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${userId}` // Filtro crucial para o cliente receber apenas seus pedidos
+          filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          console.log('📨 Cliente: Recebeu atualização de pedido:', payload)
-          
           const updatedOrder = payload.new as OrderWithItems;
           
-          // Atualiza o estado local imediatamente
           setOrders(prev => prev.map(order => 
             order.id === updatedOrder.id 
               ? { ...order, status: updatedOrder.status, updated_at: updatedOrder.updated_at }
               : order
           ))
           
-          const statusInfo = getStatusInfo(updatedOrder.status)
-          showSuccess(`O status do seu pedido mudou para: ${statusInfo.label}`)
+          if (updatedOrder.status === 'cancelled') {
+             // Feedback visual extra se veio de outro lugar (ex: admin)
+          } else {
+             const statusInfo = getStatusInfo(updatedOrder.status)
+             showSuccess(`O status do seu pedido mudou para: ${statusInfo.label}`)
+          }
         }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') console.log('✅ Cliente: Conectado ao Realtime')
-      })
+      .subscribe()
       
     return channel
   }
 
   const handleCancelOrder = async (orderId: string) => {
     const toastId = showLoading('Cancelando pedido...')
+    
+    // Atualização Otimista Imediata
+    setOrders(prev => prev.map(order => 
+      order.id === orderId ? { ...order, status: 'cancelled' } : order
+    ))
+
     try {
+      // Executa no banco (agora permitido pela nova política RLS)
       const { error } = await supabase
         .from('orders')
         .update({ status: 'cancelled' })
         .eq('id', orderId)
+        .eq('user_id', user!.id) // Garantia extra de segurança
 
       if (error) throw error
-
-      // Atualização otimista local
-      setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status: 'cancelled', updated_at: new Date().toISOString() } : order
-      ))
 
       dismissToast(toastId)
       showSuccess('Pedido cancelado com sucesso.')
@@ -118,6 +118,9 @@ const CustomerOrders = () => {
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao cancelar pedido: ' + error.message)
+      
+      // Reverter estado otimista em caso de erro
+      fetchOrders() 
     }
   }
 
@@ -155,6 +158,7 @@ const CustomerOrders = () => {
           <div className="space-y-6">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status)
+              // Só permite cancelar se estiver pendente ou em preparação
               const canCancel = order.status === 'pending' || order.status === 'preparing'
               
               return (
