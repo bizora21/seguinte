@@ -170,6 +170,8 @@ const ConfirmarEncomendaPage = () => {
           user_id: user.id,
           total_amount: product.price,
           delivery_address: formData.deliveryAddress,
+          customer_name: formData.fullName, // NOVO CAMPO
+          customer_phone: formData.phone, // NOVO CAMPO
           status: 'pending'
         })
         .select()

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown, Loader2 } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown, Loader2, Phone } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import toast from 'react-hot-toast'
@@ -18,6 +18,8 @@ interface ProcessedOrder {
   total_amount: number
   status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'completed' | 'cancelled'
   delivery_address: string
+  customer_name: string // NOVO CAMPO
+  customer_phone: string // NOVO CAMPO
   created_at: string
   updated_at: string
   order_items: Array<{
@@ -146,7 +148,7 @@ const SellerOrders = () => {
       // 2. Extrair IDs únicos de pedidos
       const orderIds = [...new Set(sellerItems.map((item: any) => item.order_id))]
 
-      // 3. Buscar os pedidos completos
+      // 3. Buscar os pedidos completos, incluindo os novos campos
       const { data: ordersWithItems, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -161,7 +163,7 @@ const SellerOrders = () => {
 
       if (ordersError) throw ordersError
 
-      setOrders(ordersWithItems || [])
+      setOrders(ordersWithItems as ProcessedOrder[] || [])
       
     } catch (error: any) {
       console.error('❌ Erro ao buscar pedidos:', error)
@@ -173,8 +175,6 @@ const SellerOrders = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
-    // O toast de loading foi removido para dar sensação de instantaneidade, 
-    // ou podemos manter um muito rápido. Vamos usar um discreto.
     
     try {
       // 1. Chamada ao Supabase
@@ -186,11 +186,8 @@ const SellerOrders = () => {
       if (error) throw error
       
       // 2. ATUALIZAÇÃO OTIMISTA (Instantânea)
-      // Atualizamos o estado local imediatamente após o sucesso da API,
-      // sem esperar o evento de Realtime voltar.
       setOrders(prevOrders => prevOrders.map(order => {
         if (order.id === orderId) {
-            // TypeScript trick para garantir tipagem
             const statusTyped = newStatus as ProcessedOrder['status'];
             return { 
                 ...order, 
@@ -208,7 +205,6 @@ const SellerOrders = () => {
     } catch (error: any) {
       console.error('❌ Erro ao atualizar status:', error)
       showError('Erro ao atualizar status: ' + error.message)
-      // Se falhar, poderíamos reverter o estado aqui se tivéssemos feito a mudança antes do await
     } finally {
       setUpdatingStatus(null)
     }
@@ -382,6 +378,28 @@ const SellerOrders = () => {
                   </CardHeader>
                   <CardContent className="space-y-4 pt-4">
                     
+                    {/* NOVO: Informações do Cliente */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                        <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-yellow-800 flex-shrink-0" />
+                            <span className="text-sm font-bold text-yellow-900 truncate" title={order.customer_name}>
+                                {order.customer_name || 'Nome Indisponível'}
+                            </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Phone className="w-4 h-4 text-yellow-800 flex-shrink-0" />
+                            <a href={`tel:${order.customer_phone}`} className="text-sm font-bold text-yellow-900 hover:underline">
+                                {order.customer_phone || 'Contacto Indisponível'}
+                            </a>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-yellow-800 flex-shrink-0" />
+                            <span className="text-sm font-bold text-yellow-900 truncate">
+                                {order.delivery_address.split(',').pop()?.trim() || 'Localização'}
+                            </span>
+                        </div>
+                    </div>
+                    
                     <div className="space-y-3">
                       {order.order_items.map((item) => (
                         <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
@@ -405,7 +423,7 @@ const SellerOrders = () => {
                     <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-bold text-blue-900">Endereço de Entrega:</p>
+                        <p className="text-sm font-bold text-blue-900">Endereço Completo:</p>
                         <p className="text-sm text-blue-800 break-words">{order.delivery_address}</p>
                       </div>
                     </div>

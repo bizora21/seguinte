@@ -83,6 +83,8 @@ const Checkout = () => {
           user_id: user.id,
           total_amount: getCartTotal(),
           delivery_address: formData.deliveryAddress,
+          customer_name: formData.fullName, // NOVO CAMPO
+          customer_phone: formData.phone, // NOVO CAMPO
           status: 'pending'
         })
         .select()
@@ -98,15 +100,56 @@ const Checkout = () => {
         order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        // Nota: user_id e seller_id são necessários para RLS e rastreamento
+        user_id: user.id,
+        // O seller_id deve ser buscado do produto, mas como estamos no checkout de carrinho,
+        // assumimos que o carrinho já tem a estrutura correta ou que o trigger fará o trabalho.
+        // Para garantir, o seller_id deve ser inserido aqui, mas como o carrinho não o armazena
+        // de forma nativa, vamos confiar que o trigger de order_items (que não existe) ou
+        // a lógica de item do carrinho (que não tem seller_id) será resolvida.
+        // No entanto, o SellerOrders depende do seller_id em order_items.
+        // Para evitar quebrar o fluxo, vamos manter a estrutura atual e garantir que o
+        // SellerOrders consiga buscar os pedidos.
       }))
 
+      // CORREÇÃO CRÍTICA: O carrinho não armazena seller_id, mas o order_items precisa.
+      // Para pedidos de carrinho, o SellerOrders usa o JOIN em order_items.
+      // O SellerOrders.tsx já faz a busca correta baseada em order_items.
+      // O problema é que o order_items precisa do seller_id.
+      
+      // Para pedidos de carrinho, precisamos buscar o seller_id para cada item.
+      // Isso é complexo no checkout. Vamos assumir que o carrinho só tem 1 item por vendedor
+      // ou que o seller_id é injetado no item do carrinho na adição.
+      
+      // Como o CartContext não armazena seller_id, vamos buscar o seller_id do produto
+      // para cada item do carrinho antes de inserir.
+      
+      const itemsToInsert = await Promise.all(items.map(async (item) => {
+        const { data: productData } = await supabase
+          .from('products')
+          .select('seller_id')
+          .eq('id', item.product_id)
+          .single()
+          
+        return {
+          order_id: order.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price,
+          user_id: user.id,
+          seller_id: productData?.seller_id // Injetando o seller_id
+        }
+      }))
+      
       const { error: itemsError } = await supabase
         .from('order_items')
-        .insert(orderItems)
+        .insert(itemsToInsert)
 
       if (itemsError) {
         showError('Erro ao adicionar itens ao pedido: ' + itemsError.message)
+        // Tentar reverter o pedido principal
+        await supabase.from('orders').delete().eq('id', order.id)
         return
       }
 
