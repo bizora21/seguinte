@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../ui/card'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Send, Users, Store, Mail, Loader2, FileText, Eye, Search, Plus, ShoppingBag } from 'lucide-react'
+import { Send, Users, Mail, Loader2, Eye, Search, Plus, ShoppingBag, Smartphone, Monitor, FileText } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -14,6 +14,7 @@ import EmailEditor from './EmailEditor'
 import { getFirstImageUrl } from '../../utils/images'
 import { Badge } from '../ui/badge'
 import { ScrollArea } from '../ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 
 const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/BpqBKP5aUnS0U195dvM52p?mode=wwt'
 
@@ -39,7 +40,10 @@ const EmailBroadcastTab: React.FC = () => {
   const [productSearch, setProductSearch] = useState('')
   const [loadingProducts, setLoadingProducts] = useState(false)
 
-  // Buscar produtos para o painel lateral
+  // Estado de aba para mobile
+  const [mobileTab, setMobileTab] = useState('editor')
+
+  // Buscar produtos
   useEffect(() => {
     const fetchProducts = async () => {
       setLoadingProducts(true)
@@ -77,35 +81,25 @@ const EmailBroadcastTab: React.FC = () => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', maximumFractionDigits: 0 }).format(price)
   }
 
-  // Gera o HTML do card do produto para inserir no editor
+  // Gera o HTML do card do produto
   const generateProductHtml = (product: ProductSimple) => {
     const imageUrl = getFirstImageUrl(product.image_url) || 'https://lojarapidamz.com/placeholder.svg'
     const productLink = `https://lojarapidamz.com/produto/${product.id}`
     
-    // HTML com estilos inline para compatibilidade com clientes de e-mail
     return `
-      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 20px; margin-bottom: 20px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 15px; margin-bottom: 15px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
         <tr>
-          <td align="center" style="padding: 0;">
+          <td width="35%" style="padding: 0; vertical-align: middle;">
             <a href="${productLink}" style="display: block; text-decoration: none;">
-              <img src="${imageUrl}" alt="${product.name}" width="100%" style="display: block; width: 100%; max-height: 250px; object-fit: cover; border-top-left-radius: 8px; border-top-right-radius: 8px;" />
+              <img src="${imageUrl}" alt="${product.name}" width="100%" style="display: block; width: 100%; height: 120px; object-fit: cover;" />
             </a>
           </td>
-        </tr>
-        <tr>
-          <td style="padding: 20px; text-align: center;">
-            <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">${product.seller?.store_name || 'Oferta LojaRápida'}</p>
-            <h3 style="margin: 8px 0 12px 0; font-size: 18px; font-weight: bold; color: #111827;">${product.name}</h3>
-            <p style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold; color: #059669;">${formatPrice(product.price)}</p>
-            <table width="100%" border="0" cellspacing="0" cellpadding="0">
-              <tr>
-                <td align="center">
-                  <a href="${productLink}" style="background-color: #00D4AA; border: 1px solid #00D4AA; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; mso-padding-alt: 0;">
-                    Comprar Agora &rarr;
-                  </a>
-                </td>
-              </tr>
-            </table>
+          <td width="65%" style="padding: 15px; vertical-align: middle;">
+            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #111827;">${product.name}</h3>
+            <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #059669;">${formatPrice(product.price)}</p>
+            <a href="${productLink}" style="background-color: #00D4AA; color: #ffffff; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">
+              Comprar Agora &rarr;
+            </a>
           </td>
         </tr>
       </table>
@@ -116,7 +110,7 @@ const EmailBroadcastTab: React.FC = () => {
   const handleInsertProduct = (product: ProductSimple) => {
     const productHtml = generateProductHtml(product)
     setBodyContent(prev => prev + productHtml)
-    showSuccess('Produto adicionado ao e-mail!')
+    showSuccess('Produto inserido no editor!')
   }
 
   const getRecipientName = (profile: Pick<Profile, 'email' | 'store_name'>) => {
@@ -129,7 +123,7 @@ const EmailBroadcastTab: React.FC = () => {
   const generateFullHtmlPreview = (name: string) => {
     const contentWithButtons = (
       <>
-        <div dangerouslySetInnerHTML={{ __html: bodyContent }} />
+        <div dangerouslySetInnerHTML={{ __html: bodyContent || '<p style="color:#999; text-align:center;">O conteúdo do seu e-mail aparecerá aqui...</p>' }} />
         
         <div className="button-container">
           <a 
@@ -163,16 +157,16 @@ const EmailBroadcastTab: React.FC = () => {
 
   const handleSendBroadcast = async () => {
     if (!targetAudience || !subject.trim() || !bodyContent.trim()) {
-      showError('Selecione o público, assunto e adicione conteúdo.')
+      showError('Preencha público, assunto e conteúdo.')
       return
     }
 
-    if (!confirm(`Tem certeza? Isso enviará para TODOS os ${targetAudience === 'cliente' ? 'Clientes' : 'Vendedores'}.`)) {
+    if (!confirm(`CONFIRMAÇÃO: Enviar para TODOS os ${targetAudience === 'cliente' ? 'Clientes' : 'Vendedores'}?`)) {
       return
     }
 
     setSubmitting(true)
-    const toastId = showLoading('Enviando campanha...')
+    const toastId = showLoading('Iniciando envio em massa...')
 
     try {
       const { data: profiles, error: fetchError } = await supabase
@@ -195,7 +189,7 @@ const EmailBroadcastTab: React.FC = () => {
 
       let successCount = 0
       
-      // Envio sequencial para não sobrecarregar
+      // Envio sequencial
       for (const profile of targetProfiles) {
         const recipientName = getRecipientName(profile)
         const htmlContent = generateFullHtmlPreview(recipientName)
@@ -209,7 +203,7 @@ const EmailBroadcastTab: React.FC = () => {
       }
 
       dismissToast(toastId)
-      showSuccess(`Campanha enviada para ${successCount} destinatários!`)
+      showSuccess(`Sucesso! E-mail enviado para ${successCount} pessoas.`)
       setSubject('')
       setBodyContent('')
       
@@ -224,141 +218,197 @@ const EmailBroadcastTab: React.FC = () => {
   const previewName = targetAudience === 'vendedor' ? 'Loja Parceira' : 'Cliente Vip'
   const fullHtmlPreview = generateFullHtmlPreview(previewName)
 
+  // --- COMPONENTES INTERNOS ---
+
+  const EditorSection = () => (
+    <div className="flex flex-col h-full space-y-4">
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+            <Label>Público-Alvo</Label>
+            <Select value={targetAudience} onValueChange={(v: any) => setTargetAudience(v)}>
+                <SelectTrigger><SelectValue placeholder="Quem vai receber?" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="cliente">Clientes (Compradores)</SelectItem>
+                    <SelectItem value="vendedor">Vendedores (Lojistas)</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+        <div className="space-y-2">
+            <Label>Assunto do E-mail</Label>
+            <Input 
+                value={subject} 
+                onChange={e => setSubject(e.target.value)} 
+                placeholder="Ex: 🔥 Ofertas Relâmpago!" 
+            />
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-[300px] border rounded-md overflow-hidden bg-white flex flex-col">
+          <div className="bg-gray-100 p-2 border-b text-xs text-gray-500 font-medium uppercase">
+            Área de Edição
+          </div>
+          <EmailEditor
+              initialContent={bodyContent}
+              onChange={setBodyContent}
+              disabled={submitting}
+          />
+      </div>
+    </div>
+  )
+
+  const ProductsSection = () => (
+    <div className="flex flex-col h-full">
+      <div className="relative mb-3">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+          <Input 
+              placeholder="Buscar produtos..." 
+              className="pl-8 bg-white"
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+          />
+      </div>
+      <ScrollArea className="flex-1 pr-2">
+          {loadingProducts ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          ) : products.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">Nenhum produto encontrado.</div>
+          ) : (
+              <div className="space-y-2">
+                  {products.map((product) => (
+                      <div key={product.id} className="bg-white p-2 rounded border shadow-sm hover:border-primary transition-colors flex gap-2 items-center">
+                          <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                              <img 
+                                  src={getFirstImageUrl(product.image_url) || '/placeholder.svg'} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                              />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-xs text-gray-900 truncate" title={product.name}>{product.name}</h4>
+                              <p className="font-bold text-green-600 text-xs">{formatPrice(product.price)}</p>
+                          </div>
+                          <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                              onClick={() => handleInsertProduct(product)}
+                              title="Adicionar ao e-mail"
+                          >
+                              <Plus className="w-5 h-5" />
+                          </Button>
+                      </div>
+                  ))}
+              </div>
+          )}
+      </ScrollArea>
+    </div>
+  )
+
+  const PreviewSection = () => (
+    <div className="flex flex-col h-full bg-gray-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl">
+      <div className="bg-gray-800 p-3 border-b border-gray-700 flex justify-between items-center">
+        <span className="text-gray-300 text-xs font-mono flex items-center">
+          <Eye className="w-3 h-3 mr-2" /> Visualização Mobile
+        </span>
+        <div className="flex space-x-1.5">
+          <div className="w-2 h-2 rounded-full bg-red-500"></div>
+          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+        </div>
+      </div>
+      
+      <div className="flex-1 bg-white relative overflow-hidden">
+        <iframe
+            srcDoc={fullHtmlPreview}
+            title="Email Preview"
+            className="w-full h-full border-0"
+            style={{ display: 'block' }}
+        />
+      </div>
+      
+      <div className="p-4 bg-gray-800 border-t border-gray-700">
+        <Button 
+            onClick={handleSendBroadcast} 
+            disabled={submitting || !bodyContent}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold h-12 text-lg shadow-lg transition-all hover:scale-105"
+        >
+            {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Send className="w-5 h-5 mr-2" />}
+            ENVIAR CAMPANHA
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-        {/* Coluna Esquerda: Editor e Configurações */}
-        <div className="lg:col-span-2 flex flex-col gap-6 overflow-y-auto pr-2">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center text-xl text-primary">
-                    <Mail className="w-6 h-6 mr-2" />
-                    Criar Campanha de Produtos
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Público-Alvo</Label>
-                            <Select value={targetAudience} onValueChange={(v: any) => setTargetAudience(v)}>
-                                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="cliente">Clientes (Compradores)</SelectItem>
-                                    <SelectItem value="vendedor">Vendedores (Lojistas)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Assunto</Label>
-                            <Input 
-                                value={subject} 
-                                onChange={e => setSubject(e.target.value)} 
-                                placeholder="Ex: 🔥 Ofertas Relâmpago da Semana!" 
-                            />
-                        </div>
-                    </div>
+    <div className="h-[calc(100vh-140px)] flex flex-col">
+      {/* HEADER DE MODO */}
+      <div className="md:hidden mb-4">
+        <Tabs value={mobileTab} onValueChange={setMobileTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="editor"><FileText className="w-4 h-4 mr-2" /> Editor</TabsTrigger>
+            <TabsTrigger value="products"><ShoppingBag className="w-4 h-4 mr-2" /> Produtos</TabsTrigger>
+            <TabsTrigger value="preview"><Eye className="w-4 h-4 mr-2" /> Enviar</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
-                    <div className="space-y-2">
-                        <Label>Corpo do E-mail</Label>
-                        <div className="border rounded-md">
-                            <EmailEditor
-                                initialContent={bodyContent}
-                                onChange={setBodyContent}
-                                disabled={submitting}
-                            />
-                        </div>
-                        <p className="text-xs text-gray-500">
-                            Use a barra lateral para inserir produtos rapidamente no corpo do texto.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+      {/* DESKTOP LAYOUT (GRID 3 COLUNAS) */}
+      <div className="hidden md:grid md:grid-cols-12 gap-6 h-full min-h-0">
+        
+        {/* COLUNA 1: EDITOR (50%) */}
+        <Card className="md:col-span-5 flex flex-col h-full overflow-hidden shadow-md border-t-4 border-t-blue-500">
+          <CardHeader className="py-4 border-b bg-gray-50">
+            <CardTitle className="text-lg flex items-center">
+              <Mail className="w-5 h-5 mr-2 text-blue-600" /> Editor de Conteúdo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto p-4">
+            <EditorSection />
+          </CardContent>
+        </Card>
 
-            {/* Preview Card */}
-            {bodyContent && (
-                <Card className="flex-1 min-h-[400px] flex flex-col border-blue-200 bg-blue-50/50">
-                    <CardHeader className="py-3 border-b bg-white rounded-t-lg">
-                        <CardTitle className="text-sm flex items-center text-gray-600">
-                            <Eye className="w-4 h-4 mr-2" /> Preview em Tempo Real
-                        </CardTitle>
-                    </CardHeader>
-                    <div className="flex-1 p-4 bg-gray-100 overflow-hidden">
-                        <iframe
-                            srcDoc={fullHtmlPreview}
-                            title="Email Preview"
-                            className="w-full h-full min-h-[400px] border-0 bg-white rounded-md shadow-sm"
-                        />
-                    </div>
-                    <div className="p-4 bg-white border-t rounded-b-lg">
-                        <Button 
-                            onClick={handleSendBroadcast} 
-                            disabled={submitting || !bodyContent}
-                            className="w-full bg-green-600 hover:bg-green-700 h-12 text-lg font-bold shadow-lg"
-                        >
-                            {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Send className="w-5 h-5 mr-2" />}
-                            Enviar Campanha Agora
-                        </Button>
-                    </div>
-                </Card>
-            )}
+        {/* COLUNA 2: PRODUTOS (25%) */}
+        <Card className="md:col-span-3 flex flex-col h-full overflow-hidden shadow-md border-t-4 border-t-purple-500">
+          <CardHeader className="py-4 border-b bg-gray-50">
+            <CardTitle className="text-lg flex items-center">
+              <ShoppingBag className="w-5 h-5 mr-2 text-purple-600" /> Catálogo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden p-4">
+            <ProductsSection />
+          </CardContent>
+        </Card>
+
+        {/* COLUNA 3: PREVIEW (25%) */}
+        <div className="md:col-span-4 h-full flex flex-col">
+          <PreviewSection />
         </div>
+      </div>
 
-        {/* Coluna Direita: Seletor de Produtos */}
-        <div className="lg:col-span-1 h-full">
-            <Card className="h-full flex flex-col border-l-4 border-l-purple-500 shadow-lg">
-                <CardHeader className="bg-purple-50 pb-3">
-                    <CardTitle className="text-base font-bold text-purple-900 flex items-center">
-                        <ShoppingBag className="w-5 h-5 mr-2" />
-                        Catálogo de Produtos
-                    </CardTitle>
-                    <div className="relative mt-2">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-                        <Input 
-                            placeholder="Buscar produto..." 
-                            className="pl-8 bg-white border-purple-200"
-                            value={productSearch}
-                            onChange={(e) => setProductSearch(e.target.value)}
-                        />
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 p-0 overflow-hidden bg-gray-50/30">
-                    <ScrollArea className="h-full p-4">
-                        {loadingProducts ? (
-                            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-purple-600" /></div>
-                        ) : products.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500 text-sm">Nenhum produto encontrado.</div>
-                        ) : (
-                            <div className="space-y-3">
-                                {products.map((product) => (
-                                    <div key={product.id} className="bg-white p-3 rounded-lg border shadow-sm hover:shadow-md transition-shadow group">
-                                        <div className="flex gap-3">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                                                <img 
-                                                    src={getFirstImageUrl(product.image_url) || '/placeholder.svg'} 
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-semibold text-sm text-gray-900 truncate" title={product.name}>{product.name}</h4>
-                                                <p className="text-xs text-gray-500 truncate">{product.seller?.store_name}</p>
-                                                <p className="font-bold text-green-600 text-sm mt-1">{formatPrice(product.price)}</p>
-                                            </div>
-                                        </div>
-                                        <Button 
-                                            size="sm" 
-                                            className="w-full mt-3 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200"
-                                            onClick={() => handleInsertProduct(product)}
-                                        >
-                                            <Plus className="w-3 h-3 mr-1" /> Inserir no E-mail
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-        </div>
+      {/* MOBILE LAYOUT (ABAS) */}
+      <div className="md:hidden flex-1 min-h-0">
+        {mobileTab === 'editor' && (
+          <Card className="h-full flex flex-col border-t-4 border-t-blue-500">
+            <CardContent className="flex-1 overflow-y-auto p-4 pt-6">
+              <EditorSection />
+            </CardContent>
+          </Card>
+        )}
+
+        {mobileTab === 'products' && (
+          <Card className="h-full flex flex-col border-t-4 border-t-purple-500">
+            <CardContent className="flex-1 overflow-hidden p-4 pt-6">
+              <ProductsSection />
+            </CardContent>
+          </Card>
+        )}
+
+        {mobileTab === 'preview' && (
+          <div className="h-full flex flex-col">
+            <PreviewSection />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
