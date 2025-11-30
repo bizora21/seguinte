@@ -6,7 +6,7 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle, RefreshCw } from 'lucide-react'
 import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog'
@@ -62,17 +62,21 @@ const CustomerOrders = () => {
   }
 
   const setupRealtimeSubscription = (userId: string) => {
+    console.log(`📡 Cliente: Iniciando subscrição para user_id=${userId}`)
+    
     const channel = supabase
-      .channel(`orders_user_${userId}`)
+      .channel(`customer_orders_${userId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: `user_id=eq.${userId}`
+          filter: `user_id=eq.${userId}` // Filtro crucial para o cliente receber apenas seus pedidos
         },
         (payload) => {
+          console.log('📨 Cliente: Recebeu atualização de pedido:', payload)
+          
           const updatedOrder = payload.new as OrderWithItems;
           
           // Atualiza o estado local imediatamente
@@ -83,10 +87,13 @@ const CustomerOrders = () => {
           ))
           
           const statusInfo = getStatusInfo(updatedOrder.status)
-          showSuccess(`Pedido #${updatedOrder.id.slice(0, 8)} atualizado: ${statusInfo.icon} ${statusInfo.label}`)
+          showSuccess(`O status do seu pedido mudou para: ${statusInfo.label}`)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') console.log('✅ Cliente: Conectado ao Realtime')
+      })
+      
     return channel
   }
 
@@ -100,10 +107,14 @@ const CustomerOrders = () => {
 
       if (error) throw error
 
+      // Atualização otimista local
+      setOrders(prev => prev.map(order => 
+        order.id === orderId ? { ...order, status: 'cancelled', updated_at: new Date().toISOString() } : order
+      ))
+
       dismissToast(toastId)
-      // A atualização do estado será tratada pelo Realtime, mas forçamos o sucesso aqui
       showSuccess('Pedido cancelado com sucesso.')
-      // O Realtime irá atualizar o status para 'cancelled'
+      
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao cancelar pedido: ' + error.message)
@@ -125,12 +136,17 @@ const CustomerOrders = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <Button variant="ghost" onClick={() => navigate('/')} className="mb-2">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
+            <p className="text-gray-600 mt-1">Acompanhe suas compras e entregas</p>
+          </div>
+          <Button variant="outline" onClick={fetchOrders} title="Atualizar Lista">
+            <RefreshCw className="w-4 h-4" />
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Meus Pedidos</h1>
-          <p className="text-gray-600 mt-2">Acompanhe o status dos seus pedidos em tempo real</p>
         </div>
 
         {orders.length === 0 ? (
@@ -142,40 +158,42 @@ const CustomerOrders = () => {
               const canCancel = order.status === 'pending' || order.status === 'preparing'
               
               return (
-                <Card key={order.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="bg-gray-50 border-b">
+                <Card key={order.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
+                  <CardHeader className="bg-white border-b pb-3">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div>
                         <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
-                        <div className="flex items-center mt-2 text-sm text-gray-600">
+                        <div className="flex items-center mt-1 text-sm text-gray-600">
                           <Calendar className="w-4 h-4 mr-1" /> {formatDate(order.created_at)}
                         </div>
                       </div>
-                      <Badge className={`mt-2 sm:mt-0 ${statusInfo.color}`}>{statusInfo.icon} {statusInfo.label}</Badge>
+                      <Badge className={`mt-2 sm:mt-0 ${statusInfo.color} text-sm px-3 py-1`}>{statusInfo.icon} {statusInfo.label}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     {order.order_items.map(item => (
                       <div key={item.id} className="flex items-center space-x-4">
-                        <img src={getFirstImageUrl(item.product.image_url) || defaultImage} alt={item.product.name} className="w-16 h-16 object-cover rounded-md" />
+                        <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+                            <img src={getFirstImageUrl(item.product.image_url) || defaultImage} alt={item.product.name} className="w-full h-full object-cover" />
+                        </div>
                         <div className="flex-1">
-                          <p className="font-medium">{item.product.name}</p>
+                          <p className="font-medium text-gray-900">{item.product.name}</p>
                           <p className="text-sm text-gray-600">{item.quantity} x {formatPrice(item.price)}</p>
                         </div>
-                        <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                        <p className="font-semibold text-gray-900">{formatPrice(item.price * item.quantity)}</p>
                       </div>
                     ))}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t">
-                      <div className="font-semibold">Total: <span className="text-xl text-green-600">{formatPrice(order.total_amount)}</span></div>
-                      <div className="flex space-x-2 mt-4 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-dashed">
+                      <div className="font-bold text-lg">Total: <span className="text-green-600">{formatPrice(order.total_amount)}</span></div>
+                      <div className="flex space-x-2 mt-4 sm:mt-0 w-full sm:w-auto">
                         {canCancel && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm"><X className="w-4 h-4 mr-1" /> Cancelar</Button>
+                              <Button variant="destructive" size="sm" className="flex-1 sm:flex-none"><X className="w-4 h-4 mr-1" /> Cancelar</Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle className="flex items-center"><AlertTriangle className="w-5 h-5 mr-2 text-red-500" />Confirmar Cancelamento</AlertDialogTitle>
+                                <AlertDialogTitle className="flex items-center text-red-600"><AlertTriangle className="w-5 h-5 mr-2" />Confirmar Cancelamento</AlertDialogTitle>
                                 <AlertDialogDescription>Tem certeza que deseja cancelar o pedido #{order.id.slice(0, 8)}? Esta ação não pode ser desfeita.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -186,9 +204,9 @@ const CustomerOrders = () => {
                           </AlertDialog>
                         )}
                         {order.status === 'delivered' && (
-                          <Button asChild size="sm" className="bg-green-600 hover:bg-green-700"><Link to={`/meus-pedidos/${order.id}`}><CheckCircle className="w-4 h-4 mr-1" /> Confirmar Recebimento</Link></Button>
+                          <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"><Link to={`/meus-pedidos/${order.id}`}><CheckCircle className="w-4 h-4 mr-1" /> Confirmar Recebimento</Link></Button>
                         )}
-                        <Button asChild variant="outline" size="sm"><Link to={`/meus-pedidos/${order.id}`}>Ver Detalhes</Link></Button>
+                        <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none"><Link to={`/meus-pedidos/${order.id}`}>Ver Detalhes</Link></Button>
                       </div>
                     </div>
                   </CardContent>

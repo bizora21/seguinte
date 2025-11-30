@@ -60,7 +60,7 @@ const SellerOrders = () => {
   const setupRealtimeSubscription = (sellerId: string) => {
     const channel = supabase.channel(`seller-orders-channel-${sellerId}`)
 
-    // Ouvir por NOVOS PEDIDOS
+    // Ouvir por NOVOS PEDIDOS (Insert na tabela order_items)
     channel.on(
       'postgres_changes',
       {
@@ -70,12 +70,13 @@ const SellerOrders = () => {
         filter: `seller_id=eq.${sellerId}`
       },
       (payload) => {
-        toast.success('🎉 Novo pedido recebido! Atualizando a lista...', { duration: 5000 });
+        toast.success('🎉 Novo pedido recebido!', { duration: 5000 });
+        // Recarrega tudo para garantir consistência
         fetchOrders();
       }
     )
 
-    // Ouvir por ATUALIZAÇÕES DE STATUS (ex: cancelamento pelo cliente ou atualização do admin)
+    // Ouvir por ATUALIZAÇÕES (ex: Cliente cancelou ou Admin confirmou pagamento)
     channel.on(
       'postgres_changes',
       {
@@ -87,29 +88,29 @@ const SellerOrders = () => {
         const updatedOrder = payload.new as ProcessedOrder;
         
         setOrders(prevOrders => {
+          // Verifica se o pedido está na lista deste vendedor
           const orderIndex = prevOrders.findIndex(o => o.id === updatedOrder.id);
           
-          // Se o pedido existe na lista, atualize-o
           if (orderIndex > -1) {
-            const oldStatus = prevOrders[orderIndex].status;
-            if (oldStatus !== updatedOrder.status) {
-              const statusInfo = getStatusInfo(updatedOrder.status);
-              
-              // Notificação mais detalhada para o vendedor
-              if (updatedOrder.status === 'cancelled') {
-                toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} CANCELADO pelo cliente.`, { duration: 6000 });
-              } else if (updatedOrder.status === 'completed') {
-                toast.success(`✅ Pedido #${updatedOrder.id.slice(0, 8)} CONCLUÍDO (Pagamento confirmado pelo Admin).`, { duration: 6000 });
-              } else {
-                toast.success(`🔄 Pedido #${updatedOrder.id.slice(0, 8)} atualizado para: ${statusInfo.label}`);
-              }
+            // Só notifica se o status mudou "externamente" (não pelo próprio vendedor neste momento)
+            // Usamos um truque simples: se updatingStatus for igual ao ID, é o próprio vendedor mexendo
+            if (updatingStatus !== updatedOrder.id) {
+                if (updatedOrder.status === 'cancelled') {
+                    toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} CANCELADO pelo cliente.`, { duration: 6000 });
+                } else if (updatedOrder.status === 'completed') {
+                    toast.success(`✅ Pedido #${updatedOrder.id.slice(0, 8)} CONCLUÍDO (Pagamento confirmado).`, { duration: 6000 });
+                }
+                
+                // Atualiza o estado local
+                const newOrders = [...prevOrders];
+                newOrders[orderIndex] = { 
+                    ...newOrders[orderIndex], 
+                    status: updatedOrder.status, 
+                    updated_at: updatedOrder.updated_at 
+                };
+                return newOrders;
             }
-            
-            const newOrders = [...prevOrders];
-            newOrders[orderIndex] = { ...newOrders[orderIndex], status: updatedOrder.status, updated_at: updatedOrder.updated_at };
-            return newOrders;
           }
-          
           return prevOrders;
         });
       }
@@ -126,25 +127,26 @@ const SellerOrders = () => {
     setError(null)
     
     try {
+      // 1. Pegar todos os items deste vendedor
       const { data: sellerItems, error: sellerError } = await supabase
         .from('order_items')
         .select(`
-          order_id,
-          orders!inner(
-            id, user_id, total_amount, status, delivery_address, created_at, updated_at
-          )
+          order_id
         `)
         .eq('seller_id', user.id)
 
       if (sellerError) throw new Error(`Query falhou: ${sellerError.message}`)
+      
       if (!sellerItems || sellerItems.length === 0) {
         setOrders([])
         setLoading(false)
         return
       }
 
+      // 2. Extrair IDs únicos de pedidos
       const orderIds = [...new Set(sellerItems.map((item: any) => item.order_id))]
 
+      // 3. Buscar os pedidos completos
       const { data: ordersWithItems, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -171,26 +173,42 @@ const SellerOrders = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId)
-    const toastId = showLoading('Atualizando status...')
+    // O toast de loading foi removido para dar sensação de instantaneidade, 
+    // ou podemos manter um muito rápido. Vamos usar um discreto.
     
     try {
+      // 1. Chamada ao Supabase
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
       
-      // A atualização do estado local é tratada pelo subscription em tempo real.
-      dismissToast(toastId)
-      // A notificação de sucesso será exibida pelo listener do realtime.
+      // 2. ATUALIZAÇÃO OTIMISTA (Instantânea)
+      // Atualizamos o estado local imediatamente após o sucesso da API,
+      // sem esperar o evento de Realtime voltar.
+      setOrders(prevOrders => prevOrders.map(order => {
+        if (order.id === orderId) {
+            // TypeScript trick para garantir tipagem
+            const statusTyped = newStatus as ProcessedOrder['status'];
+            return { 
+                ...order, 
+                status: statusTyped, 
+                updated_at: new Date().toISOString() 
+            };
+        }
+        return order;
+      }));
+
+      // Feedback visual
+      const statusInfo = getStatusInfo(newStatus as ProcessedOrder['status']);
+      showSuccess(`Status atualizado para: ${statusInfo.label}`);
 
     } catch (error: any) {
-      dismissToast(toastId)
       console.error('❌ Erro ao atualizar status:', error)
       showError('Erro ao atualizar status: ' + error.message)
+      // Se falhar, poderíamos reverter o estado aqui se tivéssemos feito a mudança antes do await
     } finally {
       setUpdatingStatus(null)
     }
@@ -304,11 +322,14 @@ const SellerOrders = () => {
               const nextStatuses = getNextStatuses(order.status)
               
               return (
-                <Card key={order.id}>
-                  <CardHeader>
+                <Card key={order.id} className="transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="bg-white border-b border-gray-100">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                       <div>
-                        <CardTitle className="text-lg">Pedido #{order.id.slice(0, 8)}</CardTitle>
+                        <CardTitle className="text-lg flex items-center">
+                            Pedido #{order.id.slice(0, 8)}
+                            {order.status === 'cancelled' && <span className="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">CANCELADO</span>}
+                        </CardTitle>
                         <div className="flex flex-wrap items-center gap-x-4 mt-2 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
@@ -324,25 +345,25 @@ const SellerOrders = () => {
                       </div>
                       
                       <div className="flex flex-col sm:flex-row items-end sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mt-3 sm:mt-0">
-                        <Badge className={statusInfo.color}>
+                        <Badge className={`${statusInfo.color} px-3 py-1 text-sm`}>
                           {statusInfo.icon} {statusInfo.label}
                         </Badge>
                         
-                        {nextStatuses.length > 0 && (
+                        {nextStatuses.length > 0 && order.status !== 'cancelled' && order.status !== 'completed' && (
                           <Select
                             value=""
                             onValueChange={(value) => updateOrderStatus(order.id, value)}
                             disabled={updatingStatus === order.id}
                           >
-                            <SelectTrigger className="w-full sm:w-32">
+                            <SelectTrigger className="w-full sm:w-40 border-blue-200 hover:border-blue-400 focus:ring-blue-500">
                               {updatingStatus === order.id ? (
-                                <div className="flex items-center">
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  <span className="text-sm">Aguarde...</span>
+                                <div className="flex items-center justify-center">
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-600" />
+                                  <span className="text-sm text-blue-600">Atualizando...</span>
                                 </div>
                               ) : (
                                 <>
-                                  <SelectValue placeholder="Atualizar" />
+                                  <SelectValue placeholder="Alterar Status" />
                                   <ChevronDown className="w-4 h-4 opacity-50 ml-1" />
                                 </>
                               )}
@@ -359,12 +380,12 @@ const SellerOrders = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 pt-4">
                     
                     <div className="space-y-3">
                       {order.order_items.map((item) => (
-                        <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                          <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                        <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                          <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border">
                             <img
                               src={getFirstImageUrl(item.product.image_url) || defaultImage}
                               alt={item.product.name}
@@ -373,34 +394,34 @@ const SellerOrders = () => {
                             />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">{item.product.name}</h4>
+                            <h4 className="font-medium truncate text-gray-900">{item.product.name}</h4>
                             <p className="text-sm text-gray-600">{item.quantity}x {formatPrice(item.price)}</p>
                           </div>
-                          <div className="font-semibold">{formatPrice(item.price * item.quantity)}</div>
+                          <div className="font-semibold text-gray-900">{formatPrice(item.price * item.quantity)}</div>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-blue-900">Endereço de Entrega:</p>
-                        <p className="text-sm text-blue-700 break-words">{order.delivery_address}</p>
+                        <p className="text-sm font-bold text-blue-900">Endereço de Entrega:</p>
+                        <p className="text-sm text-blue-800 break-words">{order.delivery_address}</p>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 border-t">
-                      <span className="font-semibold">Total do Pedido:</span>
-                      <span className="text-xl font-bold text-green-600">{formatPrice(order.total_amount)}</span>
+                    <div className="flex justify-between items-center pt-2 border-t border-dashed">
+                      <span className="font-medium text-gray-600">Total do Pedido:</span>
+                      <span className="text-xl font-extrabold text-green-600">{formatPrice(order.total_amount)}</span>
                     </div>
 
                     {order.status === 'delivered' && (
-                      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg animate-in fade-in">
                         <div className="flex items-center text-green-800">
                           <CheckCircle className="w-5 h-5 mr-2" />
-                          <span className="font-medium">Notificação enviada ao cliente!</span>
+                          <span className="font-bold">Entregue! Aguardando confirmação.</span>
                         </div>
-                        <p className="text-sm text-green-700 mt-1">O cliente foi notificado que o pedido foi entregue e pode confirmar o recebimento.</p>
+                        <p className="text-sm text-green-700 mt-1 pl-7">O cliente foi notificado para confirmar o recebimento e o pagamento.</p>
                       </div>
                     )}
                   </CardContent>
