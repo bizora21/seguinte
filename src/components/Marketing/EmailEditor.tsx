@@ -3,7 +3,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
-import Table from '@tiptap/extension-table';
+import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
@@ -17,9 +17,11 @@ interface EmailEditorProps {
   initialContent: string;
   onChange: (htmlContent: string) => void;
   disabled: boolean;
+  contentToInsert?: string | null; // Prop para injetar HTML
+  onContentInserted?: () => void; // Callback para limpar a injeção
 }
 
-const EmailEditor: React.FC<EmailEditorProps> = ({ initialContent, onChange, disabled }) => {
+const EmailEditor: React.FC<EmailEditorProps> = ({ initialContent, onChange, disabled, contentToInsert, onContentInserted }) => {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
 
   const editor = useEditor({
@@ -78,15 +80,25 @@ const EmailEditor: React.FC<EmailEditorProps> = ({ initialContent, onChange, dis
     editable: !disabled,
   });
 
+  // Efeito para sincronizar conteúdo inicial (apenas na carga ou reset total)
   useEffect(() => {
-    if (editor && initialContent && editor.getHTML() !== initialContent) {
-      // Verifica se o conteúdo é substancialmente diferente para evitar loops, 
-      // mas permite atualizações externas (como inserção de produtos)
-      if (Math.abs(editor.getHTML().length - initialContent.length) > 5) {
-         editor.commands.setContent(initialContent, { emitUpdate: false });
-      }
+    if (editor && initialContent && editor.isEmpty && initialContent.length > 0) {
+       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
+
+  // Efeito para INSERIR conteúdo (produtos) sem apagar o resto
+  useEffect(() => {
+    if (editor && contentToInsert) {
+      // Insere o HTML na posição atual do cursor ou no final
+      editor.chain().focus().insertContent(contentToInsert).run();
+      
+      // Avisa o pai que já inseriu, para limpar o estado
+      if (onContentInserted) {
+        onContentInserted();
+      }
+    }
+  }, [editor, contentToInsert, onContentInserted]);
 
   const setLink = () => {
     if (editor) {

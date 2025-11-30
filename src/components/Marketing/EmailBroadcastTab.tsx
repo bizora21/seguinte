@@ -31,7 +31,11 @@ interface ProductSimple {
 const EmailBroadcastTab: React.FC = () => {
   const [targetAudience, setTargetAudience] = useState<'cliente' | 'vendedor' | ''>('')
   const [subject, setSubject] = useState('')
+  const [hookStyle, setHookStyle] = useState('urgent') // Novo estado para estilo
+  
   const [bodyContent, setBodyContent] = useState('')
+  const [contentToInsert, setContentToInsert] = useState<string | null>(null) // Para injetar HTML no editor
+  
   const [previewText, setPreviewText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [generatingHook, setGeneratingHook] = useState(false)
@@ -97,7 +101,8 @@ const EmailBroadcastTab: React.FC = () => {
             },
             body: JSON.stringify({
               action: 'generate_hook',
-              topic: subject || 'Oferta Relâmpago'
+              topic: subject || 'Oferta Relâmpago',
+              style: hookStyle // Passa o estilo selecionado
             })
         });
 
@@ -120,31 +125,34 @@ const EmailBroadcastTab: React.FC = () => {
     const imageUrl = getFirstImageUrl(product.image_url) || 'https://lojarapidamz.com/placeholder.svg'
     const productLink = `https://lojarapidamz.com/produto/${product.id}`
     
+    // HTML simplificado e compatível com tabelas de email
     return `
-      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 15px; margin-bottom: 15px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+      <br>
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 15px; margin-bottom: 15px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
         <tr>
-          <td width="35%" style="padding: 0; vertical-align: middle;">
+          <td width="100" style="padding: 0; vertical-align: top;">
             <a href="${productLink}" style="display: block; text-decoration: none;">
-              <img src="${imageUrl}" alt="${product.name}" width="100%" style="display: block; width: 100%; height: 120px; object-fit: cover;" />
+              <img src="${imageUrl}" alt="${product.name}" style="display: block; width: 100px; height: 100px; object-fit: cover;" />
             </a>
           </td>
-          <td width="65%" style="padding: 15px; vertical-align: middle;">
-            <h3 style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #111827;">${product.name}</h3>
-            <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #059669;">${formatPrice(product.price)}</p>
-            <a href="${productLink}" style="background-color: #00D4AA; color: #ffffff; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">
-              Comprar Agora &rarr;
+          <td style="padding: 10px; vertical-align: top;">
+            <h3 style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #111827;">${product.name}</h3>
+            <p style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; color: #059669;">${formatPrice(product.price)}</p>
+            <a href="${productLink}" style="font-size: 12px; color: #2563eb; text-decoration: underline;">
+              Ver Detalhes
             </a>
           </td>
         </tr>
       </table>
-      <br />
+      <br>
     `
   }
 
   const handleInsertProduct = (product: ProductSimple) => {
     const productHtml = generateProductHtml(product)
-    setBodyContent(prev => prev + productHtml)
-    showSuccess('Produto adicionado ao e-mail!')
+    // Define o conteúdo a ser inserido, que o Editor irá detectar e injetar
+    setContentToInsert(productHtml)
+    showSuccess('Produto inserido no cursor!')
   }
 
   const getRecipientName = (profile: Pick<Profile, 'email' | 'store_name'>) => {
@@ -268,14 +276,28 @@ const EmailBroadcastTab: React.FC = () => {
             </Select>
         </div>
         <div className="space-y-2">
-            <Label>Assunto do E-mail</Label>
+            <Label>Assunto do E-mail (Gancho)</Label>
             <div className="flex gap-2">
+                {/* Seletor de Estilo */}
+                <Select value={hookStyle} onValueChange={setHookStyle}>
+                    <SelectTrigger className="w-[110px]">
+                        <SelectValue placeholder="Estilo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="urgent">Urgente</SelectItem>
+                        <SelectItem value="curiosity">Curiosidade</SelectItem>
+                        <SelectItem value="offer">Oferta</SelectItem>
+                        <SelectItem value="news">Novidade</SelectItem>
+                    </SelectContent>
+                </Select>
+                
                 <Input 
                     value={subject} 
                     onChange={e => setSubject(e.target.value)} 
-                    placeholder="Ex: 🔥 Ofertas Relâmpago!" 
+                    placeholder="Ex: Tópico para o gancho..." 
                     className="flex-1"
                 />
+                
                 <Button 
                     onClick={handleGenerateHook} 
                     disabled={generatingHook} 
@@ -286,19 +308,20 @@ const EmailBroadcastTab: React.FC = () => {
                     {generatingHook ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 </Button>
             </div>
-            <p className="text-xs text-gray-500">Dica: Use o botão mágico para criar assuntos curtos e urgentes.</p>
+            <p className="text-xs text-gray-500">Escolha o estilo e clique na varinha para gerar um assunto curto.</p>
         </div>
       </div>
 
-      <div className="flex-1 min-h-[300px] border rounded-md overflow-hidden bg-white flex flex-col shadow-sm">
-          <div className="bg-gray-50 p-2 border-b text-xs text-gray-500 font-medium uppercase flex justify-between items-center">
-            <span>Editor Visual</span>
-            <Badge variant="outline" className="bg-white">HTML Ativo</Badge>
+      <div className="flex-1 min-h-[300px] border rounded-md overflow-hidden bg-white flex flex-col">
+          <div className="bg-gray-100 p-2 border-b text-xs text-gray-500 font-medium uppercase">
+            Área de Edição
           </div>
           <EmailEditor
               initialContent={bodyContent}
               onChange={setBodyContent}
               disabled={submitting}
+              contentToInsert={contentToInsert}
+              onContentInserted={() => setContentToInsert(null)}
           />
       </div>
     </div>
@@ -310,20 +333,20 @@ const EmailBroadcastTab: React.FC = () => {
           <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
               <Input 
-                  placeholder="Buscar produto para adicionar..." 
+                  placeholder="Buscar produto..." 
                   className="pl-8 bg-white h-9 text-sm"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
               />
           </div>
       </div>
-      <ScrollArea className="flex-1 p-2">
+      <ScrollArea className="flex-1 pr-2">
           {loadingProducts ? (
               <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : products.length === 0 ? (
               <div className="text-center py-8 text-gray-500 text-sm">Nenhum produto encontrado.</div>
           ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 p-2">
                   {products.map((product) => (
                       <div key={product.id} className="bg-white p-2 rounded border hover:border-blue-400 hover:shadow-md transition-all group flex items-center gap-3">
                           <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border">
@@ -338,12 +361,13 @@ const EmailBroadcastTab: React.FC = () => {
                               <p className="font-bold text-green-600 text-xs">{formatPrice(product.price)}</p>
                           </div>
                           <Button 
-                              size="icon" 
-                              className="h-8 w-8 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-full shadow-sm"
+                              size="sm" 
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
                               onClick={() => handleInsertProduct(product)}
                               title="Adicionar ao e-mail"
                           >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-5 h-5" />
                           </Button>
                       </div>
                   ))}
@@ -357,7 +381,7 @@ const EmailBroadcastTab: React.FC = () => {
     <div className="flex flex-col h-full bg-gray-900 rounded-xl overflow-hidden border border-gray-700 shadow-2xl relative">
       <div className="bg-gray-800 p-3 border-b border-gray-700 flex justify-between items-center">
         <span className="text-gray-300 text-xs font-mono flex items-center">
-          <Eye className="w-3 h-3 mr-2" /> Visualização (Cliente)
+          <Eye className="w-3 h-3 mr-2" /> Visualização
         </span>
         <div className="flex space-x-1.5">
           <div className="w-2 h-2 rounded-full bg-red-500"></div>
@@ -375,15 +399,14 @@ const EmailBroadcastTab: React.FC = () => {
         />
       </div>
       
-      {/* Botão de Envio FIXO na área de preview */}
-      <div className="p-4 bg-gray-800 border-t border-gray-700 sticky bottom-0 z-20">
+      <div className="p-4 bg-gray-800 border-t border-gray-700">
         <Button 
             onClick={handleSendBroadcast} 
             disabled={submitting || !bodyContent}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold h-12 text-lg shadow-lg transition-all hover:scale-105 flex items-center justify-center"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold h-12 text-lg shadow-lg transition-all hover:scale-105"
         >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Send className="w-5 h-5 mr-2" />}
-            ENVIAR AGORA
+            ENVIAR CAMPANHA
         </Button>
       </div>
     </div>
@@ -395,9 +418,9 @@ const EmailBroadcastTab: React.FC = () => {
       <div className="md:hidden mb-4">
         <Tabs value={mobileTab} onValueChange={setMobileTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="editor"><FileText className="w-4 h-4 mr-2" /> Editar</TabsTrigger>
+            <TabsTrigger value="editor"><FileText className="w-4 h-4 mr-2" /> Editor</TabsTrigger>
             <TabsTrigger value="products"><ShoppingBag className="w-4 h-4 mr-2" /> Produtos</TabsTrigger>
-            <TabsTrigger value="preview"><Eye className="w-4 h-4 mr-2" /> Visualizar</TabsTrigger>
+            <TabsTrigger value="preview"><Eye className="w-4 h-4 mr-2" /> Enviar</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -405,11 +428,11 @@ const EmailBroadcastTab: React.FC = () => {
       {/* DESKTOP LAYOUT (GRID 3 COLUNAS) */}
       <div className="hidden md:grid md:grid-cols-12 gap-6 h-full min-h-0">
         
-        {/* COLUNA 1: EDITOR (45%) */}
+        {/* COLUNA 1: EDITOR (50%) */}
         <Card className="md:col-span-5 flex flex-col h-full overflow-hidden shadow-md border-t-4 border-t-blue-500">
-          <CardHeader className="py-3 border-b bg-gray-50">
-            <CardTitle className="text-base flex items-center">
-              <Mail className="w-4 h-4 mr-2 text-blue-600" /> Configuração & Conteúdo
+          <CardHeader className="py-4 border-b bg-gray-50">
+            <CardTitle className="text-lg flex items-center">
+              <Mail className="w-5 h-5 mr-2 text-blue-600" /> Editor de Conteúdo
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto p-4">
@@ -419,9 +442,9 @@ const EmailBroadcastTab: React.FC = () => {
 
         {/* COLUNA 2: PRODUTOS (25%) */}
         <Card className="md:col-span-3 flex flex-col h-full overflow-hidden shadow-md border-t-4 border-t-purple-500">
-          <CardHeader className="py-3 border-b bg-gray-50">
-            <CardTitle className="text-base flex items-center">
-              <ShoppingBag className="w-4 h-4 mr-2 text-purple-600" /> Arrastar Produto
+          <CardHeader className="py-4 border-b bg-gray-50">
+            <CardTitle className="text-lg flex items-center">
+              <ShoppingBag className="w-5 h-5 mr-2 text-purple-600" /> Catálogo
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
@@ -429,7 +452,7 @@ const EmailBroadcastTab: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* COLUNA 3: PREVIEW (30%) */}
+        {/* COLUNA 3: PREVIEW (25%) */}
         <div className="md:col-span-4 h-full flex flex-col">
           <PreviewSection />
         </div>
@@ -442,12 +465,6 @@ const EmailBroadcastTab: React.FC = () => {
             <CardContent className="flex-1 overflow-y-auto p-4 pt-6">
               <EditorSection />
             </CardContent>
-            {/* Atalho para ir para Preview */}
-            <div className="p-4 border-t">
-               <Button onClick={() => setMobileTab('preview')} className="w-full" variant="outline">
-                 Ir para Envio <ArrowRight className="w-4 h-4 ml-2" />
-               </Button>
-            </div>
           </Card>
         )}
 

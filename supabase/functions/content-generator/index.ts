@@ -57,13 +57,19 @@ serve(async (req) => {
 
     // --- NOVA AÇÃO: GERAR GANCHO CURTO ---
     if (action === 'generate_hook') {
-      const { topic } = payload;
+      const { topic, style } = payload;
+      
+      let styleInstruction = "Urgente, Emocionante, Vendedor";
+      if (style === 'curiosity') styleInstruction = "Misterioso, intrigante, que desperte curiosidade";
+      if (style === 'offer') styleInstruction = "Focado em preço, desconto e oportunidade financeira";
+      if (style === 'news') styleInstruction = "Novidade, lançamento, exclusivo, 'chegou agora'";
       
       const prompt = `
-        Crie uma frase de impacto EXTREMAMENTE CURTA (máximo 3 palavras) para um assunto de e-mail de vendas em Moçambique.
+        Crie uma frase de impacto EXTREMAMENTE CURTA (máximo 4 palavras) para um assunto de e-mail de vendas em Moçambique.
         Tópico: ${topic || 'Oferta Especial'}.
-        Estilo: Urgente, Emocionante, Vendedor.
-        Exemplos: "Corre Aproveitar", "Só Hoje", "Baixou Tudo", "Imperdível Agora".
+        Estilo Desejado: ${styleInstruction}.
+        Exemplos de Estilo Urgente: "Corre Aproveitar", "Só Hoje", "Baixou Tudo".
+        Exemplos de Estilo Curiosidade: "Você viu isso?", "Segredo Revelado".
         
         Retorne APENAS o texto da frase, sem aspas, sem explicações.
       `;
@@ -75,7 +81,7 @@ serve(async (req) => {
             model: 'gpt-4o-mini', 
             messages: [{ role: 'user', content: prompt }], 
             temperature: 0.9,
-            max_tokens: 10
+            max_tokens: 15
         }),
       });
 
