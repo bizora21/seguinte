@@ -29,7 +29,7 @@ const CancelledOrdersCard: React.FC = () => {
             total_amount, 
             updated_at, 
             customer_name,
-            user:profiles!orders_user_id_fkey(email)
+            user_id(email) // Corrigido: Usando a coluna FK como nome da relação para perfis
         `)
         .eq('status', 'cancelled')
         .order('updated_at', { ascending: false })
@@ -41,7 +41,7 @@ const CancelledOrdersCard: React.FC = () => {
           id: o.id,
           total_amount: o.total_amount,
           updated_at: o.updated_at,
-          customer_email: o.user?.email || 'N/A',
+          customer_email: o.user_id?.email || 'N/A', // Ajustado para user_id
           customer_name: o.customer_name
       }))
 
