@@ -4,11 +4,13 @@ import { supabase } from '../lib/supabase'
 import { showError } from './toast'
 import WelcomeClientEmail from '../components/Templates/WelcomeClientEmail'
 import WelcomeSellerEmail from '../components/Templates/WelcomeSellerEmail'
+import NewOrderSellerEmail from '../components/Templates/NewOrderSellerEmail' // NOVO IMPORT
 
 // Mapeamento de templates
 const TEMPLATE_MAP: Record<string, React.FC<any>> = {
   'welcome_client': WelcomeClientEmail,
   'welcome_seller': WelcomeSellerEmail,
+  'new_order_seller': NewOrderSellerEmail, // NOVO TEMPLATE
   // Adicionar outros templates aqui
 }
 
