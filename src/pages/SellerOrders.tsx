@@ -11,6 +11,7 @@ import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import toast from 'react-hot-toast'
 import { getFirstImageUrl } from '../utils/images'
+import { sendTemplatedEmail } from '../utils/email' // IMPORT NECESSÁRIO
 
 interface ProcessedOrder {
   id: string
@@ -177,7 +178,7 @@ const SellerOrders = () => {
     setUpdatingStatus(orderId)
     
     try {
-      // 1. Chamada ao Supabase
+      // 1. Chamada ao Supabase para atualizar o status
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -185,7 +186,50 @@ const SellerOrders = () => {
 
       if (error) throw error
       
-      // 2. ATUALIZAÇÃO OTIMISTA (Instantânea)
+      // 2. Buscar o e-mail do cliente para notificação
+      const orderToUpdate = orders.find(o => o.id === orderId);
+      if (!orderToUpdate) throw new Error('Pedido não encontrado localmente.');
+      
+      const { data: clientProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', orderToUpdate.user_id)
+        .single();
+        
+      if (profileError) console.error('Não foi possível buscar email do cliente para notificação:', profileError);
+
+      // 3. Enviar E-mail de Notificação ao Cliente
+      if (clientProfile?.email) {
+        const customerEmail = clientProfile.email;
+        const customerName = orderToUpdate.customer_name || customerEmail.split('@')[0];
+        
+        if (newStatus === 'in_transit') {
+          await sendTemplatedEmail({
+            to: customerEmail,
+            subject: `🚚 Seu Pedido #${orderId.slice(0, 8)} está a caminho!`,
+            template: 'order_shipped_client',
+            props: {
+              customerName: customerName,
+              orderId: orderId.slice(0, 8),
+              deliveryAddress: orderToUpdate.delivery_address
+            }
+          });
+          showSuccess('E-mail de envio enviado ao cliente!');
+        } else if (newStatus === 'delivered') {
+          await sendTemplatedEmail({
+            to: customerEmail,
+            subject: `✅ Pedido #${orderId.slice(0, 8)} Entregue! Confirme o recebimento.`,
+            template: 'order_delivered_client',
+            props: {
+              customerName: customerName,
+              orderId: orderId.slice(0, 8)
+            }
+          });
+          showSuccess('E-mail de confirmação de entrega enviado ao cliente!');
+        }
+      }
+
+      // 4. ATUALIZAÇÃO OTIMISTA (Instantânea)
       setOrders(prevOrders => prevOrders.map(order => {
         if (order.id === orderId) {
             const statusTyped = newStatus as ProcessedOrder['status'];
@@ -307,6 +351,10 @@ const SellerOrders = () => {
               <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Nenhum pedido recebido ainda</h2>
               <p className="text-gray-600 mb-6">Os clientes ainda não fizeram pedidos com seus produtos.</p>
+              <Button onClick={() => navigate('/adicionar-produto')}>
+                <Package className="w-4 h-4 mr-2" />
+                Adicionar Produto
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -429,7 +477,7 @@ const SellerOrders = () => {
                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg animate-in fade-in">
                         <div className="flex items-center text-green-800 text-sm">
                           <CheckCircle className="w-4 h-4 mr-2" />
-                          <span className="font-bold">Entregue! Aguardando confirmação.</span>
+                          <span className="font-bold">Entregue! Aguardando confirmação do cliente.</span>
                         </div>
                       </div>
                     )}

@@ -4,13 +4,17 @@ import { supabase } from '../lib/supabase'
 import { showError } from './toast'
 import WelcomeClientEmail from '../components/Templates/WelcomeClientEmail'
 import WelcomeSellerEmail from '../components/Templates/WelcomeSellerEmail'
-import NewOrderSellerEmail from '../components/Templates/NewOrderSellerEmail' // NOVO IMPORT
+import NewOrderSellerEmail from '../components/Templates/NewOrderSellerEmail'
+import OrderShippedClientEmail from '../components/Templates/OrderShippedClientEmail' // NOVO
+import OrderDeliveredClientEmail from '../components/Templates/OrderDeliveredClientEmail' // NOVO
 
 // Mapeamento de templates
 const TEMPLATE_MAP: Record<string, React.FC<any>> = {
   'welcome_client': WelcomeClientEmail,
   'welcome_seller': WelcomeSellerEmail,
-  'new_order_seller': NewOrderSellerEmail, // NOVO TEMPLATE
+  'new_order_seller': NewOrderSellerEmail,
+  'order_shipped_client': OrderShippedClientEmail, // NOVO
+  'order_delivered_client': OrderDeliveredClientEmail, // NOVO
   // Adicionar outros templates aqui
 }
 
