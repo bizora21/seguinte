@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -36,8 +36,19 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
   const [sending, setSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(true);
   
-  // Referência para o container de scroll (caixa de mensagens)
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    if (scrollAreaRef.current) {
+        const { scrollHeight, clientHeight } = scrollAreaRef.current;
+        if (scrollHeight > clientHeight) {
+            scrollAreaRef.current.scrollTo({
+                top: scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
+  }, []);
 
   useEffect(() => {
     if (!user || !sellerId) {
@@ -56,7 +67,7 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   const setupChat = async () => {
     if (!user || !productId || !sellerId) return;
@@ -114,21 +125,6 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
     }
   };
 
-  // CORREÇÃO AQUI: Em vez de scrollIntoView (que move a janela),
-  // ajustamos o scrollTop apenas deste container específico.
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-        const { scrollHeight, clientHeight } = scrollAreaRef.current;
-        // Rola apenas se houver conteúdo suficiente para rolar
-        if (scrollHeight > clientHeight) {
-            scrollAreaRef.current.scrollTo({
-                top: scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    }
-  };
-
   const fetchMessages = async (chatId: string) => {
     try {
       const { data, error } = await supabase
@@ -157,6 +153,7 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
         async (payload) => {
           const newMessage = payload.new as Message;
           
+          // Se a mensagem não for do próprio usuário (otimista), buscamos o remetente
           if (newMessage.sender_id !== user?.id) {
             const { data: senderData } = await supabase
               .from('profiles')
@@ -242,6 +239,78 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
     return message.sender_id === user?.id;
   };
 
+  // --- Lógica de Renderização Principal ---
+  
+  let chatContent;
+
+  if (!user) {
+    chatContent = (
+      <div className="flex-1 flex items-center justify-center p-6 text-center">
+        <div className="space-y-4">
+          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto" />
+          <h3 className="font-semibold">Faça login para conversar</h3>
+          <Button onClick={() => navigate('/login')} className="w-full">Fazer Login</Button>
+        </div>
+      </div>
+    );
+  } else if (user.id === sellerId) {
+    chatContent = (
+      <div className="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
+        <p>Você é o vendedor deste produto. Use o painel de chats para gerenciar conversas com clientes.</p>
+      </div>
+    );
+  } else if (chatLoading) {
+    chatContent = (
+      <div className="flex-1 flex items-center justify-center p-6 text-center">
+        <LoadingSpinner size="md" />
+      </div>
+    );
+  } else {
+    // Chat ativo
+    chatContent = (
+      <>
+        <div 
+            ref={scrollAreaRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
+          {messages.length === 0 ? (
+            <div className="text-center py-8 text-gray-600">Inicie a conversa!</div>
+          ) : (
+            messages.map((msg) => (
+              <div key={msg.id} className={`flex ${isMyMessage(msg) ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isMyMessage(msg) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  <p className="break-words">{msg.content}</p>
+                  <p className={`text-xs mt-1 text-right ${isMyMessage(msg) ? 'text-blue-100' : 'text-gray-500'}`}>{formatTime(msg.created_at)}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="bg-yellow-50 border-t border-yellow-200 p-3 mx-4 mb-2">
+          <div className="flex items-start space-x-2 text-xs text-yellow-800">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <p>Para sua segurança, nunca compartilhe dados pessoais ou de pagamento fora deste chat.</p>
+          </div>
+        </div>
+        <div className="border-t p-4">
+          <div className="flex space-x-2">
+            <Input 
+              value={newMessage} 
+              onChange={(e) => setNewMessage(e.target.value)} 
+              onKeyPress={handleKeyPress} 
+              placeholder="Digite sua mensagem..." 
+              disabled={sending || !chatId} 
+              className="flex-1" 
+            />
+            <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sending || !chatId} size="icon">
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
@@ -257,55 +326,7 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
       </CardHeader>
       
       <CardContent className="flex-1 overflow-hidden flex flex-col p-0">
-        {!user ? (
-          <div className="flex-1 flex items-center justify-center p-6 text-center">
-            <div className="space-y-4">
-              <MessageCircle className="w-12 h-12 text-gray-400 mx-auto" />
-              <h3 className="font-semibold">Faça login para conversar</h3>
-              <Button onClick={() => navigate('/login')} className="w-full">Fazer Login</Button>
-            </div>
-          </div>
-        ) : user.id === sellerId ? (
-          <div className="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
-            <p>Você é o vendedor deste produto.</p>
-          </div>
-        ) : (
-          <>
-            <div 
-                ref={scrollAreaRef}
-                className="flex-1 overflow-y-auto p-4 space-y-4"
-            >
-              {chatLoading ? (
-                <div className="text-center py-8"><LoadingSpinner /></div>
-              ) : messages.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">Inicie a conversa!</div>
-              ) : (
-                messages.map((msg) => (
-                  <div key={msg.id} className={`flex ${isMyMessage(msg) ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isMyMessage(msg) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                      <p className="break-words">{msg.content}</p>
-                      <p className={`text-xs mt-1 text-right ${isMyMessage(msg) ? 'text-blue-100' : 'text-gray-500'}`}>{formatTime(msg.created_at)}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="bg-yellow-50 border-t border-yellow-200 p-3 mx-4 mb-2">
-              <div className="flex items-start space-x-2 text-xs text-yellow-800">
-                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>Para sua segurança, nunca compartilhe dados pessoais ou de pagamento fora deste chat.</p>
-              </div>
-            </div>
-            <div className="border-t p-4">
-              <div className="flex space-x-2">
-                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Digite sua mensagem..." disabled={sending || !chatId} className="flex-1" />
-                <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sending || !chatId} size="icon">
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
+        {chatContent}
       </CardContent>
     </Card>
   );
