@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { Profile } from '../types/auth'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Store, Star, Package, ArrowLeft, Search, MapPin, Shield, Users, Clock, Heart, TrendingUp } from 'lucide-react'
+import { Store, Star, Package, ArrowLeft, Search, MapPin, Shield, Users, Clock, Heart, TrendingUp, ShoppingBag } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { Input } from '../components/ui/input'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -161,7 +161,7 @@ const LojasPage = () => {
         url="https://lojarapidamz.com/lojas"
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Hero Section - Reduzido o padding vertical */}
+        {/* Hero Section - ATUALIZADO */}
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-10 sm:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-4">
@@ -182,23 +182,30 @@ const LojasPage = () => {
               className="text-center"
             >
               <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                Descubra as Melhores Lojas
+                Marketplace LojaRápida
               </h1>
               <p className="text-xl mb-6 text-purple-100">
-                Conheça os vendedores locais e explore produtos incríveis em todo Moçambique
+                Encontre produtos e vendedores verificados em todo Moçambique.
               </p>
               
-              <div className="max-w-2xl mx-auto">
-                <div className="relative">
+              <div className="max-w-2xl mx-auto flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
                     type="text"
-                    placeholder="Buscar lojas..."
+                    placeholder="Buscar lojas ou produtos..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-12 pr-4 py-3 text-lg h-12 bg-white text-gray-900 placeholder-gray-500 rounded-full"
                   />
                 </div>
+                <Button
+                  onClick={() => navigate('/produtos')}
+                  className="h-12 px-6 bg-green-500 hover:bg-green-600 text-white font-bold"
+                >
+                  <ShoppingBag className="w-5 h-5 mr-2" />
+                  Explorar Produtos
+                </Button>
               </div>
             </motion.div>
           </div>
@@ -285,7 +292,7 @@ const LojasPage = () => {
                     : 'Volte em breve para conhecer novas lojas incríveis!'
                   }
                 </p>
-                <Button onClick={() => navigate('/')} className="bg-purple-600 hover:bg-purple-700">
+                <Button onClick={() => navigate('/produtos')} className="bg-purple-600 hover:bg-purple-700">
                   Explorar Produtos
                 </Button>
               </CardContent>

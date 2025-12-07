@@ -6,7 +6,7 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle, RefreshCw, Truck } from 'lucide-react'
 import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog'
@@ -123,6 +123,13 @@ const CustomerOrders = () => {
       fetchOrders() 
     }
   }
+  
+  const handleTrackOrder = (orderId: string) => {
+    // Simulação de rastreamento
+    showSuccess(`Rastreamento do Pedido #${orderId.slice(0, 8)} iniciado.`)
+    // Em um sistema real, redirecionaria para: navigate(`/rastreamento/${orderId}`)
+    window.open('https://www.dhl.com/mz-pt/home/rastreamento.html', '_blank')
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price)
@@ -159,6 +166,7 @@ const CustomerOrders = () => {
               const statusInfo = getStatusInfo(order.status)
               // Só permite cancelar se estiver pendente ou em preparação
               const canCancel = order.status === 'pending' || order.status === 'preparing'
+              const isInTransit = order.status === 'in_transit'
               
               return (
                 <Card key={order.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
@@ -189,6 +197,18 @@ const CustomerOrders = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-dashed gap-3">
                       <div className="font-bold text-base md:text-lg">Total: <span className="text-green-600">{formatPrice(order.total_amount)}</span></div>
                       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        
+                        {/* NOVO BOTÃO DE RASTREAMENTO */}
+                        {isInTransit && (
+                          <Button 
+                            onClick={() => handleTrackOrder(order.id)} 
+                            size="sm" 
+                            className="bg-purple-600 hover:bg-purple-700 flex-1 sm:flex-none h-9 text-xs md:text-sm"
+                          >
+                            <Truck className="w-4 h-4 mr-1" /> Rastrear Encomenda
+                          </Button>
+                        )}
+                        
                         {canCancel && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
