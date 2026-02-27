@@ -2,10 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "source": "/sitemap.xml",
-      "destination": "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap-generator"
-    },
-    {
       "source": "/produto/:id",
       "destination": "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/product-ssr?id=$id",
       "headers": [
