@@ -308,7 +308,7 @@ const HomePage: React.FC = () => {
                     { icon: CheckCircle, text: 'Notificações push para seus pedidos' },
                     { icon: CheckCircle, text: 'Chat direto com vendedores' },
                     { icon: CheckCircle, text: 'Ofertas exclusivas no app' },
-                    { icon: CheckCircle, text: 'Pagamento seguro M-Pesa, eMola' }
+                    { icon: CheckCircle, text: 'Pagamento seguro na entrega' }
                   ].map((item, i) => (
                     <div key={i} className="flex items-center space-x-3">
                       <item.icon className="w-5 h-5 text-green-400 flex-shrink-0" />
