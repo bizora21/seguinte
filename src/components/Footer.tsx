@@ -41,7 +41,7 @@ const Footer = () => {
 
   const contactInfo = [
     { icon: Phone, text: '+258 86 318 1415', isExternal: true, href: 'https://wa.me/258863181415' },
-    { icon: Mail, text: 'suporte@lojarapida.com', isExternal: true, href: 'mailto:suporte@lojarapida.com' },
+    { icon: Mail, text: 'contato@lojarapidamz.com', isExternal: true, href: 'mailto:contato@lojarapidamz.com' },
     { icon: MapPin, text: 'Maputo, Moçambique', isExternal: false, href: '#' },
     { icon: Clock, text: 'Seg-Sex: 8h-18h, Sáb: 9h-14h', isExternal: false, href: '#' }
   ]
@@ -270,7 +270,7 @@ const Footer = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-sm text-gray-400">
-              © 2025 LojaRápida. Todos os direitos reservados.
+              © 2026 LojaRápida. Todos os direitos reservados.
             </div>
             
             <nav className="flex items-center space-x-6">
