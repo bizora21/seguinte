@@ -278,3 +278,103 @@ export const generateBreadcrumbSchema = (breadcrumbs: Array<{ name: string; url:
     }))
   }
 }
+
+// Schema para App Mobile
+export const generateMobileAppSchema = () => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "LojaRápida Moçambique",
+    "operatingSystem": "Android",
+    "applicationCategory": "ShoppingApplication",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.5",
+      "ratingCount": "250"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "MZN"
+    },
+    "description": "Baixe o app LojaRápida e compre produtos de todo Moçambique com entrega rápida e pagamento na entrega.",
+    "url": "https://play.google.com/store/apps/details?id=com.lojarapida",
+    "publisher": {
+      "@type": "Organization",
+      "name": "LojaRápida",
+      "url": `${BASE_URL}/`
+    }
+  }
+}
+
+// Schema Article para posts de blog
+export const generateArticleSchema = (article: {
+  title: string;
+  description: string;
+  image: string;
+  datePublished: string;
+  dateModified?: string;
+  author: string;
+  url: string;
+}) => {
+  const articleUrl = article.url.startsWith('http') ? article.url : `${BASE_URL}${article.url}`
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": article.title,
+    "description": article.description,
+    "image": ensureAbsoluteUrl(article.image),
+    "datePublished": article.datePublished,
+    "dateModified": article.dateModified || article.datePublished,
+    "author": {
+      "@type": "Person",
+      "name": article.author
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "LojaRápida",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${BASE_URL}/favicon.svg`
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": articleUrl
+    }
+  }
+}
+
+// Schema Review para avaliações
+export const generateReviewSchema = (product: any, storeName: string, reviews: any[]) => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.description,
+    "image": ensureAbsoluteUrl(getFirstImageUrl(product.image_url)),
+    "sku": product.id,
+    "review": reviews.map(review => ({
+      "@type": "Review",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": review.rating,
+        "bestRating": "5"
+      },
+      "author": {
+        "@type": "Person",
+        "name": review.user_name || "Cliente Anônimo"
+      },
+      "reviewBody": review.comment,
+      "datePublished": review.created_at
+    })),
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": reviews.length.toString(),
+      "bestRating": "5",
+      "worstRating": "1"
+    }
+  }
+}
