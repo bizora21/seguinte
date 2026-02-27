@@ -65,7 +65,18 @@ export const SEO: React.FC<SEOProps> = ({
       <title>{title}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={canonicalUrl} />
-      
+
+      {/* Favicon */}
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
+      <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png" />
+      <link rel="manifest" href="/site.webmanifest" />
+
+      {/* Alternate Language Tags (para expandir no futuro) */}
+      <link rel="alternate" hreflang="pt-MZ" href={canonicalUrl} />
+      <link rel="alternate" hreflang="pt" href={canonicalUrl} />
+      <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+
       {/* Controle de Robôs */}
       <meta name="robots" content={noIndex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
 
