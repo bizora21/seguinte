@@ -42,7 +42,7 @@ const FloatingAppButton = () => {
   }
 
   const handleDownload = () => {
-    // TODO: Substituir pelo link real do app na Google Play Store
+    // Link do app publicado na Google Play Store
     window.open('https://play.google.com/store/apps/details?id=com.lojarapida&pcampaignid=web_share', '_blank')
     // Não fechar o banner após clicar, apenas marcar como visto
     localStorage.setItem('appBannerClicked', Date.now().toString())
