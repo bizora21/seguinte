@@ -105,6 +105,7 @@ const FaqPage = () => {
           </Button>
         </div>
       </div>
+      </div>
     </>
   )
 }
