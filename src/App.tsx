@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
 import Chatbot from "./components/Chatbot";
+import FloatingAppButton from "./components/FloatingAppButton";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -231,6 +232,7 @@ const App = () => (
                 <Footer />
                 <BackToHomeButton />
                 <Chatbot />
+                <FloatingAppButton />
                 <LeadCapturePopup /> 
               </div>
               <Toaster />
