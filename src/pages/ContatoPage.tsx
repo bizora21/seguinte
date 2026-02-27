@@ -91,11 +91,11 @@ const ContatoPage = () => {
                   <Mail className="w-5 h-5 text-green-600" />
                   <div>
                     <p className="font-medium">Email de Suporte</p>
-                    <a 
-                      href="mailto:suporte@lojarapida.com" 
+                    <a
+                      href="mailto:contato@lojarapidamz.com"
                       className="text-blue-600 hover:underline"
                     >
-                      suporte@lojarapida.com
+                      contato@lojarapidamz.com
                     </a>
                   </div>
                 </div>
