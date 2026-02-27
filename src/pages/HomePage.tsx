@@ -319,7 +319,7 @@ const HomePage: React.FC = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
-                    href="https://play.google.com/store/apps/details?id=com.lojarapida"
+                    href="https://play.google.com/store/apps/details?id=com.github.app"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center bg-white text-[#0A2540] hover:bg-gray-100 font-bold py-3 px-6 rounded-lg transition-all hover:scale-105"

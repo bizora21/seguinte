@@ -298,7 +298,7 @@ export const generateMobileAppSchema = () => {
       "priceCurrency": "MZN"
     },
     "description": "Baixe o app LojaRápida e compre produtos de todo Moçambique com entrega rápida e pagamento na entrega.",
-    "url": "https://play.google.com/store/apps/details?id=com.lojarapida",
+    "url": "https://play.google.com/store/apps/details?id=com.github.app",
     "publisher": {
       "@type": "Organization",
       "name": "LojaRápida",
