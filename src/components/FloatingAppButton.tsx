@@ -43,7 +43,7 @@ const FloatingAppButton = () => {
 
   const handleDownload = () => {
     // Link do app publicado na Google Play Store
-    window.open('https://play.google.com/store/apps/details?id=com.github.app&pcampaignid=web_share', '_blank')
+    window.open('https://play.google.com/store/apps/details?id=com.app.github&pcampaignid=web_share', '_blank')
     // Não fechar o banner após clicar, apenas marcar como visto
     localStorage.setItem('appBannerClicked', Date.now().toString())
   }
