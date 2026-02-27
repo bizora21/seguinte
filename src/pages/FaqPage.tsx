@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button'
 import { ArrowLeft, HelpCircle, Truck, CreditCard, Store, Package } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
+import { SEO } from '../components/SEO'
 
 const FAQ_CONTENT = [
   {
@@ -34,8 +35,30 @@ const FAQ_CONTENT = [
 const FaqPage = () => {
   const navigate = useNavigate()
 
+  // Generate FAQ Schema for SEO
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": FAQ_CONTENT.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <>
+      <SEO
+        title="Perguntas Frequentes - LojaRápida Moçambique"
+        description="Tire suas dúvidas sobre como comprar, vender e entregas na LojaRápida. Pagamento na entrega, frete grátis e suporte local."
+        url="https://lojarapidamz.com/faq"
+        jsonLd={[faqSchema]}
+      />
+
+      <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Button
@@ -82,7 +105,7 @@ const FaqPage = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

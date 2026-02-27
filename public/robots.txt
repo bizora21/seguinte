@@ -1,7 +1,42 @@
+# Robots.txt - LojaRápida Moçambique
+# Última atualização: 2025
+
 User-agent: *
 Allow: /
+
+# Áreas privadas do sistema
 Disallow: /dashboard/
 Disallow: /meus-pedidos/
 Disallow: /checkout/
+Disallow: /carrinho/
+Disallow: /encomenda-confirmada/
+Disallow: /meus-chats/
+Disallow: /oauth-callback/
+Disallow: /api/
 
+# Arquivos administrativos
+Disallow: /admin/
+Disallow: /adicionar-produto/
+
+# Páginas de login/registro (não precisam ser indexadas)
+Disallow: /login
+Disallow: /register
+
+# Sitemaps
 Sitemap: https://lojarapidamz.com/sitemap.xml
+
+# Regras específicas para bots principais
+User-agent: Googlebot
+Allow: /
+
+User-agent: FacebookExternalHit
+Allow: /
+
+User-agent: TwitterBot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+# Delay de crawling para sobrecarregar o servidor (opcional)
+Crawl-delay: 1
