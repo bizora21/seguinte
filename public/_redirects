@@ -1,6 +1,3 @@
 # Sitemap e Robots.txt - servir como arquivos estáticos
 /sitemap.xml  /sitemap.xml  200
 /robots.txt   /robots.txt   200
-
-# SPA fallback - todas as outras rotas vão para index.html
-/*            /index.html   200
