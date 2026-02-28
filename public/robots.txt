@@ -2,7 +2,7 @@
 Sitemap: https://lojarapidamz.com/sitemap.xml
 
 # Robots.txt - LojaRápida Moçambique
-# Última atualização: 2025
+# Última atualização: 2026
 
 User-agent: *
 Allow: /
