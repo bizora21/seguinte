@@ -1,0 +1,9 @@
+# Sitemap e Robots.txt - servir como arquivos estáticos
+/sitemap.xml  /sitemap.xml  200
+/robots.txt   /robots.txt   200
+
+# Redirecionamento SSR para produtos (apenas para bots sociais)
+/produto/:id  https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/product-ssr?id=:id 200
+
+# SPA fallback - todas as outras rotas vão para index.html
+/*            /index.html   200
