@@ -115,6 +115,15 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="geo.position" content="-25.9692;32.5732" />
       <meta name="ICBM" content="-25.9692, 32.5732" />
 
+      {/* Meta Tags para Google Discover */}
+      <meta name="news_keywords" content={type === 'article' ? "marketplace, Moçambique, compras online, LojaRápida" : ""} />
+      {type === 'article' && (
+        <meta name="article:published_time" content={new Date().toISOString()} />
+      )}
+      <meta name="article:author" content={DEFAULT_SITE} />
+      <meta name="article:section" content="Marketplace" />
+      <meta name="article:tag" content="Moçambique" />
+
       {/* Schema.org JSON-LD */}
       {jsonLd && !noIndex &&
         jsonLd.map((schema, index) => {
@@ -304,6 +313,54 @@ export const generateMobileAppSchema = () => {
       "name": "LojaRápida",
       "url": `${BASE_URL}/`
     }
+  }
+}
+
+// Schema NewsArticle para Google Discover
+export const generateNewsArticleSchema = (article: {
+  title: string;
+  description: string;
+  image: string;
+  datePublished: string;
+  dateModified?: string;
+  author: string;
+  url: string;
+  headline?: string;
+  articleSection?: string;
+  keywords?: string[];
+}) => {
+  const articleUrl = article.url.startsWith('http') ? article.url : `${BASE_URL}${article.url}`
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": article.headline || article.title,
+    "description": article.description,
+    "image": ensureAbsoluteUrl(article.image),
+    "datePublished": article.datePublished,
+    "dateModified": article.dateModified || article.datePublished,
+    "author": {
+      "@type": "Person",
+      "name": article.author
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "LojaRápida",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${BASE_URL}/favicon.svg`
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": articleUrl
+    },
+    // Campos importantes para Google Discover
+    "articleSection": article.articleSection || "Marketplace",
+    "keywords": article.keywords || ["marketplace", "Moçambique", "compras online", "LojaRápida"],
+    "inLanguage": "pt-MZ",
+    "isAccessibleForFree": true,
+    "genre": ["Shopping", "Marketplace", "E-commerce"]
   }
 }
 
