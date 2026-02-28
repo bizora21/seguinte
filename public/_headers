@@ -8,6 +8,10 @@
   Content-Type: application/xml
   Cache-Control: public, max-age=3600
 
+/sitemapindex.xml
+  Content-Type: application/xml
+  Cache-Control: public, max-age=3600
+
 # Headers para robots.txt
 /robots.txt
   Content-Type: text/plain

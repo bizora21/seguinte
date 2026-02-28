@@ -1,3 +1,4 @@
 # Sitemap e Robots.txt - servir como arquivos estáticos
-/sitemap.xml  /sitemap.xml  200
-/robots.txt   /robots.txt   200
+/sitemap.xml      /sitemap.xml      200
+/sitemapindex.xml /sitemapindex.xml 200
+/robots.txt       /robots.txt       200
