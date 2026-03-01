@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Write"
+      "Write",
+      "Bash(pnpm:*)",
+      "Bash(git:*)",
+      "Bash(echo:*)",
+      "Bash(rm:*)"
     ]
   }
 }
