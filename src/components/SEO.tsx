@@ -124,6 +124,26 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="article:section" content="Marketplace" />
       <meta name="article:tag" content="Moçambique" />
 
+      {/* Meta Tags Geográficas para Moçambique */}
+      <meta name="geo.region" content="MZ" />
+      <meta name="geo.placename" content="Maputo, Matola, Beira, Nampula, Quelimane" />
+      <meta name="geo.position" content="-25.9692;32.5732" />
+      <meta name="ICBM" content="-25.9692, 32.5732" />
+
+      {/* Meta Tags de Negócios Locais */}
+      <meta name="business:contact_data:street_address" content="Maputo, Moçambique" />
+      <meta name="business:contact_data:locality" content="Maputo" />
+      <meta name="business:contact_data:region" content="Maputo Cidade" />
+      <meta name="business:contact_data:postal_code" content="1100" />
+      <meta name="business:contact_data:country_name" content="Moçambique" />
+
+      {/* Meta Tags de E-commerce */}
+      <meta name="product:brand" content={DEFAULT_SITE} />
+      <meta name="product:price:currency" content="MZN" />
+      <meta name="product:availability" content="instock" />
+      <meta name="product:condition" content="new" />
+      <meta name="product:retailer_item_id" content={url?.split('/').pop()} />
+
       {/* Schema.org JSON-LD */}
       {jsonLd && !noIndex &&
         jsonLd.map((schema, index) => {
@@ -170,27 +190,67 @@ export const generateLocalBusinessSchema = () => {
     "@context": "https://schema.org",
     "@type": "Organization", // Organization é melhor para marcas nacionais online
     "name": "LojaRápida",
+    "alternateName": "LojaRápida Moçambique",
     "url": `${BASE_URL}/`,
-    "logo": `${BASE_URL}/favicon.svg`, // Aponta para o SVG, Google aceita
-    "description": "O maior marketplace de Moçambique com pagamento na entrega.",
+    "logo": `${BASE_URL}/favicon.svg`,
+    "description": "O maior marketplace de Moçambique com pagamento na entrega. Atende Maputo, Matola, Beira, Nampula, Quelimane e todo o país.",
     "foundingDate": "2024",
+    "areaServed": [
+      {
+        "@type": "Country",
+        "name": "Moçambique"
+      },
+      {
+        "@type": "City",
+        "name": "Maputo"
+      },
+      {
+        "@type": "City",
+        "name": "Matola"
+      },
+      {
+        "@type": "City",
+        "name": "Beira"
+      },
+      {
+        "@type": "City",
+        "name": "Nampula"
+      },
+      {
+        "@type": "City",
+        "name": "Quelimane"
+      }
+    ],
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Maputo",
+      "addressRegion": "Maputo Cidade",
       "addressCountry": "MZ"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": -25.9692,
+      "longitude": 32.5732
     },
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+258 86 318 1415",
       "contactType": "customer service",
       "areaServed": "MZ",
-      "availableLanguage": ["Portuguese"]
+      "availableLanguage": ["Portuguese", "English"],
+      "email": "contato@lojarapidamz.com"
     },
-    // Links sociais ajudam o Google a verificar a identidade (Knowledge Graph)
     "sameAs": [
       "https://www.facebook.com/lojarapidamz",
       "https://www.instagram.com/lojarapidamz",
-      "https://www.linkedin.com/company/lojarapidamz" 
+      "https://www.linkedin.com/company/lojarapidamz"
+    ],
+    "knowsAbout": [
+      "Marketplace",
+      "E-commerce",
+      "Compras online",
+      "Vendas online",
+      "Entrega em Moçambique"
     ]
   }
 }
@@ -433,5 +493,80 @@ export const generateReviewSchema = (product: any, storeName: string, reviews: a
       "bestRating": "5",
       "worstRating": "1"
     }
+  }
+}
+
+// Schema FAQ para rich snippets - IMPORTANTE para SEO
+export const generateFAQSchema = (faqs: Array<{ question: string; answer: string }>) => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  }
+}
+
+// Schema VideoObject para vídeos
+export const generateVideoSchema = (video: {
+  name: string;
+  description: string;
+  thumbnailUrl: string;
+  uploadDate: string;
+  duration: string;
+  url: string;
+}) => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    "name": video.name,
+    "description": video.description,
+    "thumbnailUrl": ensureAbsoluteUrl(video.thumbnailUrl),
+    "uploadDate": video.uploadDate,
+    "duration": video.duration,
+    "contentUrl": video.url,
+    "embedUrl": video.url,
+    "potentialAction": {
+      "@type": "SeekToAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": video.url + "?seek={seek_to_second_number}",
+        "actionPlatform": [
+          "http://schema.org/DesktopWebPlatform",
+          "http://schema.org/MobileWebPlatform"
+        ]
+      },
+      "startOffset": {
+        "@type": "PropertyValue",
+        "valueTemplate": "seek_to_second_number",
+        "unitCode": "s"
+      }
+    }
+  }
+}
+
+// Schema HowTo para tutoriais
+export const generateHowToSchema = (howto: {
+  name: string;
+  description: string;
+  steps: Array<{ name: string; text: string; image?: string }>;
+}) => {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": howto.name,
+    "description": howto.description,
+    "step": howto.steps.map((step, index) => ({
+      "@type": "HowToStep",
+      "position": index + 1,
+      "name": step.name,
+      "text": step.text,
+      "image": step.image ? ensureAbsoluteUrl(step.image) : undefined
+    }))
   }
 }
