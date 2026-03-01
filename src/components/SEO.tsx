@@ -66,10 +66,11 @@ export const SEO: React.FC<SEOProps> = ({
       <meta name="description" content={description} />
       <link rel="canonical" href={canonicalUrl} />
 
-      {/* Favicon */}
+      {/* Favicon - CRÍTICO para aparecer nos resultados de busca do Google */}
+      <link rel="icon" href="/favicon.ico" />
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
-      <link rel="apple-touch-icon" sizes="192x192" href="/favicon-192x192.png" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       <link rel="manifest" href="/site.webmanifest" />
 
       {/* Alternate Language Tags (para expandir no futuro) */}
