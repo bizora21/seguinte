@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Send, MessageCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Send, MessageCircle, AlertTriangle, Loader2, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { showError } from '../utils/toast';
 import { containsContact } from '../utils/detectContact';
 import LoadingSpinner from './LoadingSpinner';
@@ -28,6 +28,62 @@ interface Message {
   };
 }
 
+const TypingIndicator = () => (
+  <div className="flex items-end gap-2 justify-start">
+    <div className="w-7 h-7 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center">
+      <MessageCircle className="w-3.5 h-3.5 text-gray-500" />
+    </div>
+    <div className="bg-white border border-gray-200 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
+      <div className="flex gap-1 items-center h-4">
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0ms]" />
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+      </div>
+    </div>
+  </div>
+);
+
+const DateSeparator = ({ date }: { date: string }) => (
+  <div className="flex items-center gap-3 my-2">
+    <div className="flex-1 h-px bg-gray-200" />
+    <span className="text-xs text-gray-400 font-medium px-2">{date}</span>
+    <div className="flex-1 h-px bg-gray-200" />
+  </div>
+);
+
+function formatRelativeTime(dateString: string): string {
+  const now = Date.now();
+  const then = new Date(dateString).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH = Math.floor(diffMin / 60);
+
+  if (diffMin < 1) return 'agora';
+  if (diffMin < 60) return `há ${diffMin} min`;
+  if (diffH < 24) return `há ${diffH}h`;
+  return new Intl.DateTimeFormat('pt-MZ', { hour: '2-digit', minute: '2-digit' }).format(new Date(dateString));
+}
+
+function formatDateLabel(dateString: string): string {
+  const d = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) return 'Hoje';
+  if (d.toDateString() === yesterday.toDateString()) return 'Ontem';
+  return new Intl.DateTimeFormat('pt-MZ', { day: '2-digit', month: 'long' }).format(d);
+}
+
+function isSameDay(a: string, b: string) {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
+function getInitials(msg: Message): string {
+  const name = msg.sender?.store_name || msg.sender?.email || '?';
+  return name.charAt(0).toUpperCase();
+}
+
 const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeName }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,148 +92,102 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
   const [chatId, setChatId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [chatLoading, setChatLoading] = useState(true);
-  
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const scrollToBottom = useCallback(() => {
     if (scrollAreaRef.current) {
-        const { scrollHeight, clientHeight } = scrollAreaRef.current;
-        if (scrollHeight > clientHeight) {
-            scrollAreaRef.current.scrollTo({
-                top: scrollHeight,
-                behavior: 'smooth'
-            });
-        }
+      scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, []);
 
   useEffect(() => {
-    if (!user || !sellerId) {
-      setChatLoading(false);
-      return;
-    }
-
-    if (user.id === sellerId) {
-      setChatId('VENDEDOR_PROPRIO');
-      setChatLoading(false);
-      return;
-    }
-
+    if (!user || !sellerId) { setChatLoading(false); return; }
+    if (user.id === sellerId) { setChatId('VENDEDOR_PROPRIO'); setChatLoading(false); return; }
     setupChat();
   }, [user, productId, sellerId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
+  useEffect(() => { if (isOtherTyping) scrollToBottom(); }, [isOtherTyping, scrollToBottom]);
 
   const setupChat = async () => {
     if (!user || !productId || !sellerId) return;
-
     setChatLoading(true);
-    
     try {
       const { data: existingChat, error: fetchError } = await supabase
-        .from('chats')
-        .select('id')
-        .eq('product_id', productId)
-        .eq('client_id', user.id)
-        .eq('seller_id', sellerId)
-        .single();
+        .from('chats').select('id')
+        .eq('product_id', productId).eq('client_id', user.id).eq('seller_id', sellerId).single();
 
       let currentChatId = existingChat?.id;
 
       if (fetchError && fetchError.code !== 'PGRST116') {
-        console.error('Erro ao buscar chat existente:', fetchError);
+        console.error('Erro ao buscar chat:', fetchError);
       }
 
       if (!currentChatId) {
         const { data: newChat, error: createError } = await supabase
-          .from('chats')
-          .insert({
-            product_id: productId,
-            client_id: user.id,
-            seller_id: sellerId,
-          })
-          .select('id')
-          .single();
-        
-        if (createError) {
-          showError('Erro ao iniciar conversa');
-          return;
-        }
-
+          .from('chats').insert({ product_id: productId, client_id: user.id, seller_id: sellerId })
+          .select('id').single();
+        if (createError) { showError('Erro ao iniciar conversa'); return; }
         currentChatId = newChat.id;
       }
 
       setChatId(currentChatId);
       await fetchMessages(currentChatId);
-      const subscription = setupRealtimeSubscription(currentChatId);
-      
-      return () => {
-        if (subscription) {
-          supabase.removeChannel(subscription);
-        }
-      };
-
-    } catch (error) {
+      setupRealtimeSubscription(currentChatId);
+      setupTypingChannel(currentChatId);
+    } catch {
       showError('Erro ao configurar conversa');
     } finally {
       setChatLoading(false);
     }
   };
 
-  const fetchMessages = async (chatId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(email, store_name)
-        `)
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true });
-
-      if (!error) {
-        setMessages(data || []);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar mensagens:', error);
-    }
+  const fetchMessages = async (id: string) => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*, sender:profiles!messages_sender_id_fkey(email, store_name)')
+      .eq('chat_id', id).order('created_at', { ascending: true });
+    if (!error) setMessages(data || []);
   };
 
-  const setupRealtimeSubscription = (chatId: string) => {
-    const channel = supabase
-      .channel(`chat:${chatId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
+  const setupRealtimeSubscription = (id: string) => {
+    supabase.channel(`chat:${id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${id}` },
         async (payload) => {
-          const newMessage = payload.new as Message;
-          
-          // Se a mensagem não for do próprio usuário (otimista), buscamos o remetente
-          if (newMessage.sender_id !== user?.id) {
-            const { data: senderData } = await supabase
-              .from('profiles')
-              .select('email, store_name')
-              .eq('id', newMessage.sender_id)
-              .single();
-            
-            const messageWithSender: Message = {
-              ...newMessage,
-              sender: senderData || { email: 'Desconhecido' }
-            };
-
-            setMessages(prev => [...prev, messageWithSender]);
+          const msg = payload.new as Message;
+          if (msg.sender_id !== user?.id) {
+            const { data: senderData } = await supabase.from('profiles').select('email, store_name').eq('id', msg.sender_id).single();
+            setMessages(prev => [...prev, { ...msg, sender: senderData || { email: 'Desconhecido' } }]);
           }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro na subscription em tempo real');
-        }
-      });
+        })
+      .subscribe();
+  };
 
-    return channel;
+  const setupTypingChannel = (id: string) => {
+    const ch = supabase.channel(`typing:${id}`)
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (payload?.sender_id !== user?.id) {
+          setIsOtherTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsOtherTyping(false), 3000);
+        }
+      })
+      .subscribe();
+    typingChannelRef.current = ch;
+  };
+
+  const broadcastTyping = () => {
+    if (!typingChannelRef.current || !user) return;
+    typingChannelRef.current.send({ type: 'broadcast', event: 'typing', payload: { sender_id: user.id } });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    broadcastTyping();
   };
 
   const handleSendMessage = async () => {
@@ -191,36 +201,25 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
     }
 
     setSending(true);
-
     const optimisticMessage: Message = {
       id: Date.now().toString(),
       chat_id: chatId,
       sender_id: user.id,
       content: messageContent,
       created_at: new Date().toISOString(),
-      sender: {
-        email: user.email,
-        store_name: user.profile?.store_name ?? undefined
-      }
+      sender: { email: user.email, store_name: user.profile?.store_name ?? undefined }
     };
-    
+
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          chat_id: chatId,
-          sender_id: user.id,
-          content: messageContent,
-        });
-
+      const { error } = await supabase.from('messages').insert({ chat_id: chatId, sender_id: user.id, content: messageContent });
       if (error) {
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
         showError('Erro ao enviar mensagem');
       }
-    } catch (error) {
+    } catch {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
       showError('Erro ao enviar mensagem');
     } finally {
@@ -228,112 +227,163 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
   };
 
-  const formatTime = (dateString: string) => {
-    return new Intl.DateTimeFormat('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    }).format(new Date(dateString));
-  };
-
-  const isMyMessage = (message: Message) => {
-    return message.sender_id === user?.id;
-  };
-
-  // --- Lógica de Renderização Principal ---
-  
-  let chatContent;
+  // ── Render states ──
 
   if (!user) {
-    chatContent = (
-      <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <div className="space-y-4">
-          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto" />
-          <h3 className="font-semibold">Faça login para conversar</h3>
+    return (
+      <Card className="shadow-lg border-0">
+        <CardContent className="flex flex-col items-center justify-center py-10 gap-4 text-center">
+          <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
+            <MessageCircle className="w-7 h-7 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Faça login para conversar</h3>
+            <p className="text-sm text-gray-500 mt-1">Entre na sua conta para tirar dúvidas com o vendedor</p>
+          </div>
           <Button onClick={() => navigate('/login')} className="w-full">Fazer Login</Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
-  } else if (user.id === sellerId) {
-    chatContent = (
-      <div className="flex-1 flex items-center justify-center p-6 text-center text-gray-600">
-        <p>Você é o vendedor deste produto. Use o painel de chats para gerenciar conversas com clientes.</p>
-      </div>
-    );
-  } else if (chatLoading) {
-    chatContent = (
-      <div className="flex-1 flex items-center justify-center p-6 text-center">
-        <LoadingSpinner size="md" />
-      </div>
-    );
-  } else {
-    // Chat ativo
-    chatContent = (
-      <>
-        <div 
-            ref={scrollAreaRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4"
-        >
-          {messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">Inicie a conversa!</div>
-          ) : (
-            messages.map((msg) => (
-              <div key={msg.id} className={`flex ${isMyMessage(msg) ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${isMyMessage(msg) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                  <p className="break-words">{msg.content}</p>
-                  <p className={`text-xs mt-1 text-right ${isMyMessage(msg) ? 'text-blue-100' : 'text-gray-500'}`}>{formatTime(msg.created_at)}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="bg-yellow-50 border-t border-yellow-200 p-3 mx-4 mb-2">
-          <div className="flex items-start space-x-2 text-xs text-yellow-800">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <p>Para sua segurança, nunca compartilhe dados pessoais ou de pagamento fora deste chat.</p>
-          </div>
-        </div>
-        <div className="border-t p-4">
-          <div className="flex space-x-2">
-            <Input 
-              value={newMessage} 
-              onChange={(e) => setNewMessage(e.target.value)} 
-              onKeyPress={handleKeyPress} 
-              placeholder="Digite sua mensagem..." 
-              disabled={sending || !chatId} 
-              className="flex-1" 
-            />
-            <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sending || !chatId} size="icon">
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
-          </div>
-        </div>
-      </>
+  }
+
+  if (user.id === sellerId) {
+    return (
+      <Card className="shadow-lg border-0">
+        <CardContent className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+          <MessageCircle className="w-10 h-10 text-gray-300" />
+          <p className="text-sm text-gray-500">Use o painel de chats para gerir conversas com clientes.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+    <Card className="shadow-lg border-0 flex flex-col overflow-hidden" style={{ height: 520 }}>
+      {/* Header */}
+      <CardHeader className="pb-3 pt-4 px-4 border-b bg-white flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
             <MessageCircle className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">Converse com o vendedor</CardTitle>
-            <p className="text-sm text-gray-600">{storeName}</p>
+            <CardTitle className="text-base leading-tight">Conversa com o vendedor</CardTitle>
+            <p className="text-xs text-gray-500 mt-0.5">{storeName}</p>
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="flex-1 overflow-hidden flex flex-col p-0">
-        {chatContent}
+
+      <CardContent className="flex-1 overflow-hidden flex flex-col p-0 bg-gray-50">
+        {chatLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : (
+          <>
+            {/* Messages area */}
+            <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-1 scroll-smooth">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-3 text-center py-8">
+                  <div className="w-14 h-14 rounded-full bg-white border-2 border-dashed border-gray-200 flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-500">Inicia a conversa!</p>
+                  <p className="text-xs text-gray-400">Faz uma pergunta sobre este produto ao vendedor.</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => {
+                  const mine = msg.sender_id === user.id;
+                  const prevMsg = messages[idx - 1];
+                  const showDate = !prevMsg || !isSameDay(prevMsg.created_at, msg.created_at);
+                  const showAvatar = !mine && (!messages[idx + 1] || messages[idx + 1].sender_id !== msg.sender_id);
+
+                  return (
+                    <React.Fragment key={msg.id}>
+                      {showDate && <DateSeparator date={formatDateLabel(msg.created_at)} />}
+                      <div className={`flex items-end gap-2 ${mine ? 'justify-end' : 'justify-start'}`}>
+                        {/* Avatar only for last message in a sequence from other person */}
+                        {!mine && (
+                          <div className="w-7 flex-shrink-0 self-end mb-1">
+                            {showAvatar && (
+                              <Avatar className="w-7 h-7">
+                                <AvatarFallback className="text-xs bg-gray-200 text-gray-600">
+                                  {getInitials(msg)}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                          </div>
+                        )}
+
+                        <div className={`max-w-[75%] ${mine ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
+                          <div className={`px-4 py-2.5 shadow-sm break-words ${
+                            mine
+                              ? 'bg-primary text-white rounded-2xl rounded-br-sm'
+                              : 'bg-white border border-gray-100 text-gray-900 rounded-2xl rounded-bl-sm'
+                          }`}>
+                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                          </div>
+                          <p className={`text-[10px] px-1 ${mine ? 'text-right text-gray-400' : 'text-left text-gray-400'}`}>
+                            {formatRelativeTime(msg.created_at)}
+                          </p>
+                        </div>
+
+                        {mine && (
+                          <div className="w-7 flex-shrink-0" />
+                        )}
+                      </div>
+                    </React.Fragment>
+                  );
+                })
+              )}
+
+              {isOtherTyping && <TypingIndicator />}
+            </div>
+
+            {/* Security notice */}
+            <div className="mx-3 mb-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <Lock className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-amber-700 leading-snug">
+                Nunca partilhes dados de pagamento ou contactos fora da plataforma. A LojaRápida não pede dados bancários por chat.
+              </p>
+            </div>
+
+            {/* Contact blocked warning */}
+            <div className="mx-3 mb-2 flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-red-600 leading-snug">
+                Mensagens com telefones, emails ou links são automaticamente bloqueadas.
+              </p>
+            </div>
+
+            {/* Input area */}
+            <div className="border-t bg-white px-3 py-3 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <input
+                  value={newMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Escreve uma mensagem..."
+                  disabled={sending || !chatId}
+                  className="flex-1 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-50"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim() || sending || !chatId}
+                  size="icon"
+                  className="rounded-full w-10 h-10 flex-shrink-0 transition-transform active:scale-95"
+                >
+                  {sending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Send className="w-4 h-4" />
+                  }
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

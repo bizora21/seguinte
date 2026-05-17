@@ -71,12 +71,12 @@ serve(async (req) => {
       log("Auth error during user verification:", authError);
     }
     
-    // Verifica se o usuário existe e se é o administrador
-    if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    // Aceita qualquer utilizador autenticado (vendedor, cliente ou admin)
+    if (user) {
       isAuthorized = true
-      log("Authorization successful: Admin user verified.", { userEmail: user.email });
+      log("Authorization successful: Authenticated user verified.", { userEmail: user.email });
     } else {
-      log("Authorization failed: User is not admin or token is invalid.", { user: user ? user.email : 'not found' });
+      log("Authorization failed: Invalid or expired user token.", { authError });
     }
   }
 

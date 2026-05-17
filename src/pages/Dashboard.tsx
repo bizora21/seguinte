@@ -15,7 +15,9 @@ import {
   BarChart3,
   XCircle,
   Store,
-  AlertTriangle
+  AlertTriangle,
+  Bell,
+  X
 } from 'lucide-react'
 import SellerFinanceTab from '../components/SellerFinanceTab'
 import StoreSettingsTab from '../components/StoreSettingsTab'
@@ -39,54 +41,78 @@ const Dashboard = () => {
   const [cancelledOrders, setCancelledOrders] = useState<any[]>([])
   const [pendingCommissionsTotal, setPendingCommissionsTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [newOrderAlerts, setNewOrderAlerts] = useState<Array<{
+    orderId: string
+    customerName: string
+    amount: number
+    productName: string
+    time: string
+  }>>([])
+  const [unreadOrderCount, setUnreadOrderCount] = useState(0)
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
       fetchDashboardData()
-      
-      const orderUpdateChannel = setupOrderUpdateSubscription()
+
+      const newOrderChannel = setupNewOrderSubscription()
+      const updateChannel = setupOrderUpdateSubscription()
       return () => {
-        supabase.removeChannel(orderUpdateChannel)
+        supabase.removeChannel(newOrderChannel)
+        supabase.removeChannel(updateChannel)
       }
     }
   }, [user])
 
-  const setupOrderUpdateSubscription = () => {
-    const channel = supabase
-      .channel(`seller-dashboard-updates-${user!.id}`)
+  // Escuta order_items INSERT filtrado por seller_id — dispara APÓS o item estar inserido
+  const setupNewOrderSubscription = () => {
+    return supabase
+      .channel(`new-order-items-${user!.id}`)
       .on(
         'postgres_changes',
-        {
-          event: '*', // Ouvir por INSERT e UPDATE
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload) => {
-          const updatedOrder = payload.new as any;
-          
-          // Verificar se o pedido atualizado pertence a este vendedor
-          const isRelevant = recentOrders.some(o => o.id === updatedOrder.id) || 
-                             cancelledOrders.some(o => o.id === updatedOrder.id) ||
-                             payload.eventType === 'INSERT'; // Se for um novo pedido, é relevante
+        { event: 'INSERT', schema: 'public', table: 'order_items', filter: `seller_id=eq.${user!.id}` },
+        async (payload) => {
+          const item = payload.new as any
 
-          if (isRelevant) {
-            if (updatedOrder.status === 'cancelled') {
-              toast.error(`🚨 Pedido #${updatedOrder.id.slice(0, 8)} foi cancelado pelo cliente.`, {
-                duration: 6000,
-              });
-            } else if (payload.eventType === 'INSERT') {
-              toast.success(`🎉 Novo pedido recebido! #${updatedOrder.id.slice(0, 8)}`, {
-                duration: 6000,
-              });
-            }
-            // Atualiza todos os dados para refletir a mudança
+          const [{ data: order }, { data: product }] = await Promise.all([
+            supabase.from('orders').select('id, customer_name, total_amount').eq('id', item.order_id).single(),
+            supabase.from('products').select('name').eq('id', item.product_id).single(),
+          ])
+
+          const alert = {
+            orderId: item.order_id,
+            customerName: order?.customer_name || 'Cliente',
+            amount: order?.total_amount ?? item.price,
+            productName: product?.name || 'Produto',
+            time: new Date().toISOString(),
+          }
+
+          setNewOrderAlerts(prev => [alert, ...prev].slice(0, 5))
+          setUnreadOrderCount(prev => prev + 1)
+          toast.success(`🎉 Nova encomenda recebida!`, { duration: 6000 })
+          fetchDashboardData()
+        }
+      )
+      .subscribe()
+  }
+
+  // Escuta UPDATE em orders para detectar cancelamentos do lado do cliente
+  const setupOrderUpdateSubscription = () => {
+    return supabase
+      .channel(`seller-order-updates-${user!.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => {
+          const updated = payload.new as any
+          const wasOurs = recentOrders.some(o => o.id === updated.id) || cancelledOrders.some(o => o.id === updated.id)
+          if (wasOurs && updated.status === 'cancelled') {
+            toast.error(`🚨 Pedido #${updated.id.slice(0, 8)} foi cancelado.`, { duration: 6000 })
             fetchDashboardData()
           }
         }
       )
-      .subscribe();
-    return channel;
-  };
+      .subscribe()
+  }
 
   const fetchDashboardData = async () => {
     if (!user) return
@@ -212,10 +238,22 @@ const Dashboard = () => {
             <Avatar className="h-12 w-12 sm:h-16 sm:w-16 bg-secondary text-white border-2 border-white shadow-sm">
               <AvatarFallback className="text-lg sm:text-2xl font-bold">{getAvatarFallbackText()}</AvatarFallback>
             </Avatar>
-            <div className="text-center sm:text-left">
+            <div className="text-center sm:text-left flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">Dashboard</h1>
               <p className="text-sm text-gray-600">Olá, <span className="font-semibold">{user.profile?.store_name || user.email}</span></p>
             </div>
+            {unreadOrderCount > 0 && (
+              <button
+                onClick={() => setUnreadOrderCount(0)}
+                className="relative p-2.5 rounded-full bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors"
+                aria-label="Novas encomendas"
+              >
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadOrderCount > 9 ? '9+' : unreadOrderCount}
+                </span>
+              </button>
+            )}
           </div>
 
           <Tabs defaultValue={tabParam || "overview"} className="space-y-6">
@@ -232,6 +270,45 @@ const Dashboard = () => {
             <TabsContent value="finance" className="animate-in fade-in duration-300"><SellerFinanceTab /></TabsContent>
             
             <TabsContent value="overview" className="animate-in fade-in duration-300">
+              {newOrderAlerts.length > 0 && (
+                <div className="mb-6 space-y-3">
+                  {newOrderAlerts.map((alert, idx) => (
+                    <div key={`${alert.orderId}-${idx}`} className="rounded-xl border border-green-300 bg-green-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-green-100 border border-green-300 flex items-center justify-center flex-shrink-0">
+                          <Bell className="w-4 h-4 text-green-700" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-green-900 text-sm">🔔 Nova encomenda recebida!</p>
+                          <p className="text-sm text-green-800 mt-0.5 truncate">
+                            <span className="font-medium">{alert.customerName}</span> quer <span className="font-medium">"{alert.productName}"</span>
+                          </p>
+                          <p className="text-sm font-bold text-green-700 mt-0.5">
+                            {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(alert.amount)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => navigate('/meus-pedidos')}
+                        >
+                          Ver encomenda
+                        </Button>
+                        <button
+                          onClick={() => setNewOrderAlerts(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1.5 rounded-full text-green-700 hover:bg-green-200 transition-colors"
+                          aria-label="Dispensar"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {pendingCommissionsTotal > 0 && (
                 <div className="mb-6 rounded-xl border border-orange-300 bg-orange-50 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex items-start gap-3 flex-1">

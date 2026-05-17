@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, DollarSign, TrendingUp, Users, Package, RefreshCw, Zap, BrainCircuit } from 'lucide-react'
+import { ArrowLeft, DollarSign, TrendingUp, Users, RefreshCw, Zap, BrainCircuit } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { showError } from '../utils/toast'
 import DeliveredOrdersCard from '../components/Admin/DeliveredOrdersCard'
@@ -12,7 +12,8 @@ import CommissionsHistoryCard from '../components/Admin/CommissionsHistoryCard'
 import AdminPaymentManagementTab from '../components/AdminPaymentManagementTab'
 import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard'
 import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard'
-import AdminActivityFeed from '../components/Admin/AdminActivityFeed' // NOVO IMPORT
+import AdminActivityFeed from '../components/Admin/AdminActivityFeed'
+import AdminLiveOrdersCard from '../components/Admin/AdminLiveOrdersCard'
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -184,7 +185,12 @@ const AdminDashboard = () => {
 
           {/* Coluna Lateral (Pendências Específicas) */}
           <div className="lg:col-span-1 space-y-8">
-            {/* Cancelamentos no topo da lateral para visibilidade */}
+            {/* Encomendas em Tempo Real */}
+            <div className="bg-white rounded-xl shadow-sm border border-green-200 p-6">
+              <AdminLiveOrdersCard />
+            </div>
+
+            {/* Cancelamentos */}
             <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6">
               <h2 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
                 <div className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></div>

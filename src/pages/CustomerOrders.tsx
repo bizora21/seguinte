@@ -6,7 +6,7 @@ import { OrderWithItems } from '../types/order'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle, RefreshCw, Truck } from 'lucide-react'
+import { ArrowLeft, Package, Calendar, CheckCircle, X, AlertTriangle, RefreshCw, Truck, Loader2, PartyPopper } from 'lucide-react'
 import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog'
@@ -18,7 +18,9 @@ const CustomerOrders = () => {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [loading, setLoading] = useState(true)
-  
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
+
   const defaultImage = '/placeholder.svg'
 
   useEffect(() => {
@@ -131,6 +133,32 @@ const CustomerOrders = () => {
     window.open('https://www.dhl.com/mz-pt/home/rastreamento.html', '_blank')
   }
 
+  const handleConfirmDelivery = async (orderId: string) => {
+    setConfirmingId(orderId)
+    const toastId = showLoading('A confirmar entrega...')
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', orderId)
+        .eq('user_id', user!.id)
+      if (error) throw error
+
+      dismissToast(toastId)
+      // Actualiza estado local para evitar refetch
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'completed' } : o))
+      setConfirmedIds(prev => new Set([...prev, orderId]))
+      showSuccess('Entrega confirmada! Obrigado por comprar na LojaRápida.')
+      // Remove o card de sucesso após 4 segundos
+      setTimeout(() => setConfirmedIds(prev => { const n = new Set(prev); n.delete(orderId); return n }), 4000)
+    } catch (err: any) {
+      dismissToast(toastId)
+      showError('Erro ao confirmar: ' + err.message)
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(price)
   }
@@ -161,6 +189,76 @@ const CustomerOrders = () => {
         {orders.length === 0 ? (
           <Card><CardContent className="p-12 text-center"><Package className="w-16 h-16 text-gray-400 mx-auto mb-4" /><h2 className="text-xl font-semibold text-gray-900 mb-2">Você ainda não fez nenhum pedido</h2><p className="text-gray-600 mb-6">Comece a comprar para ver seus pedidos aqui.</p><Button onClick={() => navigate('/')}>Começar a Comprar</Button></CardContent></Card>
         ) : (
+          <>
+          {/* Cards de acção: a_caminho + entregue */}
+          {orders.filter(o => o.status === 'in_transit' || o.status === 'delivered' || confirmedIds.has(o.id)).map(order => {
+            // Card de sucesso pós-confirmação
+            if (confirmedIds.has(order.id)) {
+              return (
+                <div key={`done-${order.id}`} className="rounded-xl border border-green-300 bg-green-50 p-4 flex items-center gap-4 mb-2 animate-in fade-in duration-500">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <PartyPopper className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-green-900">Entrega confirmada!</p>
+                    <p className="text-sm text-green-700">Obrigado por comprar na LojaRápida. O vendedor receberá o seu pagamento.</p>
+                  </div>
+                </div>
+              )
+            }
+
+            // Card "a caminho"
+            if (order.status === 'in_transit') {
+              return (
+                <div key={`transit-${order.id}`} className="rounded-xl border border-purple-200 bg-purple-50 p-4 flex flex-col sm:flex-row sm:items-center gap-4 mb-2">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                      <Truck className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-purple-900">Pedido #{order.id.slice(0, 8)} está a caminho!</p>
+                      <p className="text-sm text-purple-700 mt-0.5">
+                        O vendedor enviou o seu produto. Quando receber, confirme a entrega aqui.
+                      </p>
+                    </div>
+                  </div>
+                  <Link to={`/meus-pedidos/${order.id}`} className="flex-shrink-0">
+                    <Button variant="outline" size="sm" className="border-purple-300 text-purple-700 hover:bg-purple-100 w-full sm:w-auto">
+                      Ver detalhes
+                    </Button>
+                  </Link>
+                </div>
+              )
+            }
+
+            // Card "confirmar entrega"
+            return (
+              <div key={`confirm-${order.id}`} className="rounded-xl border border-amber-300 bg-amber-50 p-4 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <span className="text-2xl flex-shrink-0 mt-0.5">📦</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-amber-900">Recebeu o pedido #{order.id.slice(0, 8)}?</p>
+                      <p className="text-sm text-amber-800 mt-0.5">
+                        Confirme a entrega para proteger a sua compra e ajudar o vendedor a receber o pagamento.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleConfirmDelivery(order.id)}
+                    disabled={confirmingId === order.id}
+                    className="bg-amber-500 hover:bg-amber-600 text-white flex-shrink-0 w-full sm:w-auto h-11 text-sm font-semibold"
+                  >
+                    {confirmingId === order.id
+                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> A confirmar...</>
+                      : <><CheckCircle className="w-4 h-4 mr-2" /> ✅ Confirmar que recebi o produto</>
+                    }
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+
           <div className="space-y-4 md:space-y-6">
             {orders.map((order) => {
               const statusInfo = getStatusInfo(order.status)
@@ -237,6 +335,7 @@ const CustomerOrders = () => {
               )
             })}
           </div>
+          </>
         )}
       </div>
     </div>

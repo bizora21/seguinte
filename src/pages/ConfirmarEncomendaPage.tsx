@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { sendTemplatedEmail } from '../utils/email'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 interface OrderFormData {
@@ -17,12 +19,18 @@ interface OrderFormData {
   phone: string
 }
 
+interface ProductWithDelivery extends ProductWithSeller {
+  seller?: ProductWithSeller['seller'] & {
+    delivery_scope?: string[]
+  }
+}
+
 const ConfirmarEncomendaPage = () => {
   const { productId } = useParams<{ productId: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
   
-  const [product, setProduct] = useState<ProductWithSeller | null>(null)
+  const [product, setProduct] = useState<ProductWithDelivery | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   
@@ -66,7 +74,8 @@ const ConfirmarEncomendaPage = () => {
           seller:profiles!products_seller_id_fkey (
             id,
             store_name,
-            email
+            email,
+            delivery_scope
           )
         `)
         .eq('id', productId)
@@ -203,6 +212,23 @@ const ConfirmarEncomendaPage = () => {
 
       dismissToast(toastId)
       showSuccess('Encomenda confirmada com sucesso! O vendedor já foi notificado.')
+
+      // Email ao vendedor (não-bloqueante — falha silenciosa)
+      if (product?.seller?.email) {
+        const storeName = product.seller.store_name || product.seller.email.split('@')[0]
+        sendTemplatedEmail({
+          to: product.seller.email,
+          subject: `🔔 Nova encomenda recebida! ${formData.fullName} quer "${product.name}"`,
+          template: 'new_order_seller',
+          props: {
+            storeName,
+            orderId: order.id.slice(0, 8),
+            totalAmount: new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(product.price),
+            productCount: 1,
+          },
+        }).catch(() => {/* silencioso */})
+      }
+
       navigate('/encomenda-sucesso')
 
     } catch (error: any) {
@@ -213,6 +239,14 @@ const ConfirmarEncomendaPage = () => {
       setSubmitting(false)
     }
   }
+
+  const deliveryZones: string[] = product?.seller?.delivery_scope ?? []
+
+  const zoneMatch = useMemo(() => {
+    if (!formData.deliveryAddress.trim() || deliveryZones.length === 0) return null
+    const addr = formData.deliveryAddress.toLowerCase()
+    return deliveryZones.some(z => addr.includes(z.toLowerCase()))
+  }, [formData.deliveryAddress, deliveryZones])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
@@ -327,7 +361,45 @@ const ConfirmarEncomendaPage = () => {
                       disabled={submitting}
                     />
                   </div>
-                  
+
+                  {/* Card de Zonas de Entrega */}
+                  {deliveryZones.length > 0 && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-blue-800">
+                        <Truck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        Este vendedor entrega em:
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {deliveryZones.map((zone) => (
+                          <Badge
+                            key={zone}
+                            variant="secondary"
+                            className="bg-white text-blue-700 border border-blue-300 text-xs font-medium"
+                          >
+                            📍 {zone}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {zoneMatch === true && (
+                        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+                          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <span className="font-medium">O vendedor entrega na sua zona!</span>
+                        </div>
+                      )}
+
+                      {zoneMatch === false && (
+                        <div className="flex items-start gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <span>
+                            <span className="font-semibold">Atenção:</span> O vendedor pode não entregar na sua zona.
+                            Confirme com o vendedor antes de encomendar.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* 2. Checkboxes de Aceitação */}
                   <div className="space-y-3 pt-4">
                     <label className="flex items-start space-x-2">

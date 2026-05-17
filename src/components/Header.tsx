@@ -3,49 +3,50 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useWishlist } from '../contexts/WishlistContext'
 import { Button } from './ui/button'
-import { ShoppingCart, User, Menu, X, LayoutDashboard, Store, MessageCircle, LogOut, Package, Home, Heart } from 'lucide-react'
+import {
+  ShoppingCart, User, LayoutDashboard, Store, MessageCircle,
+  LogOut, Package, Home, Heart, ChevronRight, BookOpen
+} from 'lucide-react'
 import CartButton from './CartButton'
 import Logo from './Logo'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet'
+import { Sheet, SheetContent, SheetTrigger } from './ui/sheet'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Avatar, AvatarFallback } from './ui/avatar'
+import { Separator } from './ui/separator'
 import CategoryMenu from './CategoryMenu'
-import AdminNotificationBell from './AdminNotificationBell' // NEW IMPORT
+import AdminNotificationBell from './AdminNotificationBell'
 
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com' // Define admin email here for local check
+const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+
+const HamburgerIcon = ({ open }: { open: boolean }) => (
+  <div className="w-5 h-5 flex flex-col justify-center items-center gap-[5px]">
+    <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 origin-center ${open ? 'rotate-45 translate-y-[7px]' : ''}`} />
+    <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 ${open ? 'opacity-0 scale-x-0' : ''}`} />
+    <span className={`block h-[2px] w-5 bg-current rounded-full transition-all duration-300 origin-center ${open ? '-rotate-45 -translate-y-[7px]' : ''}`} />
+  </div>
+)
 
 const Header = () => {
   const { user, signOut } = useAuth()
   const { count: wishlistCount } = useWishlist()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() // Check if admin
+
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
 
   const handleSignOut = async () => {
+    setIsMobileMenuOpen(false)
     await signOut()
     navigate('/')
   }
 
   const getAvatarFallbackText = () => {
     if (!user) return '?'
-    
     const profile = user.profile
-    
-    if (profile?.store_name) {
-      // Usa as duas primeiras letras do nome da loja
-      return profile.store_name.slice(0, 2).toUpperCase()
-    }
-    
-    if (user.email) {
-      // Usa a primeira letra do email
-      return user.email.charAt(0).toUpperCase()
-    }
-    
-    // Usa a primeira letra do papel (V ou C)
+    if (profile?.store_name) return profile.store_name.slice(0, 2).toUpperCase()
+    if (user.email) return user.email.charAt(0).toUpperCase()
     if (profile?.role === 'vendedor') return 'V'
     if (profile?.role === 'cliente') return 'C'
-    
     return 'U'
   }
 
@@ -53,7 +54,7 @@ const Header = () => {
     { name: 'Início', href: '/', icon: Home },
     { name: 'Produtos', href: '/produtos', icon: Package },
     { name: 'Lojas', href: '/lojas', icon: Store },
-    { name: 'Blog', href: '/blog', icon: MessageCircle },
+    { name: 'Blog', href: '/blog', icon: BookOpen },
     { name: 'Sobre Nós', href: '/sobre-nos', icon: User },
   ]
 
@@ -67,34 +68,15 @@ const Header = () => {
     { name: 'Meus Pedidos', href: '/meus-pedidos', icon: ShoppingCart },
     { name: 'Minhas Conversas', href: '/meus-chats', icon: MessageCircle },
   ]
-  
-  // Adiciona link do Admin Dashboard se for admin
+
   if (isAdmin) {
     userMenuItems.unshift({ name: 'Admin Dashboard', href: '/dashboard/admin', icon: LayoutDashboard })
   }
 
-  const renderUserMenuContent = (isMobile: boolean) => (
-    <>
-      {userMenuItems.map((item) => (
-        <Link key={item.name} to={item.href} onClick={() => isMobile && setIsMobileMenuOpen(false)}>
-          <div className={`flex items-center space-x-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 ${isMobile ? 'md:hidden' : ''}`}>
-            <item.icon className="w-4 h-4" />
-            <span>{item.name}</span>
-          </div>
-        </Link>
-      ))}
-      <div className={`px-4 py-2 ${isMobile ? 'md:hidden' : ''}`}>
-        <Button
-          onClick={handleSignOut}
-          variant="destructive"
-          className="w-full"
-        >
-          <LogOut className="w-4 h-4 mr-2" />
-          Sair
-        </Button>
-      </div>
-    </>
-  )
+  const closeMobileMenu = (href: string) => {
+    setIsMobileMenuOpen(false)
+    navigate(href)
+  }
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-40 border-b border-gray-100">
@@ -105,7 +87,7 @@ const Header = () => {
             <Logo size="md" />
           </Link>
 
-          {/* Desktop Navigation (Central) */}
+          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-6">
             <CategoryMenu />
             {navLinks.slice(0, 5).map((link) => (
@@ -119,11 +101,10 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Right side actions (Desktop) */}
+          {/* Desktop Right Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
 
-            {/* Wishlist */}
             <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
@@ -134,7 +115,7 @@ const Header = () => {
             </Link>
 
             <CartButton />
-            
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -151,9 +132,7 @@ const Header = () => {
                     <p className="text-sm font-medium leading-none">
                       {user.profile?.store_name || user.email.split('@')[0]}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
-                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
                   {userMenuItems.map((item) => (
@@ -171,26 +150,16 @@ const Header = () => {
               </DropdownMenu>
             ) : (
               <div className="flex items-center space-x-2">
-                <Button
-                  onClick={() => navigate('/login')}
-                  variant="outline"
-                  size="sm"
-                >
-                  Entrar
-                </Button>
-                <Button
-                  onClick={() => navigate('/register')}
-                  size="sm"
-                >
-                  Cadastrar
-                </Button>
+                <Button onClick={() => navigate('/login')} variant="outline" size="sm">Entrar</Button>
+                <Button onClick={() => navigate('/register')} size="sm">Cadastrar</Button>
               </div>
             )}
           </div>
 
-          {/* Mobile Menu Trigger */}
-          <div className="md:hidden flex items-center space-x-2">
+          {/* Mobile: cart + wishlist + hamburger */}
+          <div className="md:hidden flex items-center gap-1">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
+
             <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
@@ -199,89 +168,104 @@ const Header = () => {
                 </span>
               )}
             </Link>
+
             <CartButton />
+
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Menu className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="text-gray-700" aria-label="Menu">
+                  <HamburgerIcon open={isMobileMenuOpen} />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] p-0 flex flex-col">
-                <SheetHeader className="p-4 border-b">
-                  <SheetTitle className="flex items-center">
-                    <Logo size="sm" />
-                    <span className="ml-2">Menu</span>
-                  </SheetTitle>
-                </SheetHeader>
-                
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {/* User Info / Auth */}
+
+              <SheetContent side="right" className="w-[85vw] max-w-sm p-0 flex flex-col overflow-hidden">
+                {/* Drawer Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b bg-white">
+                  <Logo size="sm" />
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  {/* User block */}
                   {user ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg">
-                        <Avatar className="h-10 w-10 bg-secondary text-white">
-                          <AvatarFallback className="bg-secondary text-white">
+                    <div className="px-5 py-5 bg-gray-50 border-b">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-14 w-14 bg-secondary text-white flex-shrink-0">
+                          <AvatarFallback className="bg-secondary text-white text-lg font-bold">
                             {getAvatarFallbackText()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-semibold">{user.profile?.store_name || user.email.split('@')[0]}</p>
-                          <p className="text-sm text-gray-600">{user.profile?.role === 'vendedor' ? 'Vendedor' : 'Cliente'}</p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate">
+                            {user.profile?.store_name || user.email.split('@')[0]}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                          <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                            {user.profile?.role === 'vendedor' ? 'Vendedor' : 'Cliente'}
+                          </span>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        {userMenuItems.map((item) => (
-                          <Button
-                            key={item.name}
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => {
-                              navigate(item.href)
-                              setIsMobileMenuOpen(false)
-                            }}
-                          >
-                            <item.icon className="w-4 h-4 mr-2" />
-                            {item.name}
-                          </Button>
-                        ))}
-                      </div>
-                      <Button
-                        onClick={handleSignOut}
-                        variant="destructive"
-                        className="w-full"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sair
-                      </Button>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <Button onClick={() => { navigate('/login'); setIsMobileMenuOpen(false) }} className="w-full">
-                        Entrar
-                      </Button>
-                      <Button onClick={() => { navigate('/register'); setIsMobileMenuOpen(false) }} variant="outline" className="w-full">
-                        Cadastrar
-                      </Button>
+                    <div className="px-5 py-5 bg-gray-50 border-b space-y-3">
+                      <p className="text-sm text-gray-500 font-medium">Bem-vindo à LojaRápida</p>
+                      <div className="flex gap-3">
+                        <Button onClick={() => closeMobileMenu('/login')} className="flex-1">Entrar</Button>
+                        <Button onClick={() => closeMobileMenu('/register')} variant="outline" className="flex-1">Cadastrar</Button>
+                      </div>
                     </div>
                   )}
 
-                  <div className="border-t pt-4 space-y-1">
-                    <h3 className="text-lg font-semibold mb-2">Navegação</h3>
+                  {/* Navegação principal */}
+                  <div className="px-3 py-3">
+                    <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Explorar</p>
                     {navLinks.map((link) => (
-                      <Button
+                      <button
                         key={link.name}
-                        variant="ghost"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          navigate(link.href)
-                          setIsMobileMenuOpen(false)
-                        }}
+                        onClick={() => closeMobileMenu(link.href)}
+                        className="w-full flex items-center justify-between px-3 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors group"
                       >
-                        <link.icon className="w-4 h-4 mr-2" />
-                        {link.name}
-                      </Button>
+                        <div className="flex items-center gap-3">
+                          <link.icon className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
+                          <span className="text-base font-medium">{link.name}</span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+                      </button>
                     ))}
                   </div>
+
+                  {/* Itens do utilizador autenticado */}
+                  {user && (
+                    <>
+                      <Separator />
+                      <div className="px-3 py-3">
+                        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">A minha conta</p>
+                        {userMenuItems.map((item) => (
+                          <button
+                            key={item.name}
+                            onClick={() => closeMobileMenu(item.href)}
+                            className="w-full flex items-center justify-between px-3 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <item.icon className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
+                              <span className="text-base font-medium">{item.name}</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+
+                      <Separator />
+                      <div className="px-5 py-4">
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center gap-3 px-3 py-4 rounded-xl text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-5 h-5" />
+                          <span className="text-base font-medium">Sair da conta</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
