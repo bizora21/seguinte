@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { ArrowLeft, Package, User, MapPin, Calendar, AlertTriangle, RefreshCw, CheckCircle, ChevronDown, Loader2, Phone } from 'lucide-react'
 import { getStatusInfo, getNextStatuses } from '../utils/orderStatus'
-import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
+import { showSuccess, showError } from '../utils/toast'
 import toast from 'react-hot-toast'
 import { getFirstImageUrl } from '../utils/images'
 import { sendTemplatedEmail } from '../utils/email' // IMPORT NECESSÁRIO
@@ -72,8 +72,8 @@ const SellerOrders = () => {
         table: 'order_items',
         filter: `seller_id=eq.${sellerId}`
       },
-      (payload) => {
-        toast.success('🎉 Novo pedido recebido!', { duration: 5000 });
+      (_payload) => {
+        toast.success('Novo pedido recebido!', { duration: 5000 });
         // Recarrega tudo para garantir consistência
         fetchOrders();
       }
@@ -206,7 +206,7 @@ const SellerOrders = () => {
         if (newStatus === 'in_transit') {
           await sendTemplatedEmail({
             to: customerEmail,
-            subject: `🚚 Seu Pedido #${orderId.slice(0, 8)} está a caminho!`,
+            subject: `Pedido #${orderId.slice(0, 8)} está a caminho!`,
             template: 'order_shipped_client',
             props: {
               customerName: customerName,
@@ -218,7 +218,7 @@ const SellerOrders = () => {
         } else if (newStatus === 'delivered') {
           await sendTemplatedEmail({
             to: customerEmail,
-            subject: `✅ Pedido #${orderId.slice(0, 8)} Entregue! Confirme o recebimento.`,
+            subject: `Pedido #${orderId.slice(0, 8)} entregue! Confirme o recebimento.`,
             template: 'order_delivered_client',
             props: {
               customerName: customerName,

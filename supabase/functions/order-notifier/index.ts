@@ -87,7 +87,7 @@ serve(async (req) => {
 
     const sellerEmail = sellerProfile.email;
     const sellerStoreName = sellerProfile.store_name || sellerEmail.split('@')[0];
-    const productCount = order.order_items.reduce((sum, item) => sum + item.quantity, 0);
+    const productCount = order.order_items.reduce((sum: number, item: { quantity: number }) => sum + item.quantity, 0);
     const totalAmountFormatted = new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(order.total_amount);
     
     // 4. Gerar HTML (usando o template que estava no PL/pgSQL)
@@ -117,7 +117,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
             to: sellerEmail,
-            subject: `🎉 NOVO PEDIDO RECEBIDO! #${order.id.slice(0, 8)} - ${totalAmountFormatted}`,
+            subject: `Novo pedido recebido! #${order.id.slice(0, 8)} - ${totalAmountFormatted}`,
             html: emailHtml
         })
     });
@@ -132,7 +132,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true }), { headers: corsHeaders, status: 200 })
 
   } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Internal Server Error'
     log("Edge Function execution error:", error);
-    return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), { headers: corsHeaders, status: 500 })
+    return new Response(JSON.stringify({ error: msg }), { headers: corsHeaders, status: 500 })
   }
 })

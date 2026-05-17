@@ -218,7 +218,7 @@ const ConfirmarEncomendaPage = () => {
         const storeName = product.seller.store_name || product.seller.email.split('@')[0]
         sendTemplatedEmail({
           to: product.seller.email,
-          subject: `🔔 Nova encomenda recebida! ${formData.fullName} quer "${product.name}"`,
+          subject: `Nova encomenda recebida! ${formData.fullName} quer "${product.name}"`,
           template: 'new_order_seller',
           props: {
             storeName,
