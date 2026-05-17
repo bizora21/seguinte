@@ -169,8 +169,8 @@ async function main() {
     const isSeller  = profile.role === 'vendedor'
     const storeName = profile.store_name || 'Vendedor'
     const subject   = isSeller
-      ? 'Bem-vindo à LojaRápida! Entre no nosso grupo'
-      : 'Bem-vindo à LojaRápida! Ofertas exclusivas te esperam'
+      ? '👋 Junte-se à comunidade LojaRápida'
+      : '🛍️ Ofertas exclusivas para si - LojaRápida'
     const html = isSeller ? buildSellerHtml(storeName) : buildClientHtml()
 
     try {

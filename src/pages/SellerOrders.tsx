@@ -206,7 +206,7 @@ const SellerOrders = () => {
         if (newStatus === 'in_transit') {
           await sendTemplatedEmail({
             to: customerEmail,
-            subject: `Pedido #${orderId.slice(0, 8)} está a caminho!`,
+            subject: `🚚 Pedido #${orderId.slice(0, 8)} está a caminho - LojaRápida`,
             template: 'order_shipped_client',
             props: {
               customerName: customerName,
@@ -218,7 +218,7 @@ const SellerOrders = () => {
         } else if (newStatus === 'delivered') {
           await sendTemplatedEmail({
             to: customerEmail,
-            subject: `Pedido #${orderId.slice(0, 8)} entregue! Confirme o recebimento.`,
+            subject: `✅ Pedido #${orderId.slice(0, 8)} entregue - confirme a receção`,
             template: 'order_delivered_client',
             props: {
               customerName: customerName,

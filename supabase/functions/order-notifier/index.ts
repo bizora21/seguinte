@@ -117,7 +117,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
             to: sellerEmail,
-            subject: `Novo pedido recebido! #${order.id.slice(0, 8)} - ${totalAmountFormatted}`,
+            subject: `🔔 Novo pedido #${order.id.slice(0, 8)} - LojaRápida`,
             html: emailHtml
         })
     });
