@@ -17,7 +17,15 @@ import AdminRoute from "./components/AdminRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
-import LeadCapturePopup from "./components/LeadCapturePopup";
+import LeadCapturePopup from "./components/LeadCapturePopup"
+import { GroupInviteModal } from "./components/ui/GroupInviteModal"
+import { useAuth } from "./contexts/AuthContext"
+
+// Componente interno — passa o role do utilizador autenticado (se existir)
+const AppContent = () => {
+  const { user } = useAuth()
+  return <GroupInviteModal userRole={user?.profile?.role} />
+};
 
 // Rotas Críticas (Carregamento Eager)
 import HomePage from "./pages/HomePage";
@@ -233,7 +241,8 @@ const App = () => (
                 <BackToHomeButton />
                 <Chatbot />
                 <FloatingAppButton />
-                <LeadCapturePopup /> 
+                <LeadCapturePopup />
+                <AppContent />
               </div>
               <Toaster />
               <Sonner />

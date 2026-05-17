@@ -9,6 +9,8 @@ export interface Profile {
   city?: string | null // Novo
   province?: string | null // Novo
   delivery_scope?: string[] | null // Novo: Escopo de entrega (provincias/cidades)
+  group_invite_shown?: number | null
+  group_joined?: boolean | null
   created_at?: string
   updated_at?: string
 }

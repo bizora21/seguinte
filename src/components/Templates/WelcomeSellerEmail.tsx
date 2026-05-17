@@ -42,6 +42,25 @@ const WelcomeSellerEmail: React.FC<WelcomeSellerEmailProps> = ({ storeName, sell
         </a>
       </div>
       
+      <div style={{ backgroundColor: '#e8fdf0', padding: '20px', borderRadius: '12px', border: '2px solid #25D366', marginTop: '24px', textAlign: 'center' }}>
+        <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#128C7E', margin: '0 0 8px 0' }}>📱 Entre na nossa comunidade!</p>
+        <p style={{ fontSize: '14px', color: '#333333', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+          Junte-se a outros vendedores. Receba dicas, suporte directo e novidades da plataforma.
+        </p>
+        <a
+          href="https://chat.whatsapp.com/BpqBKP5aUnS0U195dvM52p"
+          style={{ display: 'inline-block', backgroundColor: '#25D366', color: '#ffffff', padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', fontSize: '15px' }}
+        >
+          📱 Entrar no Grupo de Vendedores
+        </a>
+        <div style={{ marginTop: '12px', fontSize: '13px', color: '#555555' }}>
+          <div>✅ Dicas para vender mais</div>
+          <div>✅ Suporte directo da equipa</div>
+          <div>✅ Novidades da plataforma</div>
+          <div>✅ Comunidade de outros vendedores</div>
+        </div>
+      </div>
+
       <p style={{ marginTop: '30px', fontSize: '12px', color: '#999999', textAlign: 'center' }}>
         Você está recebendo este e-mail porque se cadastrou como vendedor na plataforma LojaRápida.
       </p>
