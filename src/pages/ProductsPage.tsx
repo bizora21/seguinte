@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
@@ -43,7 +43,28 @@ const fetchProducts = async (searchTerm: string, sortBy: string, category: strin
 
   const { data, error } = await query
   if (error) throw new Error(error.message)
-  return data as ProductWithSeller[]
+  const products = (data ?? []) as ProductWithSeller[]
+  if (products.length === 0) return products
+
+  // Buscar ratings em batch (uma única query extra)
+  const ids = products.map(p => p.id)
+  const { data: reviews } = await supabase
+    .from('product_reviews')
+    .select('product_id, rating')
+    .in('product_id', ids)
+
+  if (!reviews || reviews.length === 0) return products
+
+  const ratingMap = new Map<string, { sum: number; count: number }>()
+  reviews.forEach(r => {
+    const cur = ratingMap.get(r.product_id) ?? { sum: 0, count: 0 }
+    ratingMap.set(r.product_id, { sum: cur.sum + r.rating, count: cur.count + 1 })
+  })
+
+  return products.map(p => {
+    const r = ratingMap.get(p.id)
+    return r ? { ...p, avg_rating: r.sum / r.count, review_count: r.count } : p
+  })
 }
 
 const ProductsPage = () => {
@@ -159,6 +180,15 @@ const ProductsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Contador de resultados */}
+        {!isLoading && products && (
+          <p className="text-sm text-gray-500 mb-4">
+            {products.length === 0
+              ? 'Nenhum produto encontrado'
+              : `Mostrando ${products.length} produto${products.length !== 1 ? 's' : ''}`}
+          </p>
+        )}
 
         {/* Lista de Produtos */}
         {isLoading ? (

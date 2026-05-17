@@ -16,6 +16,8 @@ export interface ProductWithSeller extends Product {
     store_name: string
     email: string
   }
+  avg_rating?: number | null
+  review_count?: number | null
 }
 
 export interface ProductFormData {

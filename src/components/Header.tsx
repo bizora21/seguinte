@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useWishlist } from '../contexts/WishlistContext'
 import { Button } from './ui/button'
-import { ShoppingCart, User, Menu, X, LayoutDashboard, Store, MessageCircle, LogOut, Package, Home } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, LayoutDashboard, Store, MessageCircle, LogOut, Package, Home, Heart } from 'lucide-react'
 import CartButton from './CartButton'
 import Logo from './Logo'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet'
@@ -15,6 +16,7 @@ const ADMIN_EMAIL = 'lojarapidamz@outlook.com' // Define admin email here for lo
 
 const Header = () => {
   const { user, signOut } = useAuth()
+  const { count: wishlistCount } = useWishlist()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
@@ -120,7 +122,17 @@ const Header = () => {
           {/* Right side actions (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
-            
+
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
+
             <CartButton />
             
             {user ? (
@@ -179,6 +191,14 @@ const Header = () => {
           {/* Mobile Menu Trigger */}
           <div className="md:hidden flex items-center space-x-2">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
+            <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
             <CartButton />
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>

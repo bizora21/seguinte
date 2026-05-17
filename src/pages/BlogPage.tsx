@@ -182,6 +182,8 @@ const BlogPage = () => {
                                       src={post.featured_image_url || '/placeholder.svg'}
                                       alt={post.title}
                                       className="w-full h-full object-cover"
+                                      loading="lazy"
+                                      decoding="async"
                                       onError={(e) => {
                                           e.currentTarget.src = '/placeholder.svg'
                                       }}

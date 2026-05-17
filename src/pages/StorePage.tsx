@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Product, ProductWithSeller } from '../types/product'
+import { ProductWithSeller } from '../types/product'
 import { Profile } from '../types/auth'
 import ProductCard from '../components/ProductCard'
 import { Card, CardContent } from '../components/ui/card'
@@ -19,6 +19,7 @@ const StorePage = () => {
   const navigate = useNavigate()
   const [seller, setSeller] = useState<Profile | null>(null)
   const [products, setProducts] = useState<ProductWithSeller[]>([])
+  const [storeRating, setStoreRating] = useState<{ avg: number; count: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,7 +57,38 @@ const StorePage = () => {
         .order('created_at', { ascending: false })
 
       if (productsError) throw productsError
-      setProducts(productsData || [])
+      const products = productsData ?? []
+
+      // Buscar ratings de todos os produtos desta loja em batch
+      if (products.length > 0) {
+        const ids = products.map((p: ProductWithSeller) => p.id)
+        const { data: reviews } = await supabase
+          .from('product_reviews')
+          .select('product_id, rating')
+          .in('product_id', ids)
+
+        if (reviews && reviews.length > 0) {
+          const ratingMap = new Map<string, { sum: number; count: number }>()
+          reviews.forEach((r: { product_id: string; rating: number }) => {
+            const cur = ratingMap.get(r.product_id) ?? { sum: 0, count: 0 }
+            ratingMap.set(r.product_id, { sum: cur.sum + r.rating, count: cur.count + 1 })
+          })
+
+          const enriched = products.map((p: ProductWithSeller) => {
+            const r = ratingMap.get(p.id)
+            return r ? { ...p, avg_rating: r.sum / r.count, review_count: r.count } : p
+          })
+          setProducts(enriched)
+
+          // Rating geral da loja = média de todos os ratings
+          const total = reviews.reduce((s: number, r: { rating: number }) => s + r.rating, 0)
+          setStoreRating({ avg: total / reviews.length, count: reviews.length })
+        } else {
+          setProducts(products)
+        }
+      } else {
+        setProducts([])
+      }
 
     } catch (error) {
       console.error('Error fetching store data:', error)
@@ -177,10 +209,12 @@ const StorePage = () => {
               
               {/* Informações da Loja em linha */}
               <div className="flex flex-wrap items-center justify-center space-x-4 text-sm sm:text-base mb-6">
-                <div className="flex items-center">
-                  <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                  <span>4.8</span>
-                </div>
+                {storeRating && (
+                  <div className="flex items-center">
+                    <Star className="w-4 h-4 text-yellow-400 mr-1 fill-current" />
+                    <span>{storeRating.avg.toFixed(1)} ({storeRating.count})</span>
+                  </div>
+                )}
                 <div>
                   <Package className="w-4 h-4 mr-1 inline" />
                   <span>{products.length} produtos</span>

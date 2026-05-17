@@ -23,7 +23,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { ProductReview } from '../types/product'; // Importar tipo de review
+import { ProductReview, ProductWithSeller } from '../types/product';
 
 interface Product {
   id: string;
@@ -50,8 +50,10 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [mainImage, setMainImage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [reviewCount, setReviewCount] = useState(0); // Estado para contagem de reviews
-  const [userReview, setUserReview] = useState<ProductReview | null>(null); // Estado para a review do usuário logado
+  const [reviewCount, setReviewCount] = useState(0);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [userReview, setUserReview] = useState<ProductReview | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<ProductWithSeller[]>([]);
   
   const defaultImage = '/placeholder.svg';
   const BASE_URL = 'https://lojarapidamz.com';
@@ -78,19 +80,50 @@ const ProductDetail = () => {
       setProduct(data);
       const firstImage = getFirstImageUrl(data.image_url);
       setMainImage(firstImage || defaultImage);
-      
-      // Buscar review do usuário logado
-      if (user) {
-        const { data: reviewData } = await supabase
-          .from('product_reviews')
-          .select('rating, comment') // Simplificando a seleção
-          .eq('product_id', productId)
-          .eq('user_id', user.id)
-          .single();
-        
-        // O tipo retornado é { rating: number, comment: string | null }
-        setUserReview(reviewData as ProductReview || null);
+
+      // Produtos relacionados: mesma categoria OU mesmo vendedor, excluindo este produto
+      const relatedQuery = supabase
+        .from('products')
+        .select(`*, seller:profiles!products_seller_id_fkey(id, store_name, email)`)
+        .neq('id', productId)
+        .gt('stock', 0)
+        .limit(4)
+
+      if (data.category) {
+        relatedQuery.or(`category.eq.${data.category},seller_id.eq.${data.seller_id}`)
+      } else {
+        relatedQuery.eq('seller_id', data.seller_id)
       }
+
+      const { data: related } = await relatedQuery
+      setRelatedProducts((related ?? []) as ProductWithSeller[])
+      
+      // Buscar média de ratings + review do utilizador autenticado (em paralelo)
+      const ratingQuery = supabase
+        .from('product_reviews')
+        .select('rating')
+        .eq('product_id', productId)
+
+      const userReviewQuery = user
+        ? supabase
+            .from('product_reviews')
+            .select('rating, comment')
+            .eq('product_id', productId)
+            .eq('user_id', user.id)
+            .single()
+        : Promise.resolve({ data: null })
+
+      const [{ data: allRatings }, { data: reviewData }] = await Promise.all([
+        ratingQuery,
+        userReviewQuery,
+      ])
+
+      if (allRatings && allRatings.length > 0) {
+        const avg = allRatings.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / allRatings.length
+        setAvgRating(avg)
+      }
+
+      setUserReview(reviewData as ProductReview || null);
 
     } catch (error) {
       console.error('Error fetching product data:', error);
@@ -207,7 +240,7 @@ const ProductDetail = () => {
                           className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
                           onClick={() => setMainImage(url)}
                         >
-                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" />
+                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         </div>
                       ))}
                     </div>
@@ -224,11 +257,42 @@ const ProductDetail = () => {
               </Card>
               
               {/* Seção de Avaliações */}
-              <ProductReviews 
-                productId={productId} 
-                onReviewsLoaded={setReviewCount} 
+              <ProductReviews
+                productId={productId!}
+                onReviewsLoaded={setReviewCount}
               />
-              
+
+              {/* Produtos Relacionados */}
+              {relatedProducts.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900">Também pode gostar</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {relatedProducts.map(p => (
+                      <Link key={p.id} to={`/produto/${p.id}`} className="group block">
+                        <Card className="h-full border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                          <div className="aspect-square w-full bg-gray-100 overflow-hidden">
+                            <img
+                              src={getFirstImageUrl(p.image_url) || '/placeholder.svg'}
+                              alt={p.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              decoding="async"
+                              onError={e => { e.currentTarget.src = '/placeholder.svg' }}
+                            />
+                          </div>
+                          <CardContent className="p-3">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-1">{p.name}</p>
+                            <p className="text-sm font-bold text-green-600">
+                              {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', minimumFractionDigits: 0 }).format(p.price)}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </motion.div>
 
             {/* Coluna da Direita: Ações, Chat e Formulário de Review (Ocupa 2 colunas) */}
@@ -240,10 +304,17 @@ const ProductDetail = () => {
                   <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h1>
                   
                   <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center text-gray-600">
-                      <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
-                      <span>4.8 ({reviewCount} avaliações)</span>
-                    </div>
+                    {avgRating != null ? (
+                      <div className="flex items-center text-gray-600">
+                        <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
+                        <span>{avgRating.toFixed(1)} ({reviewCount} avaliações)</span>
+                      </div>
+                    ) : reviewCount > 0 ? (
+                      <div className="flex items-center text-gray-600">
+                        <Star className="w-4 h-4 mr-1 text-yellow-400 fill-current" />
+                        <span>{reviewCount} avaliações</span>
+                      </div>
+                    ) : null}
                     <Separator orientation="vertical" className="h-4" />
                     <Link to={`/loja/${product.seller_id}`} className="flex items-center text-blue-600 hover:underline">
                       <Store className="w-4 h-4 mr-1" />
@@ -259,6 +330,34 @@ const ProductDetail = () => {
                     {product.stock > 0 ? `${product.stock} em estoque` : 'Fora de estoque'}
                   </Badge>
 
+                  <Separator />
+
+                  {/* Zonas de Entrega */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                      <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <span>Este vendedor entrega em:</span>
+                    </div>
+                    {product.seller?.delivery_scope && product.seller.delivery_scope.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {product.seller.delivery_scope.map((zone) => (
+                          <Badge
+                            key={zone}
+                            variant="secondary"
+                            className="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium"
+                          >
+                            📍 {zone}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 flex-shrink-0" />
+                        Contacte o vendedor para confirmar entrega
+                      </p>
+                    )}
+                  </div>
+
                   <Button onClick={handleEncomendar} className="w-full h-12 text-lg font-bold uppercase tracking-wide bg-primary hover:bg-green-700" size="lg" disabled={product.stock === 0}>
                     <ClipboardList className="w-6 h-6 mr-2" />
                     {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
@@ -272,9 +371,9 @@ const ProductDetail = () => {
               
               {/* Formulário de Avaliação */}
               {user?.profile?.role === 'cliente' && (
-                <ReviewForm 
-                  productId={productId} 
-                  onReviewSubmitted={fetchProductData} // Recarrega dados para atualizar a review do usuário
+                <ReviewForm
+                  productId={productId!}
+                  onReviewSubmitted={fetchProductData}
                   existingReview={userReview}
                 />
               )}

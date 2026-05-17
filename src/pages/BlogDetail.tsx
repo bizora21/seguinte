@@ -133,7 +133,7 @@ const BlogDetail = () => {
         image={post.featured_image_url || undefined}
         url={`${BASE_URL}/blog/${post.slug}`}
         type="article"
-        jsonLd={[generateBlogPostingSchema, generateBreadcrumbSchema(breadcrumbs)]}
+        jsonLd={[generateBlogPostingSchema, generateBreadcrumbSchema(breadcrumbs)].filter(Boolean) as object[]}
       />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -172,6 +172,8 @@ const BlogDetail = () => {
                     src={post.featured_image_url || '/placeholder.svg'}
                     alt={post.image_alt_text || post.title}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg'
                     }}

@@ -2,17 +2,19 @@ import { useMemo } from 'react'
 import { ProductWithSeller } from '../types/product'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
-import { Eye, Store, ClipboardList, Star } from 'lucide-react'
+import { Eye, Store, ClipboardList, Star, Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/badge'
 import { getFirstImageUrl } from '../utils/images'
+import { useWishlist } from '../contexts/WishlistContext'
 
 interface ProductCardProps {
   product: ProductWithSeller
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  // Otimização: Memoizar a URL da imagem para evitar processamento em cada render
+  const { toggle, isInWishlist } = useWishlist()
+  const inWishlist = isInWishlist(product.id)
   const imageUrl = useMemo(() => getFirstImageUrl(product.image_url), [product.image_url])
   const defaultImage = '/placeholder.svg'
 
@@ -69,9 +71,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </Badge>
           </div>
 
-          {/* Badge de Oferta (Simulado se preço for alto ou aleatório para demo) */}
+          {/* Botão Wishlist */}
+          <button
+            onClick={(e) => { e.preventDefault(); toggle(product.id) }}
+            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label={inWishlist ? 'Remover dos favoritos' : 'Guardar nos favoritos'}
+          >
+            <Heart className={`w-4 h-4 ${inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+          </button>
+
+          {/* Badge de Oferta */}
           {product.stock > 0 && product.stock <= 3 && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 left-8">
               <Badge className="bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold border-0 px-2">
                 OFERTA
               </Badge>
@@ -103,10 +114,17 @@ const ProductCard = ({ product }: ProductCardProps) => {
               <span className="truncate">{product.seller.store_name || 'Loja'}</span>
             </Link>
           )}
-          <div className="flex items-center text-yellow-500">
-            <Star className="w-3 h-3 fill-current mr-1" />
-            <span className="text-gray-600 font-medium">4.8</span>
-          </div>
+          {product.avg_rating != null && (
+            <div className="flex items-center text-yellow-500">
+              <Star className="w-3 h-3 fill-current mr-1" />
+              <span className="text-gray-600 font-medium">
+                {product.avg_rating.toFixed(1)}
+                {product.review_count != null && (
+                  <span className="text-gray-400 ml-0.5">({product.review_count})</span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Preço */}

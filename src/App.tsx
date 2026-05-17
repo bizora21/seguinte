@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
+import { WishlistProvider } from "./contexts/WishlistContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
@@ -18,6 +19,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
 import LeadCapturePopup from "./components/LeadCapturePopup"
+import ErrorBoundary from "./components/ErrorBoundary"
 import { GroupInviteModal } from "./components/ui/GroupInviteModal"
 import { useAuth } from "./contexts/AuthContext"
 
@@ -63,14 +65,17 @@ const PoliticaDePrivacidadePage = React.lazy(() => import("./pages/PoliticaDePri
 const PoliticaVendedorPage = React.lazy(() => import("./pages/PoliticaVendedorPage"));
 const CustomerOrderDetails = React.lazy(() => import("./pages/CustomerOrderDetails"));
 const TestSocial = React.lazy(() => import("./pages/TestSocial"));
+const WishlistPage = React.lazy(() => import("./pages/WishlistPage"));
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <HelmetProvider>
         <AuthProvider>
+          <WishlistProvider>
           <CartProvider>
             <BrowserRouter
               future={{
@@ -232,6 +237,7 @@ const App = () => (
                         } 
                       />
                       <Route path="/busca" element={<SearchResults />} />
+                      <Route path="/wishlist" element={<WishlistPage />} />
                       <Route path="/loja/:sellerId" element={<StorePage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
@@ -248,10 +254,12 @@ const App = () => (
               <Sonner />
             </BrowserRouter>
           </CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </HelmetProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
