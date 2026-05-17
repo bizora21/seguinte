@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Send, Package, Star, Shield, Truck, CreditCard, MessageCircle, Clock, AlertTriangle, Maximize, MapPin, Store, Loader2 } from 'lucide-react';
+import { Send, MessageCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
-import { showSuccess, showError } from '../utils/toast';
+import { showError } from '../utils/toast';
+import { containsContact } from '../utils/detectContact';
 import LoadingSpinner from './LoadingSpinner';
 
 interface ProductChatProps {
@@ -182,8 +183,14 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !chatId || chatId === 'VENDEDOR_PROPRIO') return;
 
-    setSending(true);
     const messageContent = newMessage.trim();
+
+    if (containsContact(messageContent)) {
+      showError('Por razões de segurança, não é permitido partilhar contactos, links ou redes sociais no chat.');
+      return;
+    }
+
+    setSending(true);
 
     const optimisticMessage: Message = {
       id: Date.now().toString(),
@@ -193,7 +200,7 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
       created_at: new Date().toISOString(),
       sender: {
         email: user.email,
-        store_name: user.profile?.store_name
+        store_name: user.profile?.store_name ?? undefined
       }
     };
     

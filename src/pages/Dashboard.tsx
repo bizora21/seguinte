@@ -7,16 +7,15 @@ import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { TooltipProvider } from '../components/ui/tooltip'
-import { 
-  Plus, 
-  ShoppingBag, 
-  Package, 
+import {
+  Plus,
+  ShoppingBag,
+  Package,
   DollarSign,
   BarChart3,
-  Settings,
-  CreditCard,
   XCircle,
-  Store 
+  Store,
+  AlertTriangle
 } from 'lucide-react'
 import SellerFinanceTab from '../components/SellerFinanceTab'
 import StoreSettingsTab from '../components/StoreSettingsTab'
@@ -38,6 +37,7 @@ const Dashboard = () => {
   })
   const [recentOrders, setRecentOrders] = useState<any[]>([])
   const [cancelledOrders, setCancelledOrders] = useState<any[]>([])
+  const [pendingCommissionsTotal, setPendingCommissionsTotal] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -138,6 +138,15 @@ const Dashboard = () => {
       setRecentOrders(recent)
       setCancelledOrders(cancelled)
 
+      const { data: pendingCommissions } = await supabase
+        .from('commissions')
+        .select('amount')
+        .eq('seller_id', user.id)
+        .eq('status', 'pending')
+
+      const total = (pendingCommissions ?? []).reduce((sum, c) => sum + (c.amount ?? 0), 0)
+      setPendingCommissionsTotal(total)
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -223,6 +232,29 @@ const Dashboard = () => {
             <TabsContent value="finance" className="animate-in fade-in duration-300"><SellerFinanceTab /></TabsContent>
             
             <TabsContent value="overview" className="animate-in fade-in duration-300">
+              {pendingCommissionsTotal > 0 && (
+                <div className="mb-6 rounded-xl border border-orange-300 bg-orange-50 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-start gap-3 flex-1">
+                    <AlertTriangle className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-orange-900">Taxa de plataforma pendente: {formatPrice(pendingCommissionsTotal)}</p>
+                      <p className="text-sm text-orange-700 mt-0.5">
+                        Tens 3 dias para pagar a taxa de 8%. Após esse prazo, o acesso à tua conta pode ser suspenso.
+                      </p>
+                      <p className="text-sm font-semibold text-orange-800 mt-1">
+                        Envia via M-Pesa para: <span className="font-bold">258 84 684 3135</span>
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white flex-shrink-0"
+                    onClick={() => navigate('/meus-pedidos')}
+                  >
+                    Ver encomendas pendentes
+                  </Button>
+                </div>
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Coluna Principal */}
                 <div className="lg:col-span-2 space-y-6">

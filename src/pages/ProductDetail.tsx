@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Package, Star, Shield, Truck, Maximize, MapPin, Store, MessageCircle, ClipboardList } from 'lucide-react';
+import { Star, Shield, Truck, Maximize, MapPin, Store, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -333,10 +333,10 @@ const ProductDetail = () => {
                   <Separator />
 
                   {/* Zonas de Entrega */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                      <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      <span>Este vendedor entrega em:</span>
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
+                    <div className="flex items-center gap-1.5 text-sm font-semibold text-blue-800">
+                      <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <span>Zonas de entrega</span>
                     </div>
                     {product.seller?.delivery_scope && product.seller.delivery_scope.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
@@ -344,16 +344,16 @@ const ProductDetail = () => {
                           <Badge
                             key={zone}
                             variant="secondary"
-                            className="bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium"
+                            className="bg-white text-blue-700 border border-blue-300 text-xs font-medium"
                           >
                             📍 {zone}
                           </Badge>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+                      <p className="text-xs text-blue-700 flex items-center gap-1.5">
                         <Truck className="w-3.5 h-3.5 flex-shrink-0" />
-                        Contacte o vendedor para confirmar entrega
+                        Contacte o vendedor para confirmar zonas de entrega
                       </p>
                     )}
                   </div>
