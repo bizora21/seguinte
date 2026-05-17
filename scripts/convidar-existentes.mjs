@@ -101,16 +101,42 @@ function buildClientHtml() {
 </html>`
 }
 
-// ─── Envio de email via Edge Function ─────────────────────────────────────────
+// ─── Envio de email via Resend API ────────────────────────────────────────────
 async function sendEmail(to, subject, html) {
-  const { error } = await supabase.functions.invoke('email-sender', {
-    body: { to, subject, html }
+  const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
+  if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY não definida')
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'LojaRápida <noreply@lojarapidamz.com>',
+      to: [to],
+      subject,
+      html,
+    }),
   })
-  if (error) throw error
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Resend error ${res.status}: ${err}`)
+  }
+
+  return res.json()
 }
 
 // ─── Script principal ─────────────────────────────────────────────────────────
 async function main() {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('❌ RESEND_API_KEY não definida.')
+    console.error('   Passa assim:')
+    console.error('   RESEND_API_KEY=re_... node scripts/convidar-existentes.mjs')
+    process.exit(1)
+  }
+
   console.log('\n🚀 LojaRápida — Convites WhatsApp para utilizadores existentes\n')
 
   // 1. Buscar todos os profiles com group_invite_shown = 0
