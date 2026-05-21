@@ -1,40 +1,14 @@
-# Sitemap deve estar no início para ser encontrado primeiro
-Sitemap: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap
-
-# Robots.txt — LojaRápida Moçambique
-# Última atualização: 2026
-
-User-agent: *
+﻿User-agent: *
 Allow: /
 Disallow: /dashboard/
 Disallow: /admin/
-Disallow: /api/
-Disallow: /meus-pedidos/
-Disallow: /checkout/
-Disallow: /carrinho/
-Disallow: /encomenda-confirmada/
-Disallow: /meus-chats/
-Disallow: /oauth-callback/
-Disallow: /adicionar-produto/
-Disallow: /login
-Disallow: /register
 
-# Google
+Sitemap: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap
+
 User-agent: Googlebot
 Allow: /
 Crawl-delay: 1
 
-# Bing
 User-agent: Bingbot
 Allow: /
 Crawl-delay: 1
-
-# Redes sociais
-User-agent: FacebookExternalHit
-Allow: /
-
-User-agent: TwitterBot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
