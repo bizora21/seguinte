@@ -191,6 +191,8 @@ const ManageProduct = () => {
       }
 
       let error
+      let newProductId: string | undefined
+
       if (productId) {
         const result = await supabase
           .from('products')
@@ -202,7 +204,10 @@ const ManageProduct = () => {
         const result = await supabase
           .from('products')
           .insert(productData)
+          .select('id')
+          .single()
         error = result.error
+        newProductId = result.data?.id
       }
 
       if (error) {
@@ -210,7 +215,34 @@ const ManageProduct = () => {
       } else {
         dismissToast(toastId)
         showSuccess(`Produto ${productId ? 'atualizado' : 'adicionado'} com sucesso!`)
-        
+
+        // Push em background para todos os clientes (apenas produto novo)
+        if (newProductId) {
+          const firstImage = formData.images[0] ?? undefined
+          const priceFormatted = parseFloat(formData.price).toLocaleString('pt-MZ')
+          ;(async () => {
+            try {
+              const { data: clients } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('role', 'cliente')
+              if (clients) {
+                for (const client of clients) {
+                  supabase.functions.invoke('send-push-notification', {
+                    body: {
+                      user_id: client.id,
+                      title: 'Novo produto disponível!',
+                      body: `${formData.name} - ${priceFormatted} MZN`,
+                      url: `/produto/${newProductId}`,
+                      image: firstImage,
+                    },
+                  }).catch(() => {/* silencioso */})
+                }
+              }
+            } catch {/* silencioso */}
+          })()
+        }
+
         setTimeout(() => {
           navigate('/dashboard?tab=products')
         }, 1500)

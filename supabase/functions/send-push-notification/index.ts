@@ -83,6 +83,8 @@ async function getAccessToken(serviceAccount: {
   return tokenData.access_token
 }
 
+const BASE_URL = 'https://lojarapidamz.com'
+
 async function sendFcmMessage(
   projectId: string,
   accessToken: string,
@@ -90,14 +92,32 @@ async function sendFcmMessage(
   title: string,
   body: string,
   url?: string,
+  image?: string,
   data?: Record<string, string>
 ): Promise<{ ok: boolean; invalid: boolean }> {
+  const fullUrl = url ? `${BASE_URL}${url}` : BASE_URL
+
+  const notification: Record<string, string> = { title, body }
+  if (image) notification.image = image
+
+  const webpushNotification: Record<string, string> = {
+    icon: `${BASE_URL}/logo.png`,
+  }
+  if (image) webpushNotification.image = image
+
+  const androidNotification: Record<string, string> = { icon: 'logo' }
+  if (image) androidNotification.image = image
+  if (url) androidNotification.click_action = fullUrl
+
   const message: Record<string, unknown> = {
     token,
-    notification: { title, body },
+    notification,
     webpush: {
-      notification: { icon: '/icons/icon-192x192.png' },
-      ...(url ? { fcm_options: { link: url } } : {}),
+      notification: webpushNotification,
+      fcm_options: { link: fullUrl },
+    },
+    android: {
+      notification: androidNotification,
     },
   }
   if (data && Object.keys(data).length > 0) {
@@ -139,7 +159,7 @@ serve(async (req) => {
   }
 
   try {
-    const { user_id, title, body, url, data } = await req.json()
+    const { user_id, title, body, url, image, data } = await req.json()
 
     if (!user_id || !title || !body) {
       return new Response(
@@ -188,6 +208,7 @@ serve(async (req) => {
         title,
         body,
         url,
+        image,
         data
       )
       if (result.ok) {

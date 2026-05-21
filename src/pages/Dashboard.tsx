@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -49,6 +49,51 @@ const Dashboard = () => {
     time: string
   }>>([])
   const [unreadOrderCount, setUnreadOrderCount] = useState(0)
+  const unreadCountRef = useRef(0)
+
+  const triggerOrderAlert = (newCount: number) => {
+    // Som de alerta via Web Audio API (2 bips ascendentes)
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (AudioCtx) {
+        const ctx = new AudioCtx()
+        const playBeep = (freq: number, startAt: number) => {
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+          osc.type = 'sine'
+          osc.frequency.value = freq
+          gain.gain.setValueAtTime(0, startAt)
+          gain.gain.linearRampToValueAtTime(0.45, startAt + 0.02)
+          gain.gain.exponentialRampToValueAtTime(0.001, startAt + 0.35)
+          osc.start(startAt)
+          osc.stop(startAt + 0.35)
+        }
+        const t = ctx.currentTime
+        playBeep(880, t)
+        playBeep(1100, t + 0.3)
+        playBeep(1320, t + 0.6)
+      }
+    } catch { /* silencioso */ }
+
+    // Vibração (móvel)
+    if ('vibrate' in navigator) {
+      navigator.vibrate([500, 200, 500])
+    }
+
+    // Badge na tab do browser
+    if ('setAppBadge' in navigator) {
+      (navigator as any).setAppBadge(newCount).catch(() => {/* silencioso */})
+    }
+  }
+
+  // Limpar badge quando o vendedor está no dashboard
+  useEffect(() => {
+    if ('clearAppBadge' in navigator) {
+      (navigator as any).clearAppBadge().catch(() => {/* silencioso */})
+    }
+  }, [])
 
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
@@ -87,8 +132,13 @@ const Dashboard = () => {
           }
 
           setNewOrderAlerts(prev => [alert, ...prev].slice(0, 5))
-          setUnreadOrderCount(prev => prev + 1)
-          toast.success(`🎉 Nova encomenda recebida!`, { duration: 6000 })
+          setUnreadOrderCount(prev => {
+            const next = prev + 1
+            unreadCountRef.current = next
+            triggerOrderAlert(next)
+            return next
+          })
+          toast.success(`🔴 Nova encomenda de ${alert.customerName}!`, { duration: 8000 })
           fetchDashboardData()
         }
       )

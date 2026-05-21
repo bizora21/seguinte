@@ -213,13 +213,18 @@ const ConfirmarEncomendaPage = () => {
       dismissToast(toastId)
       showSuccess('Encomenda confirmada com sucesso! O vendedor já foi notificado.')
 
-      // Push ao vendedor (não-bloqueante)
+      // Push urgente ao vendedor (não-bloqueante)
+      const _firstImage = (() => {
+        try { const imgs = JSON.parse(product.image_url || '[]'); return Array.isArray(imgs) ? imgs[0] : product.image_url } catch { return product.image_url }
+      })()
       supabase.functions.invoke('send-push-notification', {
         body: {
           user_id: productCheck.seller_id,
-          title: 'Nova encomenda recebida!',
-          body: `${formData.fullName} encomendou: ${product.name}`,
+          title: '🔴 Cliente precisa de si AGORA!',
+          body: `${formData.fullName} encomendou ${product.name} - Responda já!`,
           url: '/dashboard/seller',
+          image: _firstImage || undefined,
+          data: { type: 'new_order', order_id: order.id },
         },
       }).catch(() => {/* silencioso */})
 

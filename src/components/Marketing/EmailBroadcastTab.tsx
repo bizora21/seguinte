@@ -4,7 +4,8 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
-import { Send, Users, Mail, Loader2, Eye, Search, Plus, ShoppingBag, Smartphone, Monitor, FileText, Wand2, ArrowRight, LayoutGrid, CheckSquare, Settings2, Truck } from 'lucide-react'
+import { Send, Users, Mail, Loader2, Eye, Search, Plus, ShoppingBag, Smartphone, Monitor, FileText, Wand2, ArrowRight, LayoutGrid, CheckSquare, Settings2, Truck, Bell } from 'lucide-react'
+import PushBroadcastModal from './PushBroadcastModal'
 import { showSuccess, showError, showLoading, dismissToast } from '../../utils/toast'
 import { supabase } from '../../lib/supabase'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -56,6 +57,7 @@ const EmailBroadcastTab: React.FC = () => {
 
   // Estado de aba para mobile
   const [mobileTab, setMobileTab] = useState('editor')
+  const [pushModalOpen, setPushModalOpen] = useState(false)
 
   // Buscar produtos
   useEffect(() => {
@@ -541,20 +543,28 @@ const EmailBroadcastTab: React.FC = () => {
         />
       </div>
       
-      <div className="p-4 bg-gray-800 border-t border-gray-700 sticky bottom-0 z-20">
-        <Button 
-            onClick={handleSendBroadcast} 
+      <div className="p-4 bg-gray-800 border-t border-gray-700 sticky bottom-0 z-20 space-y-2">
+        <Button
+            onClick={handleSendBroadcast}
             disabled={submitting || !bodyContent}
             className="w-full bg-green-500 hover:bg-green-600 text-white font-bold h-12 text-lg shadow-lg transition-all hover:scale-105 flex items-center justify-center"
         >
             {submitting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Send className="w-5 h-5 mr-2" />}
-            ENVIAR AGORA
+            ENVIAR EMAIL AGORA
+        </Button>
+        <Button
+            onClick={() => setPushModalOpen(true)}
+            variant="outline"
+            className="w-full border-green-400 text-green-300 hover:bg-green-900/40 h-10 font-semibold flex items-center justify-center"
+        >
+            <Bell className="w-4 h-4 mr-2" /> Enviar Push
         </Button>
       </div>
     </div>
   )
 
   return (
+    <>
     <div className="h-[calc(100vh-140px)] flex flex-col">
       {/* HEADER DE MODO MOBILE */}
       <div className="md:hidden mb-4">
@@ -625,6 +635,9 @@ const EmailBroadcastTab: React.FC = () => {
         )}
       </div>
     </div>
+
+    <PushBroadcastModal open={pushModalOpen} onClose={() => setPushModalOpen(false)} />
+    </>
   )
 }
 
