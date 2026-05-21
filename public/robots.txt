@@ -1,34 +1,35 @@
 # Sitemap deve estar no início para ser encontrado primeiro
 Sitemap: https://lojarapidamz.com/sitemap.xml
 
-# Robots.txt - LojaRápida Moçambique
+# Robots.txt — LojaRápida Moçambique
 # Última atualização: 2026
 
 User-agent: *
 Allow: /
-
-# Áreas privadas do sistema
 Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
 Disallow: /meus-pedidos/
 Disallow: /checkout/
 Disallow: /carrinho/
 Disallow: /encomenda-confirmada/
 Disallow: /meus-chats/
 Disallow: /oauth-callback/
-Disallow: /api/
-
-# Arquivos administrativos
-Disallow: /admin/
 Disallow: /adicionar-produto/
-
-# Páginas de login/registro (não precisam ser indexadas)
 Disallow: /login
 Disallow: /register
 
-# Regras específicas para bots principais
+# Google
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
+# Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Redes sociais
 User-agent: FacebookExternalHit
 Allow: /
 
@@ -37,6 +38,3 @@ Allow: /
 
 User-agent: LinkedInBot
 Allow: /
-
-# Delay de crawling para não sobrecarregar o servidor
-Crawl-delay: 1

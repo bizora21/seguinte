@@ -9,6 +9,9 @@ interface SEOProps {
   type?: string
   jsonLd?: object[]
   noIndex?: boolean
+  publishedTime?: string
+  modifiedTime?: string
+  keywords?: string[]
 }
 
 const DEFAULT_SITE = 'LojaRápida'
@@ -51,7 +54,10 @@ export const SEO: React.FC<SEOProps> = ({
   url,
   type = 'website',
   jsonLd,
-  noIndex = false
+  noIndex = false,
+  publishedTime,
+  modifiedTime,
+  keywords,
 }) => {
   
   let finalImage = image && image.trim() !== '' ? image : DEFAULT_IMAGE_PATH;
@@ -118,8 +124,14 @@ export const SEO: React.FC<SEOProps> = ({
 
       {/* Meta Tags para Google Discover */}
       <meta name="news_keywords" content={type === 'article' ? "marketplace, Moçambique, compras online, LojaRápida" : ""} />
-      {type === 'article' && (
-        <meta name="article:published_time" content={new Date().toISOString()} />
+      {keywords && keywords.length > 0 && (
+        <meta name="keywords" content={keywords.join(', ')} />
+      )}
+      {type === 'article' && publishedTime && (
+        <meta property="article:published_time" content={publishedTime} />
+      )}
+      {type === 'article' && modifiedTime && (
+        <meta property="article:modified_time" content={modifiedTime} />
       )}
       <meta name="article:author" content={DEFAULT_SITE} />
       <meta name="article:section" content="Marketplace" />

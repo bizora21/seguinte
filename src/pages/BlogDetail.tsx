@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 import { ArrowLeft, Calendar, Tag, Link as LinkIcon, ExternalLink, Loader2, Store, Package, AlertCircle } from 'lucide-react'
 import { BlogPostWithCategory, LinkItem } from '../types/blog'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { SEO, generateBreadcrumbSchema } from '../components/SEO'
+import { SEO, generateBreadcrumbSchema, generateNewsArticleSchema } from '../components/SEO'
 import TipTapRenderer from '../components/TipTapRenderer'
 
 const BlogDetail = () => {
@@ -63,17 +63,20 @@ const BlogDetail = () => {
   
   const generateBlogPostingSchema = useMemo(() => {
     if (!post) return null
-    
+
     const postUrl = `${BASE_URL}/blog/${post.slug}`
-    
+    const imageUrl = post.featured_image_url || `${BASE_URL}/og-image.jpg`
+
     return {
       "@context": "https://schema.org",
       "@type": "BlogPosting",
       "headline": post.title,
       "description": post.meta_description,
-      "image": post.featured_image_url || `${BASE_URL}/og-image.jpg`,
+      "image": [imageUrl],
       "datePublished": post.published_at || post.created_at,
-      "dateModified": post.updated_at,
+      "dateModified": post.updated_at || post.published_at || post.created_at,
+      "inLanguage": "pt-MZ",
+      "keywords": (post.secondary_keywords as string[] || []).join(', '),
       "author": {
         "@type": "Organization",
         "name": "LojaRápida",
@@ -97,6 +100,22 @@ const BlogDetail = () => {
     }
   }, [post])
   
+  const discoverSchema = useMemo(() => {
+    if (!post) return null
+    return generateNewsArticleSchema({
+      title: post.title,
+      description: post.meta_description,
+      image: post.featured_image_url || `${BASE_URL}/og-image.jpg`,
+      datePublished: post.published_at || post.created_at,
+      dateModified: post.updated_at,
+      author: 'LojaRápida',
+      url: `${BASE_URL}/blog/${post.slug}`,
+      headline: post.title,
+      articleSection: (post.category as any)?.name || 'Marketplace',
+      keywords: (post.secondary_keywords as string[]) || [],
+    })
+  }, [post])
+
   const breadcrumbs = useMemo(() => {
     if (!post) return []
     return [
@@ -133,7 +152,10 @@ const BlogDetail = () => {
         image={post.featured_image_url || undefined}
         url={`${BASE_URL}/blog/${post.slug}`}
         type="article"
-        jsonLd={[generateBlogPostingSchema, generateBreadcrumbSchema(breadcrumbs)].filter(Boolean) as object[]}
+        publishedTime={post.published_at || post.created_at}
+        modifiedTime={post.updated_at || post.published_at || post.created_at}
+        keywords={post.secondary_keywords as string[] || []}
+        jsonLd={[generateBlogPostingSchema, discoverSchema, generateBreadcrumbSchema(breadcrumbs)].filter(Boolean) as object[]}
       />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
