@@ -14,6 +14,7 @@ import CancelledOrdersCard from '../components/Admin/CancelledOrdersCard'
 import PendingCommissionsCard from '../components/Admin/PendingCommissionsCard'
 import AdminActivityFeed from '../components/Admin/AdminActivityFeed'
 import AdminLiveOrdersCard from '../components/Admin/AdminLiveOrdersCard'
+import AdminPushTab from '../components/Admin/AdminPushTab'
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth()
@@ -175,6 +176,11 @@ const AdminDashboard = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Atividades Recentes</h2>
               <AdminActivityFeed />
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Notificações Push</h2>
+              <AdminPushTab />
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

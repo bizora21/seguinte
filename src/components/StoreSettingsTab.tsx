@@ -7,10 +7,11 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Checkbox } from './ui/checkbox'
-import { Settings, Save, Store, AlertTriangle, MapPin, Truck } from 'lucide-react'
+import { Settings, Save, AlertTriangle, MapPin, Truck, Bell, BellOff } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import SupabaseImageUpload from './SupabaseImageUpload' // ATUALIZADO
+import { usePushNotifications } from '../hooks/usePushNotifications'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -43,6 +44,11 @@ const PROVINCES = [
 
 const StoreSettingsTab = () => {
   const { user, loading: authLoading } = useAuth()
+  const { permission, requestPermission, isSupported } = usePushNotifications()
+  const [notifyMessages, setNotifyMessages] = useState(() => localStorage.getItem('notify_messages') !== 'false')
+  const [notifyPromotions, setNotifyPromotions] = useState(() => localStorage.getItem('notify_promotions') !== 'false')
+  const [activating, setActivating] = useState(false)
+
   const [storeName, setStoreName] = useState('')
   const [storeDescription, setStoreDescription] = useState('')
   const [storeLogo, setStoreLogo] = useState<string[]>([]) // ATUALIZADO para array
@@ -286,6 +292,115 @@ const StoreSettingsTab = () => {
                   </Label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Notificações Push */}
+          <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <Bell className="w-4 h-4 mr-2" />
+                Notificações Push
+              </h3>
+              <p className="text-sm text-gray-600">Gerencie como recebe alertas no seu dispositivo.</p>
+            </div>
+            <div className="md:col-span-2 space-y-4">
+              {/* Estado actual da permissão */}
+              {!isSupported ? (
+                <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border">
+                  <BellOff className="w-4 h-4 flex-shrink-0" />
+                  O seu browser não suporta notificações push.
+                </div>
+              ) : permission === 'granted' ? (
+                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+                  <Bell className="w-4 h-4 flex-shrink-0" />
+                  Notificações activadas
+                </div>
+              ) : permission === 'denied' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3 border border-red-200">
+                    <BellOff className="w-4 h-4 flex-shrink-0" />
+                    Notificações bloqueadas
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Para activar: clique no cadeado na barra de endereço → Notificações → Permitir.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg p-3 border">
+                    <Bell className="w-4 h-4 flex-shrink-0" />
+                    Notificações não activadas
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={activating}
+                    onClick={async () => {
+                      setActivating(true)
+                      await requestPermission()
+                      setActivating(false)
+                    }}
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    {activating ? 'A activar...' : 'Activar notificações'}
+                  </Button>
+                </div>
+              )}
+
+              {/* Toggles */}
+              <div className="space-y-3 pt-1">
+                {/* Novas encomendas — sempre ON */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Novas encomendas</p>
+                    <p className="text-xs text-gray-500">Obrigatório para receber encomendas</p>
+                  </div>
+                  <div className="w-9 h-5 rounded-full bg-green-500 flex items-center justify-end pr-0.5 opacity-60 cursor-not-allowed">
+                    <div className="w-4 h-4 rounded-full bg-white shadow" />
+                  </div>
+                </div>
+
+                {/* Mensagens no chat */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Mensagens no chat</p>
+                    <p className="text-xs text-gray-500">Notificação quando recebe uma mensagem</p>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={notifyMessages}
+                    onClick={() => {
+                      const next = !notifyMessages
+                      setNotifyMessages(next)
+                      localStorage.setItem('notify_messages', String(next))
+                    }}
+                    className={`w-9 h-5 rounded-full transition-colors flex items-center px-0.5 ${notifyMessages ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white shadow" />
+                  </button>
+                </div>
+
+                {/* Promoções */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Notificações de promoções</p>
+                    <p className="text-xs text-gray-500">Campanhas e novidades da plataforma</p>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={notifyPromotions}
+                    onClick={() => {
+                      const next = !notifyPromotions
+                      setNotifyPromotions(next)
+                      localStorage.setItem('notify_promotions', String(next))
+                    }}
+                    className={`w-9 h-5 rounded-full transition-colors flex items-center px-0.5 ${notifyPromotions ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'}`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white shadow" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
