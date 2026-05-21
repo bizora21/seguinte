@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
 import ProductCard from '../components/ProductCard'
@@ -7,7 +7,6 @@ import { Button } from '../components/ui/button'
 import { motion, Variants } from 'framer-motion'
 import {
   Store,
-  Package,
   Shield,
   Truck,
   CreditCard,
@@ -16,12 +15,8 @@ import {
   Loader2,
   CheckCircle,
   TrendingUp,
-  Headphones,
   Search,
   ShoppingBag,
-  TruckIcon,
-  CreditCardIcon,
-  MessageCircle,
   Star,
   Rocket,
   Smartphone
@@ -95,7 +90,7 @@ const HomePage: React.FC = () => {
       <div className="min-h-screen bg-white font-sans">
         
         {/* --- HERO SECTION --- */}
-        <section className="relative overflow-hidden bg-[#0A2540] text-white pb-20 pt-24 lg:pt-32">
+        <section className="relative overflow-hidden bg-[#0A2540] text-white pb-10 pt-14 md:pb-20 md:pt-24 lg:pt-32">
           {/* Background Pattern Suave */}
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
           
@@ -111,7 +106,7 @@ const HomePage: React.FC = () => {
                   <span className="text-sm font-medium text-green-50 tracking-wide uppercase">Marketplace #1 em Moçambique</span>
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
                   Encomende e Venda <br className="hidden md:block" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-300">
                     Rápido e Seguro
@@ -144,7 +139,7 @@ const HomePage: React.FC = () => {
                 </div>
 
                 {/* Trust Signals */}
-                <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap justify-center gap-6 md:gap-12 text-sm font-medium text-gray-400">
+                <div className="mt-12 pt-8 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-12 justify-items-center text-sm font-medium text-gray-400">
                   <div className="flex items-center"><Shield className="w-5 h-5 mr-2 text-green-400" /> Compra 100% Segura</div>
                   <div className="flex items-center"><Truck className="w-5 h-5 mr-2 text-blue-400" /> Entrega em todo MZ</div>
                   <div className="flex items-center"><CreditCard className="w-5 h-5 mr-2 text-purple-400" /> Pague ao Receber</div>
@@ -162,9 +157,9 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* --- VALUE PROPOSITION (CARDS) --- */}
-        <section className="py-20 bg-gray-50">
+        <section className="py-10 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-8 md:mb-16">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Por que usar a LojaRápida?</h2>
               <p className="text-gray-600 max-w-2xl mx-auto">Criamos uma plataforma pensada para a realidade de Moçambique, focada em confiança e agilidade.</p>
             </div>
@@ -195,18 +190,18 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* --- DUAL CTA SECTION --- */}
-        <section className="py-20">
+        <section className="py-10 md:py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Card Comprador */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-between min-h-[300px]">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 text-white p-5 sm:p-8 md:p-10 flex flex-col justify-between min-h-[300px]">
                 <div className="relative z-10">
                   <div className="inline-flex items-center bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-4">
                     <ShoppingBag className="w-3 h-3 mr-1" /> PARA CLIENTES
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Quer comprar algo incrível?</h3>
                   <p className="text-blue-100 mb-8 max-w-md">Explore milhares de produtos únicos. Moda, eletrônicos, casa e muito mais.</p>
-                  <Button onClick={() => navigate('/produtos')} className="bg-white text-blue-900 hover:bg-blue-50 font-bold">
+                  <Button onClick={() => navigate('/produtos')} className="w-full sm:w-auto bg-white text-blue-900 hover:bg-blue-50 font-bold">
                     Ver Catálogo
                   </Button>
                 </div>
@@ -214,14 +209,14 @@ const HomePage: React.FC = () => {
               </div>
 
               {/* Card Vendedor */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-black text-white p-10 flex flex-col justify-between min-h-[300px]">
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 to-black text-white p-5 sm:p-8 md:p-10 flex flex-col justify-between min-h-[300px]">
                 <div className="relative z-10">
                   <div className="inline-flex items-center bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-4">
                     <TrendingUp className="w-3 h-3 mr-1" /> PARA EMPREENDEDORES
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Quer vender rápido?</h3>
                   <p className="text-gray-400 mb-8 max-w-md">Crie sua loja digital em minutos. Sem custos de adesão. Alcance todo o país.</p>
-                  <Button onClick={() => navigate('/register')} className="bg-green-500 text-white hover:bg-green-600 font-bold">
+                  <Button onClick={() => navigate('/register')} className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 font-bold">
                     Criar Minha Loja
                   </Button>
                 </div>
@@ -232,7 +227,7 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* --- FEATURED PRODUCTS --- */}
-        <section className="py-20 bg-gray-50">
+        <section className="py-10 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Achados da Semana</h2>
@@ -272,7 +267,7 @@ const HomePage: React.FC = () => {
                   <div className="text-center py-12 text-gray-500">Nenhum produto em destaque no momento.</div>
                 )}
                 
-                <div className="text-center mt-12">
+                <div className="text-center mt-8 md:mt-12">
                   <Button onClick={() => navigate('/produtos')} className="bg-[#0A2540] hover:bg-gray-800 text-white px-8">
                     Ver Todos os Produtos <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
@@ -283,9 +278,9 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* --- MOBILE APP SECTION --- */}
-        <section className="py-20 bg-gradient-to-br from-[#0A2540] to-[#1a3a52] text-white">
+        <section className="py-10 md:py-20 bg-gradient-to-br from-[#0A2540] to-[#1a3a52] text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
@@ -299,7 +294,7 @@ const HomePage: React.FC = () => {
                 <h2 className="text-4xl md:text-5xl font-bold mb-6">
                   Leve a LojaRápida<br />sempre com você
                 </h2>
-                <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+                <p className="text-base md:text-xl text-gray-300 mb-8 leading-relaxed">
                   Baixe o app GRATUITO e compre em qualquer lugar, a qualquer hora. Notificações instantâneas, acompanhamento de pedidos em tempo real e ofertas exclusivas para usuários do app.
                 </p>
 
