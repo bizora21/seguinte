@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { showError } from '../utils/toast';
 import { containsContact } from '../utils/detectContact';
+import { notifyAdmin } from '../utils/notifyAdmin';
 import LoadingSpinner from './LoadingSpinner';
 
 interface ProductChatProps {
@@ -197,6 +198,11 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
 
     if (containsContact(messageContent)) {
       showError('Por razões de segurança, não é permitido partilhar contactos, links ou redes sociais no chat.');
+      notifyAdmin(
+        '⚠️ Tentativa de partilha de contacto',
+        `Utilizador tentou partilhar: "${messageContent.slice(0, 80)}"`,
+        '/dashboard/admin'
+      ).catch(() => {})
       return;
     }
 

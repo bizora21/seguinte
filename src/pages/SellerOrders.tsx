@@ -12,6 +12,7 @@ import { showSuccess, showError } from '../utils/toast'
 import toast from 'react-hot-toast'
 import { getFirstImageUrl } from '../utils/images'
 import { sendTemplatedEmail } from '../utils/email' // IMPORT NECESSÁRIO
+import { notifyAdmin } from '../utils/notifyAdmin'
 
 interface ProcessedOrder {
   id: string
@@ -226,6 +227,11 @@ const SellerOrders = () => {
             }
           });
           showSuccess('E-mail de confirmação de entrega enviado ao cliente!');
+          notifyAdmin(
+            '⚠️ Encomenda marcada como entregue',
+            `Pedido #${orderId.slice(0, 8)} marcado como entregue pelo vendedor`,
+            '/dashboard/admin'
+          ).catch(() => {})
         }
       }
 

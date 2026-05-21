@@ -17,6 +17,7 @@ messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {}
 
   const isNewOrder = data.type === 'new_order'
+  const isAdminAlert = (notification.title || '').startsWith('⚠️')
 
   const title = notification.title || (isNewOrder ? '🔴 Nova Encomenda!' : 'LojaRápida')
   const body  = notification.body  || ''
@@ -31,7 +32,7 @@ messaging.onBackgroundMessage((payload) => {
     image,
     vibrate: isNewOrder ? [500, 200, 500, 200, 500] : [200, 100, 200],
     tag: isNewOrder ? 'new-order' : undefined,
-    requireInteraction: isNewOrder,   // mantém visível até o vendedor interagir
+    requireInteraction: isNewOrder || isAdminAlert,
     data: { url, type: data.type },
     ...(isNewOrder ? {
       actions: [

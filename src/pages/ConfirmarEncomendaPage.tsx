@@ -12,6 +12,7 @@ import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield, Che
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { sendTemplatedEmail } from '../utils/email'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { notifyAdmin } from '../utils/notifyAdmin'
 
 interface OrderFormData {
   fullName: string
@@ -227,6 +228,14 @@ const ConfirmarEncomendaPage = () => {
           data: { type: 'new_order', order_id: order.id },
         },
       }).catch(() => {/* silencioso */})
+
+      // Notifica admin (não-bloqueante)
+      notifyAdmin(
+        '⚠️ Nova encomenda criada',
+        `${formData.fullName} encomendou ${product.name}`,
+        '/dashboard/admin',
+        _firstImage || undefined
+      ).catch(() => {/* silencioso */})
 
       // Email ao vendedor (não-bloqueante — falha silenciosa)
       if (product?.seller?.email) {

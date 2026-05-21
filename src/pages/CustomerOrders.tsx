@@ -12,6 +12,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../utils/toas
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { getFirstImageUrl } from '../utils/images'
+import { notifyAdmin } from '../utils/notifyAdmin'
 
 const CustomerOrders = () => {
   const { user } = useAuth()
@@ -149,6 +150,11 @@ const CustomerOrders = () => {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'completed' } : o))
       setConfirmedIds(prev => new Set([...prev, orderId]))
       showSuccess('Entrega confirmada! Obrigado por comprar na LojaRápida.')
+      notifyAdmin(
+        '⚠️ Cliente confirmou recebimento',
+        `Pedido #${orderId.slice(0, 8)} confirmado como recebido pelo cliente`,
+        '/dashboard/admin'
+      ).catch(() => {})
       // Remove o card de sucesso após 4 segundos
       setTimeout(() => setConfirmedIds(prev => { const n = new Set(prev); n.delete(orderId); return n }), 4000)
     } catch (err: any) {

@@ -10,7 +10,7 @@ import { Checkbox } from '../components/ui/checkbox'
 import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 import { Textarea } from '../components/ui/textarea'
-import { supabase } from '../lib/supabase' // Adicionado: Importação do supabase
+import { notifyAdmin } from '../utils/notifyAdmin'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -136,6 +136,13 @@ const Register = () => {
         // confiando que o AuthProvider fará a inserção inicial completa.
         
         showSuccess('Conta criada com sucesso! Faça login para continuar.')
+        if (role === 'vendedor') {
+          notifyAdmin(
+            '⚠️ Novo vendedor registado',
+            `${storeName || email} registou-se como vendedor`,
+            '/dashboard/admin'
+          ).catch(() => {})
+        }
         navigate('/login')
       }
     } catch (error) {
