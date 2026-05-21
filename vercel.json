@@ -1,31 +1,8 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
+﻿{
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "dest": "/sitemap.xml"
-    },
-    {
-      "source": "/robots.txt",
-      "dest": "/robots.txt"
-    },
-    {
-      "source": "/produto/:id",
-      "destination": "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/product-ssr?id=$id",
-      "headers": [
-        {
-          "key": "User-Agent",
-          "value": "(facebookexternalhit|twitterbot|pinterest|googlebot|linkedinbot|slackbot|whatsapp|bingbot|yandexbot|duckduckbot|baiduspider|embedly)"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap"
     }
   ]
 }
