@@ -1,5 +1,5 @@
 # Sitemap deve estar no início para ser encontrado primeiro
-Sitemap: https://lojarapidamz.com/sitemap.xml
+Sitemap: https://bpzqdwpkwlwflrcwcrqp.supabase.co/functions/v1/sitemap
 
 # Robots.txt — LojaRápida Moçambique
 # Última atualização: 2026
