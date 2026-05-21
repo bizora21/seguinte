@@ -56,7 +56,6 @@ const StorePage = React.lazy(() => import("./pages/StorePage"));
 const SobreNosPage = React.lazy(() => import("./pages/SobreNosPage"));
 const BlogPage = React.lazy(() => import("./pages/BlogPage"));
 const BlogDetail = React.lazy(() => import("./pages/BlogDetail"));
-const SitemapPage = React.lazy(() => import("./pages/SitemapPage"));
 const FaqPage = React.lazy(() => import("./pages/FaqPage"));
 const ContatoPage = React.lazy(() => import("./pages/ContatoPage"));
 const ConfirmarEncomendaPage = React.lazy(() => import("./pages/ConfirmarEncomendaPage"));
@@ -159,7 +158,6 @@ const App = () => (
                       <Route path="/sobre-nos" element={<SobreNosPage />} />
                       <Route path="/blog" element={<BlogPage />} />
                       <Route path="/blog/:slug" element={<BlogDetail />} />
-                      <Route path="/sitemap.xml" element={<SitemapPage />} />
                       
                       <Route path="/faq" element={<FaqPage />} />
                       <Route path="/contato" element={<ContatoPage />} />

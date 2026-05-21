@@ -1,3 +1,6 @@
+# Credenciais sensíveis — NUNCA commitar
+scripts/google-service-account.json
+
 # Logs
 logs
 *.log
