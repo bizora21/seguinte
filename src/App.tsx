@@ -22,11 +22,17 @@ import LeadCapturePopup from "./components/LeadCapturePopup"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { GroupInviteModal } from "./components/ui/GroupInviteModal"
 import { useAuth } from "./contexts/AuthContext"
+import NotificationPrompt from "./components/NotificationPrompt"
 
-// Componente interno — passa o role do utilizador autenticado (se existir)
+// Componente interno — passa o role e activa push notifications se autenticado
 const AppContent = () => {
   const { user } = useAuth()
-  return <GroupInviteModal userRole={user?.profile?.role} />
+  return (
+    <>
+      <GroupInviteModal userRole={user?.profile?.role} />
+      {user && <NotificationPrompt />}
+    </>
+  )
 };
 
 // Rotas Críticas (Carregamento Eager)
