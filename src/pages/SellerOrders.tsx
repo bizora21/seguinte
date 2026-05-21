@@ -246,6 +246,16 @@ const SellerOrders = () => {
       const statusInfo = getStatusInfo(newStatus as ProcessedOrder['status']);
       showSuccess(`Status atualizado para: ${statusInfo.label}`);
 
+      // Push ao comprador (não-bloqueante)
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_id: orderToUpdate.user_id,
+          title: `Pedido ${statusInfo.label}`,
+          body: `O seu pedido #${orderId.slice(0, 8)} foi actualizado.`,
+          url: `/meus-pedidos/${orderId}`,
+        },
+      }).catch(() => {/* silencioso */})
+
     } catch (error: any) {
       console.error('❌ Erro ao atualizar status:', error)
       showError('Erro ao atualizar status: ' + error.message)

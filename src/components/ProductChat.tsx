@@ -218,6 +218,16 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
       if (error) {
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
         showError('Erro ao enviar mensagem');
+      } else {
+        // Push ao outro participante (não-bloqueante)
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            user_id: sellerId,
+            title: 'Nova mensagem no chat',
+            body: messageContent.length > 80 ? messageContent.slice(0, 80) + '…' : messageContent,
+            url: `/chat/${chatId}`,
+          },
+        }).catch(() => {/* silencioso */})
       }
     } catch {
       setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));

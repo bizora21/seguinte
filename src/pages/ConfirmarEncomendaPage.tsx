@@ -213,6 +213,16 @@ const ConfirmarEncomendaPage = () => {
       dismissToast(toastId)
       showSuccess('Encomenda confirmada com sucesso! O vendedor já foi notificado.')
 
+      // Push ao vendedor (não-bloqueante)
+      supabase.functions.invoke('send-push-notification', {
+        body: {
+          user_id: productCheck.seller_id,
+          title: 'Nova encomenda recebida!',
+          body: `${formData.fullName} encomendou: ${product.name}`,
+          url: '/dashboard/seller',
+        },
+      }).catch(() => {/* silencioso */})
+
       // Email ao vendedor (não-bloqueante — falha silenciosa)
       if (product?.seller?.email) {
         const storeName = product.seller.store_name || product.seller.email.split('@')[0]
