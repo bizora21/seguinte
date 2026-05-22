@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --asset-build: "2026-05-22-rebuild";
+}
+
 @layer base {
   :root {
     /* Neutras */
