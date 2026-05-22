@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -18,6 +18,8 @@ const Login = () => {
   const [showReset, setShowReset] = useState(false)
   const { signIn, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const confirmado = searchParams.get('confirmado')
 
   const handleLogin = async (expectedRole: 'cliente' | 'vendedor') => {
     // Validação inicial
@@ -84,6 +86,16 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {confirmado === '1' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 text-center">
+                ✅ Conta confirmada com sucesso! Faça login para continuar.
+              </div>
+            )}
+            {confirmado === 'erro' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800 text-center">
+                O link de confirmação é inválido ou expirou. Tente registar-se novamente.
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
