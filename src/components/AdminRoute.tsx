@@ -2,8 +2,7 @@ import React from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { Navigate, useLocation } from 'react-router-dom'
 import LoadingSpinner from './LoadingSpinner'
-
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+import { ADMIN_EMAIL } from '../lib/constants'
 
 interface AdminRouteProps {
   children: React.ReactNode

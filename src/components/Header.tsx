@@ -15,8 +15,7 @@ import { Avatar, AvatarFallback } from './ui/avatar'
 import { Separator } from './ui/separator'
 import CategoryMenu from './CategoryMenu'
 import AdminNotificationBell from './AdminNotificationBell'
-
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+import { ADMIN_EMAIL } from '../lib/constants'
 
 const HamburgerIcon = ({ open }: { open: boolean }) => (
   <div className="w-5 h-5 flex flex-col justify-center items-center gap-[5px]">

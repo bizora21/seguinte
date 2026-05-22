@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
 import { sendTemplatedEmail } from '../utils/email' // NOVO IMPORT
 
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+import { ADMIN_EMAIL } from '../lib/constants'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -210,7 +210,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return { error: null, redirectTo: '/lojas' } // Redireciona para a página de lojas/produtos
           }
           
-          // 2b. É um vendedor/admin tentando logar como cliente
+          // 2b. É o administrador → redireciona para o painel admin
+          if (data.user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+            return { error: null, redirectTo: '/dashboard/admin' }
+          }
+
+          // 2c. É um vendedor tentando logar como cliente
           await supabase.auth.signOut()
           return { error: 'Este e-mail está cadastrado como Vendedor. Por favor, use o portal "Entrar como Vendedor".' }
         }
@@ -242,7 +247,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          emailRedirectTo: 'https://lojarapidamz.com/auth/callback'
+          emailRedirectTo: 'https://lojarapidamz.com/auth/callback',
+          data: {
+            role,
+            store_name: role === 'vendedor' ? (storeName ?? null) : null,
+            store_description: role === 'vendedor' ? (storeDescription ?? null) : null,
+            store_categories: role === 'vendedor' ? (storeCategories ?? null) : null,
+            city: city ?? null,
+            province: province ?? null,
+            delivery_scope: role === 'vendedor' ? (deliveryScope ?? null) : null,
+          }
         }
       })
 
@@ -250,52 +264,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error: authError.message }
       }
 
-      if (data.user) {
-        const profileData = {
-          id: data.user.id,
-          email: email,
-          role: role,
-          store_name: role === 'vendedor' ? storeName : null,
-          store_description: role === 'vendedor' ? storeDescription : null,
-          store_logo: role === 'vendedor' ? '/store-default.svg' : null, // Imagem padrão
-          store_categories: role === 'vendedor' ? storeCategories : null,
-          city: city || null, // Novo
-          province: province || null, // Novo
-          delivery_scope: role === 'vendedor' ? deliveryScope : null // Novo
-        }
-        
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert(profileData)
-          .throwOnError()
-
-        if (profileError) {
-          return { error: 'Erro ao criar perfil do usuário' }
-        }
-        
-        // --- NOVO: Envio de E-mail de Boas-Vindas ---
-        if (role === 'cliente') {
-          const name = email.split('@')[0]
-          sendTemplatedEmail({
-            to: email,
-            subject: `Bem-vindo(a) à LojaRápida, ${name}!`,
-            template: 'welcome_client',
-            props: { name }
-          })
-        } else if (role === 'vendedor' && storeName) {
-          sendTemplatedEmail({
-            to: email,
-            subject: `Parabéns, sua loja ${storeName} está online!`,
-            template: 'welcome_seller',
-            props: { storeName, sellerId: data.user.id } // Passando sellerId
-          })
-        }
-        // --- FIM NOVO ---
-        
-        return { error: null }
+      if (!data.user) {
+        return { error: 'Falha ao criar utilizador' }
       }
 
-      return { error: 'Falha ao criar usuário' }
+      // Se há sessão imediata (confirmação desactivada), o trigger já criou o perfil.
+      // Se não há sessão (confirmação activa), o trigger cria o perfil quando o user confirma.
+      // Em ambos os casos não fazemos insert manual aqui.
+
+      // E-mail de boas-vindas (não-bloqueante)
+      if (role === 'cliente') {
+        const name = email.split('@')[0]
+        sendTemplatedEmail({
+          to: email,
+          subject: `Bem-vindo(a) à LojaRápida, ${name}!`,
+          template: 'welcome_client',
+          props: { name }
+        }).catch(() => {})
+      } else if (role === 'vendedor' && storeName) {
+        sendTemplatedEmail({
+          to: email,
+          subject: `Parabéns, sua loja ${storeName} está online!`,
+          template: 'welcome_seller',
+          props: { storeName, sellerId: data.user.id }
+        }).catch(() => {})
+      }
+
+      return { error: null }
     } catch (error) {
       return { error: 'Erro inesperado ao criar conta' }
     }

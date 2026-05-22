@@ -1,6 +1,7 @@
 import { useAuth } from '../contexts/AuthContext'
 import { Navigate, useLocation } from 'react-router-dom'
 import LoadingSpinner from './LoadingSpinner'
+import { ADMIN_EMAIL } from '../lib/constants'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -23,8 +24,6 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Se o usuário for o administrador, ele tem acesso a todas as rotas protegidas (exceto as estritamente de cliente, que não existem aqui)
-  const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
   const userEmailNormalized = (user.profile?.email || user.email)?.toLowerCase().trim()
   const isAdmin = userEmailNormalized === ADMIN_EMAIL.toLowerCase().trim()
 

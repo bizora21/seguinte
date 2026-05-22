@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { Profile } from '../types/auth'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Store, Star, Package, ArrowLeft, Search, MapPin, Shield, Users, Clock, Heart, TrendingUp, ShoppingBag } from 'lucide-react'
+import { Store, Star, Package, ArrowLeft, Search, MapPin, Shield, Users, Clock, TrendingUp, ShoppingBag } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { Input } from '../components/ui/input'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { SEO } from '../components/SEO'
 
-// Email do administrador a ser excluído da lista pública
-const ADMIN_EMAIL = 'lojarapidamz@outlook.com'
+import { ADMIN_EMAIL } from '../lib/constants'
 
 const LojasPage = () => {
   const [sellers, setSellers] = useState<Profile[]>([])
@@ -22,7 +21,7 @@ const LojasPage = () => {
   const navigate = useNavigate()
 
   // Dados mockados para estatísticas (em um sistema real, viriam do banco)
-  const getSellerStats = (sellerId: string) => {
+  const getSellerStats = () => {
     const stats = {
       products: Math.floor(Math.random() * 50) + 10,
       rating: (Math.random() * 1.5 + 3.5).toFixed(1),
@@ -305,7 +304,7 @@ const LojasPage = () => {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filteredSellers.map((seller) => {
-                const stats = getSellerStats(seller.id)
+                const stats = getSellerStats()
                 const imageUrl = getSellerImage(seller.id, seller.store_name || '')
                 
                 return (
