@@ -69,3 +69,4 @@
 /* force rebuild */
 
 :root { --build: 1; }
+:root { --loja-version: "2.0"; }
