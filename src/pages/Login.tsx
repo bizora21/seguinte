@@ -9,11 +9,13 @@ import { Link } from 'react-router-dom'
 import { showSuccess, showError } from '../utils/toast'
 import { User, Store } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import ForgotPasswordModal from '../components/ForgotPasswordModal'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showReset, setShowReset] = useState(false)
   const { signIn, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
@@ -110,6 +112,15 @@ const Login = () => {
                   disabled={isSubmitting}
                   autoComplete="current-password"
                 />
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setShowReset(true)}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
               </div>
             </form>
 
@@ -162,6 +173,7 @@ const Login = () => {
           </CardContent>
         </Card>
       </div>
+      <ForgotPasswordModal open={showReset} onClose={() => setShowReset(false)} />
     </div>
   )
 }

@@ -240,7 +240,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data, error: authError } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: 'https://lojarapidamz.com/auth/callback'
+        }
       })
 
       if (authError) {

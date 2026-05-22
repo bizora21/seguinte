@@ -40,7 +40,9 @@ import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
-import OAuthCallbackPage from "./pages/OAuthCallbackPage"; 
+import OAuthCallbackPage from "./pages/OAuthCallbackPage"
+import AuthCallbackPage from "./pages/AuthCallbackPage"
+import ResetPasswordPage from "./pages/ResetPasswordPage"
 
 // Rotas Lazy Loaded (Code Splitting)
 const ProductsPage = React.lazy(() => import("./pages/ProductsPage"));
@@ -104,6 +106,8 @@ const App = () => (
                       
                       <Route path="/teste-social" element={<TestSocial />} />
                       <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
+                      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
                       <Route path="/dashboard" element={<Navigate to="/dashboard/seller" replace />} />
                       <Route path="/admin" element={<Navigate to="/dashboard/admin" replace />} />

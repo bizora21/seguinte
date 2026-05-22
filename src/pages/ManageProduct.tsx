@@ -43,7 +43,8 @@ const ManageProduct = () => {
     price: '',
     images: [] as string[],
     stock: '',
-    category: ''
+    category: '',
+    featured: false
   })
   const [allowedCategories, setAllowedCategories] = useState<string[]>([])
 
@@ -86,7 +87,8 @@ const ManageProduct = () => {
         price: product.price.toString(),
         images: images,
         stock: product.stock.toString(),
-        category: product.category || ''
+        category: product.category || '',
+        featured: (product as any).featured ?? false
       })
     } catch (error) {
       showError('Erro ao carregar produto para edição.')
@@ -185,9 +187,10 @@ const ManageProduct = () => {
         name: formData.name,
         description: formData.description || null,
         price: parseFloat(formData.price),
-        image_url: imageUrlsJson, 
+        image_url: imageUrlsJson,
         stock: parseInt(formData.stock),
-        category: formData.category
+        category: formData.category,
+        featured: formData.featured
       }
 
       let error
@@ -375,6 +378,23 @@ const ManageProduct = () => {
                     Defina as categorias da sua loja nas Configurações do Dashboard.
                   </p>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-amber-900">Produto em destaque</p>
+                  <p className="text-xs text-amber-700">Aparece na secção de destaque da homepage</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={formData.featured}
+                  onClick={() => setFormData(prev => ({ ...prev, featured: !prev.featured }))}
+                  disabled={submitting}
+                  className={`w-11 h-6 rounded-full transition-colors flex items-center px-0.5 ${formData.featured ? 'bg-amber-500 justify-end' : 'bg-gray-300 justify-start'}`}
+                >
+                  <div className="w-5 h-5 rounded-full bg-white shadow" />
+                </button>
               </div>
 
               <div className="space-y-2">

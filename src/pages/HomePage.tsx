@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
-import ProductCard from '../components/ProductCard'
 import { Button } from '../components/ui/button'
-import { motion, Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '../components/ui/carousel'
+import { getFirstImageUrl } from '../utils/images'
 import {
   Store,
   Shield,
@@ -15,7 +16,6 @@ import {
   Loader2,
   CheckCircle,
   TrendingUp,
-  Search,
   ShoppingBag,
   Star,
   Rocket,
@@ -27,55 +27,46 @@ import FlashDealBanner from '../components/FlashDealBanner' // IMPORT NOVO
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
   const [featuredProducts, setFeaturedProducts] = useState<ProductWithSeller[]>([])
-  const [loading, setLoading] = useState<boolean>(false)
-  const [showProducts, setShowProducts] = useState<boolean>(false)
+  const [loading, setLoading] = useState<boolean>(true)
 
-  const fetchFeaturedProducts = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          seller:profiles!products_seller_id_fkey(id, store_name)
-        `)
-        .gt('stock', 0)
-        .order('created_at', { ascending: false })
-        .limit(8)
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        // Tenta buscar produtos marcados como destaque
+        const { data: featured } = await supabase
+          .from('products')
+          .select('*, seller:profiles!products_seller_id_fkey(id, store_name)')
+          .eq('featured', true)
+          .gt('stock', 0)
+          .order('created_at', { ascending: false })
+          .limit(8)
 
-      if (error) throw error
-      setFeaturedProducts(data || [])
-    } catch (err: any) {
-      console.error('Error fetching featured products:', err)
-    } finally {
-      setLoading(false)
+        if (featured && featured.length >= 4) {
+          setFeaturedProducts(featured)
+          return
+        }
+
+        // Fallback: completa com os mais recentes se menos de 4 featured
+        const needed = 8 - (featured?.length ?? 0)
+        const featuredIds = (featured ?? []).map((p: any) => p.id)
+        const { data: recent } = await supabase
+          .from('products')
+          .select('*, seller:profiles!products_seller_id_fkey(id, store_name)')
+          .gt('stock', 0)
+          .not('id', 'in', featuredIds.length > 0 ? `(${featuredIds.join(',')})` : '(00000000-0000-0000-0000-000000000000)')
+          .order('created_at', { ascending: false })
+          .limit(needed)
+
+        setFeaturedProducts([...(featured ?? []), ...(recent ?? [])])
+      } catch (err) {
+        console.error('Error fetching featured products:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
 
-  const handleShowProducts = () => {
-    if (!showProducts) {
-      fetchFeaturedProducts()
-    }
-    setShowProducts(true)
-  }
-
-  // Animações
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  }
-
-  const itemVariants: Variants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: 'spring', stiffness: 100, damping: 12 }
-    }
-  }
+    fetchFeaturedProducts()
+  }, [])
 
   return (
     <>
@@ -226,54 +217,76 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* --- FEATURED PRODUCTS --- */}
+        {/* --- FEATURED PRODUCTS CAROUSEL --- */}
         <section className="py-10 md:py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Achados da Semana</h2>
-              <p className="text-gray-600">Produtos populares selecionados para você encomendar agora.</p>
+            <div className="text-center mb-10">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">🔥 Produtos em Destaque</h2>
+              <p className="text-gray-600">Os melhores produtos disponíveis agora</p>
             </div>
 
-            {!showProducts ? (
-              <div className="text-center">
-                <Button 
-                  onClick={handleShowProducts} 
-                  size="lg" 
-                  variant="outline"
-                  className="h-14 px-8 text-lg border-2"
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  Carregar Produtos em Destaque
-                </Button>
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-10 h-10 animate-spin text-gray-400" />
               </div>
+            ) : featuredProducts.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">Nenhum produto disponível no momento.</div>
             ) : (
-              <>
-                {loading ? (
-                  <div className="flex justify-center py-12"><Loader2 className="w-10 h-10 animate-spin text-gray-400" /></div>
-                ) : featuredProducts.length > 0 ? (
-                  <motion.div 
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-                  >
-                    {featuredProducts.map((product) => (
-                      <motion.div key={product.id} variants={itemVariants} className="h-full">
-                        <ProductCard product={product} />
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">Nenhum produto em destaque no momento.</div>
-                )}
-                
-                <div className="text-center mt-8 md:mt-12">
-                  <Button onClick={() => navigate('/produtos')} className="bg-[#0A2540] hover:bg-gray-800 text-white px-8">
-                    Ver Todos os Produtos <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </div>
-              </>
+              <Carousel
+                opts={{ align: 'start', loop: false }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-3">
+                  {featuredProducts.map((product) => {
+                    const imgUrl = getFirstImageUrl(product.image_url)
+                    const storeName = (product.seller as any)?.store_name || ''
+                    return (
+                      <CarouselItem
+                        key={product.id}
+                        className="pl-3 basis-[66%] sm:basis-[42%] lg:basis-[25%]"
+                      >
+                        <div
+                          className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full cursor-pointer"
+                          onClick={() => navigate(`/produto/${product.id}`)}
+                        >
+                          <div className="aspect-square w-full overflow-hidden bg-gray-50">
+                            <img
+                              src={imgUrl || '/placeholder.svg'}
+                              alt={product.name}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="p-4 flex flex-col flex-1">
+                            <p className="text-xs text-gray-400 mb-1 truncate">{storeName}</p>
+                            <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 flex-1 mb-3">
+                              {product.name}
+                            </h3>
+                            <p className="text-xl font-bold text-green-600 mb-3">
+                              {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', maximumFractionDigits: 0 }).format(product.price)}
+                            </p>
+                            <Button
+                              size="sm"
+                              className="w-full bg-[#0A2540] hover:bg-gray-800 text-white text-xs"
+                              onClick={e => { e.stopPropagation(); navigate(`/produto/${product.id}`) }}
+                            >
+                              Ver produto
+                            </Button>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    )
+                  })}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex -left-5" />
+                <CarouselNext className="hidden md:flex -right-5" />
+              </Carousel>
             )}
+
+            <div className="text-center mt-8 md:mt-12">
+              <Button onClick={() => navigate('/produtos')} className="bg-[#0A2540] hover:bg-gray-800 text-white px-8">
+                Ver Todos os Produtos <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </div>
         </section>
 

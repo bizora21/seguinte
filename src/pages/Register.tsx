@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Checkbox } from '../components/ui/checkbox'
-import { Link } from 'react-router-dom'
-import { showSuccess, showError } from '../utils/toast'
+import { showError } from '../utils/toast'
 import { Textarea } from '../components/ui/textarea'
 import { notifyAdmin } from '../utils/notifyAdmin'
 
@@ -42,6 +41,7 @@ const PROVINCES = [
 ]
 
 const Register = () => {
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -54,7 +54,6 @@ const Register = () => {
   const [deliveryScope, setDeliveryScope] = useState<string[]>([]) // Novo estado
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
-  const navigate = useNavigate()
 
   const handleCategoryChange = (category: string, checked: boolean) => {
     if (checked) {
@@ -135,7 +134,6 @@ const Register = () => {
         // então esta lógica de fallback é redundante e pode ser removida,
         // confiando que o AuthProvider fará a inserção inicial completa.
         
-        showSuccess('Conta criada com sucesso! Faça login para continuar.')
         if (role === 'vendedor') {
           notifyAdmin(
             '⚠️ Novo vendedor registado',
@@ -143,7 +141,7 @@ const Register = () => {
             '/dashboard/admin'
           ).catch(() => {})
         }
-        navigate('/login')
+        setRegisteredEmail(email)
       }
     } catch (error) {
       showError('Erro inesperado ao criar conta')
@@ -151,6 +149,44 @@ const Register = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <span className="text-3xl">✅</span>
+            </div>
+            <CardTitle className="text-2xl">Verifique o seu email</CardTitle>
+            <CardDescription className="mt-2 text-base leading-relaxed">
+              Enviámos um link de confirmação para{' '}
+              <span className="font-semibold text-gray-900">{registeredEmail}</span>.
+              <br />Clique no link para activar a sua conta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pb-6">
+            <p className="text-sm text-gray-500">
+              Não recebeu o email? Verifique a pasta de spam ou{' '}
+              <button
+                type="button"
+                className="text-green-600 hover:underline font-medium"
+                onClick={() => setRegisteredEmail(null)}
+              >
+                tente registar-se novamente
+              </button>.
+            </p>
+            <Link
+              to="/login"
+              className="block w-full text-center py-2.5 px-4 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Ir para o Login
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
