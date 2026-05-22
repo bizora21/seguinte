@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { AuthUser, Profile } from '../types/auth'
-import { sendTemplatedEmail } from '../utils/email' // NOVO IMPORT
 
 import { ADMIN_EMAIL } from '../lib/constants'
 
@@ -271,24 +270,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Se há sessão imediata (confirmação desactivada), o trigger já criou o perfil.
       // Se não há sessão (confirmação activa), o trigger cria o perfil quando o user confirma.
       // Em ambos os casos não fazemos insert manual aqui.
-
-      // E-mail de boas-vindas (não-bloqueante)
-      if (role === 'cliente') {
-        const name = email.split('@')[0]
-        sendTemplatedEmail({
-          to: email,
-          subject: `Bem-vindo(a) à LojaRápida, ${name}!`,
-          template: 'welcome_client',
-          props: { name }
-        }).catch(() => {})
-      } else if (role === 'vendedor' && storeName) {
-        sendTemplatedEmail({
-          to: email,
-          subject: `Parabéns, sua loja ${storeName} está online!`,
-          template: 'welcome_seller',
-          props: { storeName, sellerId: data.user.id }
-        }).catch(() => {})
-      }
+      // O e-mail de confirmação é enviado automaticamente pelo Supabase via SMTP.
 
       return { error: null }
     } catch (error) {
