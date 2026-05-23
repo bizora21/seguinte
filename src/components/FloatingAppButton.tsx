@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { X, Smartphone, Download, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const FloatingAppButton = () => {
+  const { pathname } = useLocation()
   const [isVisible, setIsVisible] = useState(false)
   const [isClosed, setIsClosed] = useState(false)
 
@@ -47,6 +49,9 @@ const FloatingAppButton = () => {
     // Não fechar o banner após clicar, apenas marcar como visto
     localStorage.setItem('appBannerClicked', Date.now().toString())
   }
+
+  // Só renderiza na homepage — em qualquer outra rota retorna null.
+  if (pathname !== '/') return null
 
   return (
     <AnimatePresence>
