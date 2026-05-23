@@ -6,6 +6,20 @@
   --asset-build: "2026-05-22-rebuild";
 }
 
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: ticker 40s linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
 @layer base {
   :root {
     /* Neutras */
