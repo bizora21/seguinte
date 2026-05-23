@@ -316,7 +316,7 @@ const Register = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone (WhatsApp/chamada) *</Label>
+                  <Label htmlFor="phone">Telefone *</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -327,7 +327,6 @@ const Register = () => {
                     disabled={loading}
                     autoComplete="tel"
                   />
-                  <p className="text-xs text-gray-500">Os clientes vão usar este número para te contactar.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="storeDescription">Descrição da Loja</Label>

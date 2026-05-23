@@ -30,6 +30,7 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<string>(tabParam || 'overview')
   
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -306,7 +307,32 @@ const Dashboard = () => {
             )}
           </div>
 
-          <Tabs defaultValue={tabParam || "overview"} className="space-y-6">
+          {user.profile?.role === 'vendedor' && !user.profile?.phone && (
+            <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-amber-700" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-amber-900 text-sm">Número de telefone em falta</p>
+                  <p className="text-sm text-amber-800 mt-0.5">
+                    Por favor, preencha o seu número de telefone para continuar a usar a plataforma.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                  onClick={() => setActiveTab('settings')}
+                >
+                  Adicionar agora
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             {/* Tabs Responsivas: 2 colunas no mobile, 4 no desktop */}
             <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto p-1 bg-white border shadow-sm rounded-xl">
               <TabsTrigger value="overview" className="py-2.5">Visão Geral</TabsTrigger>

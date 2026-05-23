@@ -28,6 +28,16 @@ const CATEGORIES = [
   { value: 'outros', label: 'Outros' }
 ]
 
+const PHONE_REGEX = /^\+2588[0-9]{8}$/
+
+const normalizePhone = (raw: string): string => {
+  const cleaned = raw.replace(/[\s\-()]/g, '')
+  if (cleaned.startsWith('+')) return cleaned
+  if (cleaned.startsWith('258')) return '+' + cleaned
+  if (cleaned.startsWith('8')) return '+258' + cleaned
+  return cleaned
+}
+
 const PROVINCES = [
   { value: 'maputo_cidade', label: 'Maputo (Cidade)' },
   { value: 'maputo_provincia', label: 'Maputo (Província)' },
@@ -56,6 +66,7 @@ const StoreSettingsTab = () => {
   const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [deliveryScope, setDeliveryScope] = useState<string[]>([])
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -67,6 +78,7 @@ const StoreSettingsTab = () => {
       setCity(user.profile.city || '')
       setProvince(user.profile.province || '')
       setDeliveryScope((user.profile.delivery_scope as string[] | null) || [])
+      setPhone(user.profile.phone || '')
     }
   }, [user])
 
@@ -108,6 +120,11 @@ const StoreSettingsTab = () => {
       showError('Defina o escopo de entrega.')
       return
     }
+    const normalizedPhone = normalizePhone(phone)
+    if (!PHONE_REGEX.test(normalizedPhone)) {
+      showError('Número inválido. Usa o formato +258 8X XXX XXXX')
+      return
+    }
 
     setLoading(true)
     const toastId = showLoading('Salvando configurações...')
@@ -118,11 +135,12 @@ const StoreSettingsTab = () => {
         .update({
           store_name: storeName.trim(),
           store_description: storeDescription.trim(),
-          store_logo: storeLogo[0] || null, // ATUALIZADO
+          store_logo: storeLogo[0] || null,
           store_categories: selectedCategories,
           city: city.trim(),
           province: province,
-          delivery_scope: deliveryScope
+          delivery_scope: deliveryScope,
+          phone: normalizedPhone,
         })
         .eq('id', user.id)
 
@@ -194,6 +212,27 @@ const StoreSettingsTab = () => {
             </div>
           </div>
           
+          {/* Telefone */}
+          <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-1">
+              <h3 className="font-semibold mb-2">Telefone *</h3>
+            </div>
+            <div className="md:col-span-2 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+258 84 000 0000"
+                  disabled={loading}
+                  autoComplete="tel"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Localização */}
           <div className="border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
