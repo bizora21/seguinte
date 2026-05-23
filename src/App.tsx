@@ -12,34 +12,33 @@ import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
 import ProductTickerBanner from "./components/ProductTickerBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
-import Chatbot from "./components/Chatbot";
 import FloatingAppButton from "./components/FloatingAppButton";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { HelmetProvider } from "react-helmet-async";
 import ScrollToTop from "./components/ScrollToTop";
-import LeadCapturePopup from "./components/LeadCapturePopup"
 import ErrorBoundary from "./components/ErrorBoundary"
-import { GroupInviteModal } from "./components/ui/GroupInviteModal"
 import { useAuth } from "./contexts/AuthContext"
-// Lazy: o NotificationPrompt importa o hook usePushNotifications que puxa
-// firebase/messaging (~79 kB). Só carrega quando há utilizador autenticado,
-// poupando esses bytes a visitantes anónimos.
+
+// Lazy: componentes não-críticos para o primeiro paint — só carregam após
+// o resto da página estar interactiva.
+const Chatbot = React.lazy(() => import("./components/Chatbot"))
+const LeadCapturePopup = React.lazy(() => import("./components/LeadCapturePopup"))
+const GroupInviteModal = React.lazy(() =>
+  import("./components/ui/GroupInviteModal").then(m => ({ default: m.GroupInviteModal }))
+)
+// NotificationPrompt importa firebase/messaging (~79 kB) — só carrega após login.
 const NotificationPrompt = React.lazy(() => import("./components/NotificationPrompt"))
 
 // Componente interno — passa o role e activa push notifications se autenticado
 const AppContent = () => {
   const { user } = useAuth()
   return (
-    <>
+    <Suspense fallback={null}>
       <GroupInviteModal userRole={user?.profile?.role} />
-      {user && (
-        <Suspense fallback={null}>
-          <NotificationPrompt />
-        </Suspense>
-      )}
-    </>
+      {user && <NotificationPrompt />}
+    </Suspense>
   )
 };
 
@@ -264,9 +263,11 @@ const App = () => (
                 </main>
                 <Footer />
                 <BackToHomeButton />
-                <Chatbot />
+                <Suspense fallback={null}>
+                  <Chatbot />
+                  <LeadCapturePopup />
+                </Suspense>
                 <FloatingAppButton />
-                <LeadCapturePopup />
                 <AppContent />
               </div>
               <Toaster />
