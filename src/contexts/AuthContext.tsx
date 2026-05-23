@@ -18,7 +18,8 @@ interface AuthContextType {
     storeCategories?: string[],
     city?: string, // Novo
     province?: string, // Novo
-    deliveryScope?: string[] // Novo
+    deliveryScope?: string[], // Novo
+    phone?: string // Contacto do vendedor (obrigatório quando role === 'vendedor')
   ) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
@@ -231,15 +232,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Função de registro otimizada
   const signUp = async (
-    email: string, 
-    password: string, 
-    role: 'cliente' | 'vendedor', 
+    email: string,
+    password: string,
+    role: 'cliente' | 'vendedor',
     storeName?: string,
     storeDescription?: string,
     storeCategories?: string[],
     city?: string, // Novo
     province?: string, // Novo
-    deliveryScope?: string[] // Novo
+    deliveryScope?: string[], // Novo
+    phone?: string // Contacto do vendedor
   ) => {
     try {
       const { data, error: authError } = await supabase.auth.signUp({
@@ -255,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             city: city ?? null,
             province: province ?? null,
             delivery_scope: role === 'vendedor' ? (deliveryScope ?? null) : null,
+            phone: role === 'vendedor' ? (phone ?? null) : null,
           }
         }
       })

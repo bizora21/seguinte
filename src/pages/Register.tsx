@@ -40,6 +40,16 @@ const PROVINCES = [
   { value: 'niassa', label: 'Niassa' }
 ]
 
+const PHONE_REGEX = /^\+2588[0-9]{8}$/
+
+const normalizePhone = (raw: string): string => {
+  const cleaned = raw.replace(/[\s\-()]/g, '')
+  if (cleaned.startsWith('+')) return cleaned
+  if (cleaned.startsWith('258')) return '+' + cleaned
+  if (cleaned.startsWith('8')) return '+258' + cleaned
+  return cleaned
+}
+
 const Register = () => {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
   const [email, setEmail] = useState('')
@@ -52,6 +62,7 @@ const Register = () => {
   const [province, setProvince] = useState('')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [deliveryScope, setDeliveryScope] = useState<string[]>([]) // Novo estado
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
 
@@ -94,6 +105,7 @@ const Register = () => {
       return
     }
 
+    let normalizedPhone: string | undefined
     if (role === 'vendedor') {
       if (!storeName.trim()) {
         showError('Vendedores precisam informar o nome da loja')
@@ -107,21 +119,27 @@ const Register = () => {
         showError('Vendedores precisam definir o escopo de entrega.')
         return
       }
+      normalizedPhone = normalizePhone(phone)
+      if (!PHONE_REGEX.test(normalizedPhone)) {
+        showError('Número inválido. Usa o formato +258 8X XXX XXXX')
+        return
+      }
     }
 
     setLoading(true)
 
     try {
       const { error } = await signUp(
-        email, 
-        password, 
-        role, 
-        storeName, 
-        storeDescription, 
+        email,
+        password,
+        role,
+        storeName,
+        storeDescription,
         selectedCategories,
         city, // Passando cidade
         province, // Passando província
-        deliveryScope // Passando escopo de entrega
+        deliveryScope, // Passando escopo de entrega
+        normalizedPhone // Passando telefone do vendedor
       )
 
       if (error) {
@@ -296,6 +314,20 @@ const Register = () => {
                     placeholder="Nome da sua loja"
                     disabled={loading}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone (WhatsApp/chamada) *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    placeholder="+258 84 000 0000"
+                    disabled={loading}
+                    autoComplete="tel"
+                  />
+                  <p className="text-xs text-gray-500">Os clientes vão usar este número para te contactar.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="storeDescription">Descrição da Loja</Label>
