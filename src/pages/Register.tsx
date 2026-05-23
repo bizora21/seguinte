@@ -10,6 +10,7 @@ import { Checkbox } from '../components/ui/checkbox'
 import { showError } from '../utils/toast'
 import { Textarea } from '../components/ui/textarea'
 import { notifyAdmin } from '../utils/notifyAdmin'
+import { containsContact } from '../utils/detectContact'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -117,6 +118,10 @@ const Register = () => {
       }
       if (deliveryScope.length === 0) {
         showError('Vendedores precisam definir o escopo de entrega.')
+        return
+      }
+      if (containsContact(storeDescription)) {
+        showError('Não são permitidos contactos (telefone, email, redes sociais) na descrição da loja.')
         return
       }
       normalizedPhone = normalizePhone(phone)
@@ -338,6 +343,11 @@ const Register = () => {
                     rows={3}
                     disabled={loading}
                   />
+                  {containsContact(storeDescription) && (
+                    <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+                      Não são permitidos contactos (telefone, email, redes sociais) na descrição da loja.
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Categorias da Loja *</Label>
@@ -390,7 +400,7 @@ const Register = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading || (role === 'vendedor' && (selectedCategories.length === 0 || deliveryScope.length === 0))}
+              disabled={loading || (role === 'vendedor' && (selectedCategories.length === 0 || deliveryScope.length === 0 || containsContact(storeDescription)))}
             >
               {loading ? 'Criando conta...' : 'Criar Conta'}
             </Button>

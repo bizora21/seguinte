@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -8,7 +8,7 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, Phone, CreditCard, Truck, Shield } from 'lucide-react'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import { sendTemplatedEmail } from '../utils/email'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -266,12 +266,6 @@ const ConfirmarEncomendaPage = () => {
 
   const deliveryZones: string[] = product?.seller?.delivery_scope ?? []
 
-  const zoneMatch = useMemo(() => {
-    if (!formData.deliveryAddress.trim() || deliveryZones.length === 0) return null
-    const addr = formData.deliveryAddress.toLowerCase()
-    return deliveryZones.some(z => addr.includes(z.toLowerCase()))
-  }, [formData.deliveryAddress, deliveryZones])
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-MZ', {
       style: 'currency',
@@ -405,22 +399,6 @@ const ConfirmarEncomendaPage = () => {
                         ))}
                       </div>
 
-                      {zoneMatch === true && (
-                        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
-                          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span className="font-medium">O vendedor entrega na sua zona!</span>
-                        </div>
-                      )}
-
-                      {zoneMatch === false && (
-                        <div className="flex items-start gap-2 rounded-lg bg-yellow-50 border border-yellow-200 px-3 py-2 text-sm text-yellow-800">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                          <span>
-                            <span className="font-semibold">Atenção:</span> O vendedor pode não entregar na sua zona.
-                            Confirme com o vendedor antes de encomendar.
-                          </span>
-                        </div>
-                      )}
                     </div>
                   )}
 

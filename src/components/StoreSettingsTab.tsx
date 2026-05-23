@@ -12,6 +12,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../utils/toas
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import SupabaseImageUpload from './SupabaseImageUpload' // ATUALIZADO
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { containsContact } from '../utils/detectContact'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -120,6 +121,10 @@ const StoreSettingsTab = () => {
       showError('Defina o escopo de entrega.')
       return
     }
+    if (containsContact(storeDescription)) {
+      showError('Não são permitidos contactos (telefone, email, redes sociais) na descrição da loja.')
+      return
+    }
     const normalizedPhone = normalizePhone(phone)
     if (!PHONE_REGEX.test(normalizedPhone)) {
       showError('Número inválido. Usa o formato +258 8X XXX XXXX')
@@ -197,6 +202,11 @@ const StoreSettingsTab = () => {
                   rows={3}
                   disabled={loading}
                 />
+                {containsContact(storeDescription) && (
+                  <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+                    Não são permitidos contactos (telefone, email, redes sociais) na descrição da loja.
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Logo da Loja</Label>
@@ -447,7 +457,7 @@ const StoreSettingsTab = () => {
           <div className="border-t pt-6">
             <Button
               onClick={handleSaveSettings}
-              disabled={loading || !storeName.trim() || selectedCategories.length === 0 || deliveryScope.length === 0 || !city.trim() || !province}
+              disabled={loading || !storeName.trim() || selectedCategories.length === 0 || deliveryScope.length === 0 || !city.trim() || !province || containsContact(storeDescription)}
               className="w-full md:w-auto"
             >
               <Save className="w-4 h-4 mr-2" />
