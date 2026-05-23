@@ -23,7 +23,10 @@ import LeadCapturePopup from "./components/LeadCapturePopup"
 import ErrorBoundary from "./components/ErrorBoundary"
 import { GroupInviteModal } from "./components/ui/GroupInviteModal"
 import { useAuth } from "./contexts/AuthContext"
-import NotificationPrompt from "./components/NotificationPrompt"
+// Lazy: o NotificationPrompt importa o hook usePushNotifications que puxa
+// firebase/messaging (~79 kB). Só carrega quando há utilizador autenticado,
+// poupando esses bytes a visitantes anónimos.
+const NotificationPrompt = React.lazy(() => import("./components/NotificationPrompt"))
 
 // Componente interno — passa o role e activa push notifications se autenticado
 const AppContent = () => {
@@ -31,7 +34,11 @@ const AppContent = () => {
   return (
     <>
       <GroupInviteModal userRole={user?.profile?.role} />
-      {user && <NotificationPrompt />}
+      {user && (
+        <Suspense fallback={null}>
+          <NotificationPrompt />
+        </Suspense>
+      )}
     </>
   )
 };
