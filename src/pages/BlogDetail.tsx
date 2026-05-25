@@ -196,6 +196,8 @@ const BlogDetail = () => {
                     className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
+                    width={1200}
+                    height={675}
                     onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg'
                     }}

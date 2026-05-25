@@ -56,9 +56,12 @@ const AnimatedProductCard = ({ product }: AnimatedProductCardProps) => {
               className="h-full w-full object-cover"
               whileHover={{ scale: 1.05 }}
               transition={{ duration: 0.3 }}
-              loading="lazy" // <-- Adicionado lazy loading
+              loading="lazy"
+              decoding="async"
+              width={400}
+              height={400}
               onError={(e) => {
-                e.currentTarget.src = defaultImage // CORRIGIDO: Usando placeholder local
+                e.currentTarget.src = defaultImage
               }}
             />
           </div>

@@ -170,7 +170,7 @@ const CustomerOrderDetails = () => {
                 const img = getFirstImageUrl(item.product.image_url) || defaultImage
                 return (
                   <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg bg-white">
-                    <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden"><img src={img} alt={item.product.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = defaultImage }}/></div>
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden"><img src={img} alt={item.product.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={48} height={48} onError={(e) => { e.currentTarget.src = defaultImage }}/></div>
                     <div className="flex-1"><h4 className="font-medium">{item.product.name}</h4><p className="text-sm text-gray-600">{item.quantity}x {formatPrice(item.price)}</p></div>
                     <div className="font-semibold">{formatPrice(item.price * item.quantity)}</div>
                   </div>

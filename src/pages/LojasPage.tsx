@@ -323,6 +323,8 @@ const LojasPage = () => {
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           loading="lazy"
                           decoding="async"
+                          width={400}
+                          height={192}
                           onError={(e) => {
                             e.currentTarget.src = `https://picsum.photos/seed/fallback-${seller.id}/400/300.jpg`
                           }}

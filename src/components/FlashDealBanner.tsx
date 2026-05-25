@@ -80,10 +80,15 @@ const FlashDealBanner = () => {
             
             {/* Imagem + Badge de Desconto */}
             <div className="relative w-full md:w-1/3 aspect-video md:aspect-auto">
-              <img 
-                src={imageUrl || '/placeholder.svg'} 
-                alt={deal.product.name} 
+              <img
+                src={imageUrl || '/placeholder.svg'}
+                alt={deal.product.name}
                 className="w-full h-full object-cover"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                width={400}
+                height={300}
               />
               <div className="absolute top-2 left-2 bg-red-600 text-white font-black px-3 py-1 rounded-md text-lg shadow-md transform -rotate-3">
                 -{savings}%

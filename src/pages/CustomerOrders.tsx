@@ -289,7 +289,7 @@ const CustomerOrders = () => {
                     {order.order_items.map(item => (
                       <div key={item.id} className="flex items-center space-x-3">
                         <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
-                            <img src={getFirstImageUrl(item.product.image_url) || defaultImage} alt={item.product.name} className="w-full h-full object-cover" />
+                            <img src={getFirstImageUrl(item.product.image_url) || defaultImage} alt={item.product.name} className="w-full h-full object-cover" loading="lazy" decoding="async" width={80} height={80} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-sm md:text-base truncate">{item.product.name}</p>

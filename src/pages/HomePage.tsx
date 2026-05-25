@@ -253,6 +253,10 @@ const HomePage: React.FC = () => {
                               src={imgUrl || '/placeholder.svg'}
                               alt={product.name}
                               className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              decoding="async"
+                              width={300}
+                              height={300}
                             />
                           </div>
                           <div className="p-4 flex flex-col flex-1">

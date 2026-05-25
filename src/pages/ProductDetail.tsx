@@ -215,10 +215,15 @@ const ProductDetail = () => {
               <Card className="shadow-lg border-0">
                 <CardContent className="p-4">
                   <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
-                    <img 
+                    <img
                       src={mainImage || defaultImage}
                       alt={`Imagem principal do produto ${product.name}`}
                       className="w-full h-full object-contain"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                      width={600}
+                      height={600}
                       onError={(e) => { e.currentTarget.src = defaultImage; }}
                     />
                     <Dialog>
@@ -228,7 +233,7 @@ const ProductDetail = () => {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
-                        <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" />
+                        <img src={mainImage || defaultImage} alt={`Zoom de ${product.name}`} className="w-full h-full max-h-[90vh] object-contain" decoding="async" width={800} height={800} />
                       </DialogContent>
                     </Dialog>
                   </div>
@@ -240,7 +245,7 @@ const ProductDetail = () => {
                           className={`w-20 h-20 flex-shrink-0 aspect-square rounded-md cursor-pointer border-2 overflow-hidden ${mainImage === url ? 'border-blue-500' : 'border-gray-200 hover:border-gray-400'}`}
                           onClick={() => setMainImage(url)}
                         >
-                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                          <img src={url} alt={`Miniatura ${index + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" width={80} height={80} />
                         </div>
                       ))}
                     </div>
@@ -277,6 +282,8 @@ const ProductDetail = () => {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               loading="lazy"
                               decoding="async"
+                              width={300}
+                              height={300}
                               onError={e => { e.currentTarget.src = '/placeholder.svg' }}
                             />
                           </div>
