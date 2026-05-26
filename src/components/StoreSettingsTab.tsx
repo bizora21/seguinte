@@ -131,6 +131,8 @@ const StoreSettingsTab = () => {
       return
     }
 
+    const wasPhoneEmpty = !user.profile?.phone
+
     setLoading(true)
     const toastId = showLoading('Salvando configurações...')
 
@@ -152,7 +154,11 @@ const StoreSettingsTab = () => {
       if (error) throw error
 
       dismissToast(toastId)
-      showSuccess('Configurações da loja salvas com sucesso!')
+      if (wasPhoneEmpty && normalizedPhone) {
+        showSuccess('✅ Telefone adicionado! A sua conta está agora completa.')
+      } else {
+        showSuccess('Configurações da loja salvas com sucesso!')
+      }
       await refetchProfile()
 
     } catch (error: any) {
