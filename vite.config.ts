@@ -27,7 +27,6 @@ export default defineConfig(() => ({
           'vendor-tiptap': ['@tiptap/react', '@tiptap/starter-kit',
                             '@tiptap/extension-image', '@tiptap/extension-link',
                             '@tiptap/extension-table'],
-          'vendor-charts': ['recharts'],
           'vendor-motion': ['framer-motion'],
         }
       }
