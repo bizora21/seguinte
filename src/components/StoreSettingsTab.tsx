@@ -54,7 +54,7 @@ const PROVINCES = [
 ]
 
 const StoreSettingsTab = () => {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refetchProfile } = useAuth()
   const { permission, requestPermission, isSupported } = usePushNotifications()
   const [notifyMessages, setNotifyMessages] = useState(() => localStorage.getItem('notify_messages') !== 'false')
   const [notifyPromotions, setNotifyPromotions] = useState(() => localStorage.getItem('notify_promotions') !== 'false')
@@ -153,7 +153,8 @@ const StoreSettingsTab = () => {
 
       dismissToast(toastId)
       showSuccess('Configurações da loja salvas com sucesso!')
-      
+      await refetchProfile()
+
     } catch (error: any) {
       dismissToast(toastId)
       showError('Erro ao salvar: ' + error.message)

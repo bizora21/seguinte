@@ -22,6 +22,7 @@ interface AuthContextType {
     phone?: string // Contacto do vendedor (obrigatório quando role === 'vendedor')
   ) => Promise<{ error: any }>
   signOut: () => Promise<void>
+  refetchProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -291,12 +292,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  // Recarrega o perfil do user actual a partir da BD e actualiza o estado.
+  // Útil após updates externos a profiles (ex: StoreSettingsTab.handleSaveSettings).
+  const refetchProfile = async () => {
+    if (!user) return
+    const profile = await fetchUserProfile(user.id)
+    setUser(prev => prev ? { ...prev, profile } : null)
+  }
+
   const value: AuthContextType = {
     user,
     loading,
     signIn,
     signUp,
-    signOut
+    signOut,
+    refetchProfile,
   }
 
   return (
