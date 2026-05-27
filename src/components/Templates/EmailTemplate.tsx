@@ -79,6 +79,13 @@ const EmailTemplate: React.FC<EmailTemplateProps> = ({ title, children, previewT
         <div style={{ backgroundColor: '#f7f9fa', padding: '20px 0' }}>
           <div className="container">
             <div className="header">
+              <img
+                src="https://lojarapidamz.com/favicon-192x192.png"
+                alt="LojaRápida"
+                width="60"
+                height="60"
+                style={{ display: 'block', margin: '0 auto 12px', borderRadius: '8px' }}
+              />
               <div className="logo-wrapper">
                 {/* Ícone Simulado com CSS (Sacola/Raio) */}
                 <div className="logo-icon">⚡</div>
