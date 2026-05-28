@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { getUserChats } from '../utils/chat'
@@ -15,10 +15,37 @@ const MyChats = () => {
   const [chats, setChats] = useState<any[]>([])
   const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const chatsRef = useRef<any[]>([])
 
   useEffect(() => {
     if (user) {
       fetchChats()
+    }
+  }, [user])
+
+  // Realtime: recalcula as contagens de não lidas quando há mensagens novas
+  // ou quando são marcadas como lidas (read_at actualizado).
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel(`mychats-unread-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const msg = payload.new as { sender_id: string }
+          if (msg.sender_id !== user.id) fetchUnreadCounts(chatsRef.current)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => fetchUnreadCounts(chatsRef.current)
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [user])
 
@@ -35,6 +62,7 @@ const MyChats = () => {
       } else {
         const chatList = data || []
         setChats(chatList)
+        chatsRef.current = chatList
         await fetchUnreadCounts(chatList)
       }
     } catch (error) {

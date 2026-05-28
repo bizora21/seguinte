@@ -105,12 +105,35 @@ const Dashboard = () => {
 
       const newOrderChannel = setupNewOrderSubscription()
       const updateChannel = setupOrderUpdateSubscription()
+      const chatChannel = setupChatUnreadSubscription()
       return () => {
         supabase.removeChannel(newOrderChannel)
         supabase.removeChannel(updateChannel)
+        supabase.removeChannel(chatChannel)
       }
     }
   }, [user])
+
+  // Realtime: recalcula o contador de chats não lidos quando há mensagens novas
+  // ou quando são marcadas como lidas (read_at actualizado).
+  const setupChatUnreadSubscription = () => {
+    return supabase
+      .channel(`seller-chat-unread-${user!.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const msg = payload.new as { sender_id: string }
+          if (msg.sender_id !== user!.id) fetchUnreadChatCount()
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => fetchUnreadChatCount()
+      )
+      .subscribe()
+  }
 
   // Conta mensagens não lidas nas conversas onde este vendedor participa.
   const fetchUnreadChatCount = async () => {
