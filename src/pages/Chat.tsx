@@ -8,6 +8,9 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { ArrowLeft, Send, User, Store, Wifi, WifiOff, Loader2 } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { containsContact } from '../utils/detectContact'
+import { notifyAdmin } from '../utils/notifyAdmin'
+import { showError } from '../utils/toast'
 
 const Chat = () => {
   const { chatId } = useParams<{ chatId: string }>()
@@ -144,25 +147,37 @@ const Chat = () => {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !chatId) return
+
+    const messageContent = newMessage.trim()
+
+    if (containsContact(messageContent)) {
+      showError('Por razões de segurança, não é permitido partilhar contactos, links ou redes sociais no chat.')
+      notifyAdmin(
+        '⚠️ Tentativa de partilha de contacto no chat',
+        `Utilizador tentou partilhar: "${messageContent.slice(0, 80)}"`,
+        '/dashboard/admin'
+      ).catch(() => {})
+      return
+    }
+
     setSending(true)
 
     const optimisticMessage: MessageWithSender = {
       id: Date.now().toString(),
       chat_id: chatId,
       sender_id: user.id,
-      content: newMessage.trim(),
+      content: messageContent,
       created_at: new Date().toISOString(),
       sender: {
         email: user.email,
         store_name: user.profile?.store_name
       }
     }
-    
+
     setMessages(prev => [...prev, optimisticMessage])
     setNewMessage('')
 
     try {
-      const messageContent = newMessage.trim()
       const { error } = await supabase
         .from('messages')
         .insert({

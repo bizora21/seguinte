@@ -13,6 +13,7 @@ import SupabaseImageUpload from '../components/SupabaseImageUpload' // ATUALIZAD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Product } from '../types/product'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { containsContact } from '../utils/detectContact'
 
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
@@ -166,6 +167,10 @@ const ManageProduct = () => {
       showError('A categoria selecionada não está nas categorias permitidas para sua loja.')
       return false
     }
+    if (containsContact(formData.description)) {
+      showError('Não são permitidos contactos na descrição do produto.')
+      return false
+    }
     return true
   }
 
@@ -314,6 +319,11 @@ const ManageProduct = () => {
                   rows={3}
                   disabled={submitting}
                 />
+                {containsContact(formData.description) && (
+                  <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">
+                    Não são permitidos contactos (telefone, email, links ou redes sociais) na descrição do produto.
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -417,7 +427,7 @@ const ManageProduct = () => {
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={submitting}
+                  disabled={submitting || containsContact(formData.description)}
                 >
                   {isEditing ? (
                     <><Save className="w-4 h-4 mr-2" /> {submitting ? 'Salvando...' : 'Salvar Alterações'}</>
