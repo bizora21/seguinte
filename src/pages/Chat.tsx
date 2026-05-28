@@ -263,9 +263,9 @@ const Chat = () => {
               <div ref={messagesEndRef} />
             </div>
             <div className="mt-4">
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 mb-2">
-                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>Por segurança, não partilhe telefone, email ou redes sociais — pode levar a bloqueio da conta.</span>
+              <div className="flex items-start gap-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-2">
+                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                <span className="leading-snug">Nunca partilhes dados de pagamento ou contactos fora da plataforma. A LojaRápida nunca pede dados bancários por chat, e mensagens com telefones, emails ou links são automaticamente bloqueadas.</span>
               </div>
               <div className="flex space-x-2">
                 <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Digite sua mensagem..." disabled={sending} className="flex-1" />

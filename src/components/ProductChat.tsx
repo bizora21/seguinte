@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Send, MessageCircle, AlertTriangle, Loader2, Lock } from 'lucide-react';
+import { Send, MessageCircle, Loader2, Lock } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -358,28 +358,16 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
               {isOtherTyping && <TypingIndicator />}
             </div>
 
-            {/* Security notice */}
+            {/* Aviso de segurança (único) */}
             <div className="mx-3 mb-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
               <Lock className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-700 leading-snug">
-                Nunca partilhes dados de pagamento ou contactos fora da plataforma. A LojaRápida não pede dados bancários por chat.
-              </p>
-            </div>
-
-            {/* Contact blocked warning */}
-            <div className="mx-3 mb-2 flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] text-red-600 leading-snug">
-                Mensagens com telefones, emails ou links são automaticamente bloqueadas.
+                Nunca partilhes dados de pagamento ou contactos fora da plataforma. A LojaRápida nunca pede dados bancários por chat, e mensagens com telefones, emails ou links são automaticamente bloqueadas.
               </p>
             </div>
 
             {/* Input area */}
             <div className="border-t bg-white px-3 py-3 flex-shrink-0">
-              <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 mb-2">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>Por segurança, não partilhe telefone, email ou redes sociais — pode levar a bloqueio da conta.</span>
-              </div>
               <div className="flex items-center gap-2">
                 <input
                   value={newMessage}
