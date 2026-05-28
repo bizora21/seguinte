@@ -376,6 +376,10 @@ const ProductChat: React.FC<ProductChatProps> = ({ productId, sellerId, storeNam
 
             {/* Input area */}
             <div className="border-t bg-white px-3 py-3 flex-shrink-0">
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 mb-2">
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Por segurança, não partilhe telefone, email ou redes sociais — pode levar a bloqueio da conta.</span>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   value={newMessage}

@@ -6,7 +6,7 @@ import { Message, MessageWithSender, ChatWithDetails } from '../types/chat'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { ArrowLeft, Send, User, Store, Wifi, WifiOff, Loader2 } from 'lucide-react'
+import { ArrowLeft, Send, User, Store, Wifi, WifiOff, Loader2, ShieldAlert } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { containsContact } from '../utils/detectContact'
 import { notifyAdmin } from '../utils/notifyAdmin'
@@ -262,9 +262,15 @@ const Chat = () => {
               ))}
               <div ref={messagesEndRef} />
             </div>
-            <div className="mt-4 flex space-x-2">
-              <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Digite sua mensagem..." disabled={sending} className="flex-1" />
-              <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sending} size="icon"><Send className="w-4 h-4" /></Button>
+            <div className="mt-4">
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 mb-2">
+                <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Por segurança, não partilhe telefone, email ou redes sociais — pode levar a bloqueio da conta.</span>
+              </div>
+              <div className="flex space-x-2">
+                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Digite sua mensagem..." disabled={sending} className="flex-1" />
+                <Button onClick={handleSendMessage} disabled={!newMessage.trim() || sending} size="icon"><Send className="w-4 h-4" /></Button>
+              </div>
             </div>
           </CardContent>
         </Card>
