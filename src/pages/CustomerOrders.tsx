@@ -128,10 +128,7 @@ const CustomerOrders = () => {
   }
   
   const handleTrackOrder = (orderId: string) => {
-    // Simulação de rastreamento
-    showSuccess(`Rastreamento do Pedido #${orderId.slice(0, 8)} iniciado.`)
-    // Em um sistema real, redirecionaria para: navigate(`/rastreamento/${orderId}`)
-    window.open('https://www.dhl.com/mz-pt/home/rastreamento.html', '_blank')
+    navigate(`/meus-pedidos/${orderId}`)
   }
 
   const handleConfirmDelivery = async (orderId: string) => {

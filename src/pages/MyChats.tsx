@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { getUserChats } from '../utils/chat'
+import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
@@ -12,6 +13,7 @@ const MyChats = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [chats, setChats] = useState<any[]>([])
+  const [unreadByChat, setUnreadByChat] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -31,13 +33,36 @@ const MyChats = () => {
       if (error) {
         console.error('Error fetching chats:', error)
       } else {
-        setChats(data || [])
+        const chatList = data || []
+        setChats(chatList)
+        await fetchUnreadCounts(chatList)
       }
     } catch (error) {
       console.error('Error fetching chats:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Conta mensagens não lidas (do outro participante) por conversa.
+  const fetchUnreadCounts = async (chatList: any[]) => {
+    if (!user || chatList.length === 0) {
+      setUnreadByChat({})
+      return
+    }
+    const chatIds = chatList.map(c => c.id)
+    const { data: unread } = await supabase
+      .from('messages')
+      .select('chat_id')
+      .in('chat_id', chatIds)
+      .neq('sender_id', user.id)
+      .is('read_at', null)
+
+    const map: Record<string, number> = {}
+    ;(unread || []).forEach((m: { chat_id: string }) => {
+      map[m.chat_id] = (map[m.chat_id] || 0) + 1
+    })
+    setUnreadByChat(map)
   }
 
   const formatDate = (dateString: string) => {
@@ -143,9 +168,15 @@ const MyChats = () => {
                           <Clock className="w-4 h-4 mr-1" />
                           {formatDate(chat.created_at)}
                         </div>
-                        <Badge variant="outline">
-                          {chat._count?.messages || 0} mensagens
-                        </Badge>
+                        {(unreadByChat[chat.id] || 0) > 0 ? (
+                          <Badge className="bg-red-500 text-white hover:bg-red-600">
+                            {unreadByChat[chat.id]} não lida{unreadByChat[chat.id] > 1 ? 's' : ''}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-400">
+                            Sem novas
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </CardContent>

@@ -17,6 +17,7 @@ import {
   Store,
   AlertTriangle,
   Bell,
+  MessageCircle,
   X
 } from 'lucide-react'
 import SellerFinanceTab from '../components/SellerFinanceTab'
@@ -50,6 +51,7 @@ const Dashboard = () => {
     time: string
   }>>([])
   const [unreadOrderCount, setUnreadOrderCount] = useState(0)
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
   const unreadCountRef = useRef(0)
 
   const triggerOrderAlert = (newCount: number) => {
@@ -99,6 +101,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (user?.profile?.role === 'vendedor') {
       fetchDashboardData()
+      fetchUnreadChatCount()
 
       const newOrderChannel = setupNewOrderSubscription()
       const updateChannel = setupOrderUpdateSubscription()
@@ -108,6 +111,30 @@ const Dashboard = () => {
       }
     }
   }, [user])
+
+  // Conta mensagens não lidas nas conversas onde este vendedor participa.
+  const fetchUnreadChatCount = async () => {
+    if (!user) return
+    const { data: chats } = await supabase
+      .from('chats')
+      .select('id')
+      .eq('seller_id', user.id)
+
+    if (!chats || chats.length === 0) {
+      setUnreadChatCount(0)
+      return
+    }
+
+    const chatIds = chats.map(c => c.id)
+    const { count } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .in('chat_id', chatIds)
+      .neq('sender_id', user.id)
+      .is('read_at', null)
+
+    setUnreadChatCount(count || 0)
+  }
 
   // Escuta order_items INSERT filtrado por seller_id — dispara APÓS o item estar inserido
   const setupNewOrderSubscription = () => {
@@ -293,6 +320,18 @@ const Dashboard = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">Dashboard</h1>
               <p className="text-sm text-gray-600">Olá, <span className="font-semibold">{user.profile?.store_name || user.email}</span></p>
             </div>
+            {unreadChatCount > 0 && (
+              <button
+                onClick={() => navigate('/meus-chats')}
+                className="relative p-2.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors"
+                aria-label="Mensagens não lidas"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </span>
+              </button>
+            )}
             {unreadOrderCount > 0 && (
               <button
                 onClick={() => setUnreadOrderCount(0)}

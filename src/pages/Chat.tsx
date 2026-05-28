@@ -73,12 +73,25 @@ const Chat = () => {
       if (messagesError) throw messagesError
       setMessages(messagesData || [])
 
+      markMessagesAsRead()
+
     } catch (error) {
       console.error('Error fetching chat data:', error)
       navigate('/meus-chats')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Marca como lidas as mensagens recebidas (do outro participante) ainda não lidas.
+  const markMessagesAsRead = async () => {
+    if (!chatId || !user) return
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('chat_id', chatId)
+      .neq('sender_id', user.id)
+      .is('read_at', null)
   }
 
   const setupRealtimeSubscription = () => {
@@ -113,6 +126,7 @@ const Chat = () => {
             }
 
             setMessages(prev => [...prev, messageWithSender])
+            markMessagesAsRead()
           }
         }
       )
@@ -148,17 +162,29 @@ const Chat = () => {
     setNewMessage('')
 
     try {
+      const messageContent = newMessage.trim()
       const { error } = await supabase
         .from('messages')
         .insert({
           chat_id: chatId,
           sender_id: user.id,
-          content: newMessage.trim()
+          content: messageContent
         })
 
       if (error) {
         console.error('❌ Erro ao enviar mensagem:', error)
         setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id))
+      } else if (chat && user.id !== chat.client_id) {
+        // Remetente é o vendedor → push ao cliente (não-bloqueante)
+        const sellerName = user.profile?.store_name || user.email.split('@')[0]
+        supabase.functions.invoke('send-push-notification', {
+          body: {
+            user_id: chat.client_id,
+            title: 'Nova mensagem',
+            body: `${sellerName || 'O vendedor'} respondeu à tua mensagem`,
+            url: `/chat/${chatId}`,
+          },
+        }).catch(() => {/* silencioso */})
       }
     } finally {
       setSending(false)
@@ -176,7 +202,7 @@ const Chat = () => {
   const isMyMessage = (message: MessageWithSender) => message.sender_id === user?.id
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>
-  if (!chat) return <div className="min-h-screen flex items-center justify-center"><p>Chat não encontrado.</p></div>
+  if (!chat || !user) return <div className="min-h-screen flex items-center justify-center"><p>Chat não encontrado.</p></div>
 
   const otherUser = user.id === chat.client_id ? chat.seller : chat.client
   const otherUserType = user.id === chat.client_id ? 'seller' : 'client'

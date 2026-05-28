@@ -3,15 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { ArrowLeft, MapPin, CheckCircle, CreditCard, AlertTriangle, Star, X } from 'lucide-react'
-import { getStatusInfo } from '../utils/orderStatus'
 import { showSuccess, showError, showLoading, dismissToast } from '../utils/toast'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { useOrderDetails } from '../hooks/useOrderDetails'
 import { getFirstImageUrl } from '../utils/images'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog'
+import OrderTimeline from '../components/OrderTimeline'
 
 const CustomerOrderDetails = () => {
   const { orderId } = useParams<{ orderId: string }>()
@@ -100,7 +99,6 @@ const CustomerOrderDetails = () => {
     )
   }
 
-  const statusInfo = getStatusInfo(order.status)
   const canCancel = order.status === 'pending' || order.status === 'preparing'
   const isDelivered = order.status === 'delivered'
   const isCompleted = order.status === 'completed'
@@ -130,15 +128,14 @@ const CustomerOrderDetails = () => {
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Detalhes do Pedido #{order.id.slice(0, 8)}</h1>
 
+        <div className="mb-6">
+          <OrderTimeline status={order.status} />
+        </div>
+
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-xl">Status Atual</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">Última atualização: {formatDate(order.updated_at)}</p>
-              </div>
-              <Badge className={`text-lg py-1 px-3 ${statusInfo.color}`}>{statusInfo.icon} {statusInfo.label}</Badge>
-            </div>
+            <CardTitle className="text-xl">Status Atual</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Última atualização: {formatDate(order.updated_at)}</p>
           </CardHeader>
           <CardContent className="space-y-6">
             
