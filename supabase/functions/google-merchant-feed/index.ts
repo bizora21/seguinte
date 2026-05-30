@@ -146,11 +146,18 @@ ${items}
   </channel>
 </rss>`
 
-    return new Response(xml, {
+    // IMPORTANTE: encode explícito para Uint8Array.
+    // Passar string directamente ao Response causa double-encoding em algumas
+    // edge regions (UTF-8 reinterpretado como Latin-1). Bytes pré-encoded
+    // eliminam essa ambiguidade.
+    const body = new TextEncoder().encode(xml)
+
+    return new Response(body, {
       status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Length': String(body.byteLength),
         'Cache-Control': 'public, max-age=3600, s-maxage=3600', // 1h
       },
     })
