@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useWishlist } from '../contexts/WishlistContext'
+import { supabase } from '../lib/supabase'
 import { Button } from './ui/button'
 import {
   ShoppingCart, User, LayoutDashboard, Store, MessageCircle,
-  LogOut, Package, Home, Heart, ChevronRight, BookOpen
+  LogOut, Package, Home, Heart, ChevronRight, BookOpen, Tag
 } from 'lucide-react'
 import CartButton from './CartButton'
 import Logo from './Logo'
@@ -30,8 +31,21 @@ const Header = () => {
   const { count: wishlistCount } = useWishlist()
   const navigate = useNavigate()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([])
 
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+
+  // Categorias para o drawer mobile (vêm da tabela `categories` no Supabase).
+  useEffect(() => {
+    supabase
+      .from('categories')
+      .select('id, name, slug')
+      .order('name')
+      .then(({ data, error }) => {
+        if (error) console.error('Header: erro a buscar categorias -', error.message)
+        else setCategories(data || [])
+      })
+  }, [])
 
   const handleSignOut = async () => {
     setIsMobileMenuOpen(false)
@@ -100,8 +114,8 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Desktop Right Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop Right Actions (≥ lg) */}
+          <div className="hidden lg:flex items-center space-x-4">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
 
             <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
@@ -155,8 +169,8 @@ const Header = () => {
             )}
           </div>
 
-          {/* Mobile: cart + wishlist + hamburger */}
-          <div className="md:hidden flex items-center gap-1">
+          {/* Mobile + Tablet: cart + wishlist + hamburger (< lg) */}
+          <div className="lg:hidden flex items-center gap-1">
             {isAdmin && <AdminNotificationBell isAdmin={isAdmin} />}
 
             <Link to="/wishlist" className="relative p-2 text-gray-600 hover:text-red-500 transition-colors" aria-label="Lista de desejos">
@@ -231,6 +245,29 @@ const Header = () => {
                       </button>
                     ))}
                   </div>
+
+                  {/* Categorias */}
+                  {categories.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="px-3 py-3">
+                        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Categorias</p>
+                        {categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => closeMobileMenu(`/produtos?categoria=${cat.slug}`)}
+                            className="w-full flex items-center justify-between px-3 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Tag className="w-5 h-5 text-gray-500 group-hover:text-primary transition-colors" />
+                              <span className="text-base font-medium">{cat.name}</span>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                   {/* Itens do utilizador autenticado */}
                   {user && (

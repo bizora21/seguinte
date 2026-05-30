@@ -18,7 +18,7 @@ import { containsContact } from '../utils/detectContact'
 const CATEGORIES = [
   { value: 'eletronicos', label: 'Eletrônicos' },
   { value: 'moda', label: 'Moda' },
-  { value: 'casa', label: 'Casa & Jardim' },
+  { value: 'casa-e-jardim', label: 'Casa & Jardim' },
   { value: 'esportes', label: 'Esportes' },
   { value: 'livros', label: 'Livros' },
   { value: 'acessorios', label: 'Acessórios' },

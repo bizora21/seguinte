@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { ProductWithSeller } from '../types/product'
@@ -68,10 +69,23 @@ const fetchProducts = async (searchTerm: string, sortBy: string, category: strin
 }
 
 const ProductsPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('newest')
-  const [category, setCategory] = useState('all')
+  // Categoria inicial vem do URL (?categoria=<slug>) — permite que links externos
+  // (ex: drawer mobile) abram a página já filtrada por categoria.
+  const [category, setCategory] = useState(searchParams.get('categoria') || 'all')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
+
+  // Mantém URL e estado sincronizados quando o utilizador muda o Select.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams)
+    if (category === 'all') next.delete('categoria')
+    else next.set('categoria', category)
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [category])
 
   useEffect(() => {
     const handler = setTimeout(() => {
