@@ -316,6 +316,14 @@ export const generateProductSchema = (product: any, storeName: string) => {
             "unitCode": "DAY"
           }
         }
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "MZ",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 7,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn"
       }
     },
     brand: {
