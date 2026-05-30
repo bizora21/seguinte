@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { Card, CardContent } from './ui/card'
-import { Button } from './ui/button'
-import { Progress } from './ui/progress'
-import { Zap, Clock, ArrowRight } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowRight, Flame } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { getFirstImageUrl } from '../utils/images'
 
-interface FlashDealData {
+interface FlashDeal {
   id: string
   product_id: string
   discount_price: number
@@ -15,126 +13,219 @@ interface FlashDealData {
   ends_at: string
   sold_units: number
   total_units: number
-  product: {
-    name: string
-    image_url: string
-  }
+  product: { name: string; image_url: string }
 }
 
+const EXCLUDED_PREFIXES = ['/dashboard', '/admin', '/auth']
+const EXCLUDED_EXACT = ['/login', '/register']
+const ROTATE_MS = 6000
+const REFETCH_MS = 5 * 60 * 1000
+
+const formatPrice = (n: number) =>
+  new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', maximumFractionDigits: 0 }).format(n)
+
+const FlipDigit = ({ value, label }: { value: string; label: string }) => (
+  <div className="flex flex-col items-center">
+    <div className="relative w-12 h-14 md:w-14 md:h-16 bg-zinc-900/80 border border-white/10 rounded-lg overflow-hidden shadow-inner">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={{ rotateX: -90, opacity: 0 }}
+          animate={{ rotateX: 0, opacity: 1 }}
+          exit={{ rotateX: 90, opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          style={{ transformPerspective: 400 }}
+          className="absolute inset-0 flex items-center justify-center text-2xl md:text-3xl font-extrabold text-white tabular-nums"
+        >
+          {value}
+        </motion.span>
+      </AnimatePresence>
+    </div>
+    <span className="text-[10px] uppercase tracking-wide text-zinc-400 mt-1">{label}</span>
+  </div>
+)
+
 const FlashDealBanner = () => {
-  const [deal, setDeal] = useState<FlashDealData | null>(null)
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const [deals, setDeals] = useState<FlashDeal[]>([])
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [hovered, setHovered] = useState(false)
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 })
 
+  const excluded =
+    EXCLUDED_EXACT.includes(pathname) ||
+    EXCLUDED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
+
+  // Fetch + refetch a cada 5 min
   useEffect(() => {
-    fetchActiveDeal()
-  }, [])
+    if (excluded) return
+    let cancelled = false
+    const fetchDeals = async () => {
+      const { data, error } = await supabase
+        .from('flash_deals')
+        .select('id, product_id, discount_price, original_price, ends_at, sold_units, total_units, product:products(name, image_url)')
+        .eq('status', 'active')
+        .gt('ends_at', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .limit(3)
 
+      if (error) console.error('FlashDeal fetch:', error)
+      if (cancelled) return
+      setDeals((data as unknown as FlashDeal[]) || [])
+      setActiveIdx(0)
+    }
+    fetchDeals()
+    const i = setInterval(fetchDeals, REFETCH_MS)
+    return () => { cancelled = true; clearInterval(i) }
+  }, [excluded])
+
+  // Auto-rotate (pausa no hover)
+  useEffect(() => {
+    if (deals.length <= 1 || hovered) return
+    const t = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % deals.length)
+    }, ROTATE_MS)
+    return () => clearInterval(t)
+  }, [deals.length, hovered])
+
+  // Countdown
+  const deal = deals[activeIdx]
   useEffect(() => {
     if (!deal) return
-
-    const interval = setInterval(() => {
-      const now = new Date().getTime()
-      const end = new Date(deal.ends_at).getTime()
-      const distance = end - now
-
-      if (distance < 0) {
-        clearInterval(interval)
-        setDeal(null) // Oferta acabou
+    const tick = () => {
+      const distance = new Date(deal.ends_at).getTime() - Date.now()
+      if (distance <= 0) {
+        setDeals((prev) => prev.filter((d) => d.id !== deal.id))
         return
       }
-
       setTimeLeft({
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000)
+        hours: Math.floor((distance % 86400000) / 3600000),
+        minutes: Math.floor((distance % 3600000) / 60000),
+        seconds: Math.floor((distance % 60000) / 1000),
       })
-    }, 1000)
-
-    return () => clearInterval(interval)
+    }
+    tick()
+    const i = setInterval(tick, 1000)
+    return () => clearInterval(i)
   }, [deal])
 
-  const fetchActiveDeal = async () => {
-    const { data } = await supabase
-      .from('flash_deals')
-      .select('*, product:products(name, image_url)')
-      .eq('status', 'active')
-      .gt('ends_at', new Date().toISOString())
-      .limit(1)
-      .maybeSingle()
-    
-    if (data) setDeal(data)
-  }
+  if (excluded || !deal) return null
 
-  if (!deal) return null
-
-  const progress = (deal.sold_units / deal.total_units) * 100
-  const savings = Math.round(((deal.original_price - deal.discount_price) / deal.original_price) * 100)
+  const savings =
+    deal.original_price > 0
+      ? Math.round(((deal.original_price - deal.discount_price) / deal.original_price) * 100)
+      : 0
+  const stockProgress = Math.min(100, (deal.sold_units / Math.max(1, deal.total_units)) * 100)
+  const stockLeft = Math.max(0, deal.total_units - deal.sold_units)
   const imageUrl = getFirstImageUrl(deal.product.image_url)
+  const hh = String(timeLeft.hours).padStart(2, '0')
+  const mm = String(timeLeft.minutes).padStart(2, '0')
+  const ss = String(timeLeft.seconds).padStart(2, '0')
 
   return (
-    <div className="w-full bg-gradient-to-r from-orange-500 to-red-600 p-1 mb-8 rounded-xl shadow-lg transform hover:scale-[1.01] transition-transform duration-300">
-      <Card className="border-0 bg-white overflow-hidden">
-        <CardContent className="p-0">
-          <div className="flex flex-col md:flex-row">
-            
-            {/* Imagem + Badge de Desconto */}
-            <div className="relative w-full md:w-1/3 aspect-video md:aspect-auto">
-              <img
-                src={imageUrl || '/placeholder.svg'}
-                alt={deal.product.name}
-                className="w-full h-full object-cover"
-                loading="eager"
-                fetchPriority="high"
-                decoding="async"
-                width={400}
-                height={300}
-              />
-              <div className="absolute top-2 left-2 bg-red-600 text-white font-black px-3 py-1 rounded-md text-lg shadow-md transform -rotate-3">
-                -{savings}%
-              </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full mb-8"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0A2540] to-[#1a3a52] shadow-xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 min-h-[16rem] md:min-h-[20rem]">
+
+          {/* PAINEL ESQUERDO */}
+          <div className="relative p-5 md:p-8 flex flex-col justify-center text-white order-2 md:order-1">
+            <div className="inline-flex items-center gap-1.5 self-start mb-3">
+              <span className="relative inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-[11px] font-bold uppercase tracking-wide">
+                <Flame className="w-3.5 h-3.5" />
+                Oferta Relâmpago
+                <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-30" />
+              </span>
+              {savings > 0 && (
+                <span className="ml-1 px-2 py-1 rounded-md bg-red-600 text-white font-extrabold text-sm tracking-tight">
+                  -{savings}%
+                </span>
+              )}
             </div>
 
-            {/* Conteúdo */}
-            <div className="p-6 flex-1 flex flex-col justify-center">
-              <div className="flex items-center text-orange-600 font-bold mb-2 uppercase tracking-wide text-xs md:text-sm">
-                <Zap className="w-4 h-4 mr-1 fill-current animate-pulse" />
-                Oferta Relâmpago • Expira em breve
-              </div>
-              
-              <h3 className="text-lg md:text-2xl font-bold text-gray-900 mb-2 leading-tight">
-                {deal.product.name}
-              </h3>
+            <h2 className="text-xl md:text-3xl font-bold leading-tight mb-3 line-clamp-2">
+              {deal.product.name}
+            </h2>
 
-              <div className="flex items-baseline gap-3 mb-4">
-                <span className="text-3xl font-extrabold text-red-600">
-                  {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', maximumFractionDigits: 0 }).format(deal.discount_price)}
+            <div className="flex items-baseline gap-3 mb-4">
+              <span className="text-3xl md:text-4xl font-extrabold text-amber-400">
+                {formatPrice(deal.discount_price)}
+              </span>
+              {deal.original_price > deal.discount_price && (
+                <span className="text-sm md:text-base text-zinc-400 line-through">
+                  {formatPrice(deal.original_price)}
                 </span>
-                <span className="text-gray-400 line-through text-sm">
-                  {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN', maximumFractionDigits: 0 }).format(deal.original_price)}
-                </span>
-              </div>
+              )}
+            </div>
 
-              {/* Barra de Progresso (Escassez Visual) */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs font-semibold mb-1">
-                  <span className="text-red-600 flex items-center"><Clock className="w-3 h-3 mr-1" /> {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
-                  <span className="text-gray-600">{deal.total_units - deal.sold_units} unidades restantes</span>
-                </div>
-                <Progress value={progress} className="h-2.5 bg-gray-100 [&>div]:bg-gradient-to-r [&>div]:from-orange-500 [&>div]:to-red-600" />
-              </div>
+            <div className="flex items-center gap-1.5 mb-4">
+              <FlipDigit value={hh} label="horas" />
+              <span className="text-2xl font-bold text-amber-400 self-start mt-2">:</span>
+              <FlipDigit value={mm} label="min" />
+              <span className="text-2xl font-bold text-amber-400 self-start mt-2">:</span>
+              <FlipDigit value={ss} label="seg" />
+            </div>
 
-              <Button 
-                onClick={() => navigate(`/produto/${deal.product_id}`)}
-                className="w-full bg-gray-900 hover:bg-black text-white font-bold h-12 shadow-lg"
-              >
-                APROVEITAR AGORA <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+            <button
+              onClick={() => navigate(`/produto/${deal.product_id}`)}
+              className="group inline-flex items-center justify-center gap-2 self-start px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 text-white font-bold text-sm md:text-base transition-all duration-200 hover:scale-105 hover:shadow-[0_0_24px_rgba(34,197,94,0.55)]"
+            >
+              Comprar Agora
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </button>
+
+            <div className="mt-4 w-full md:max-w-xs">
+              <div className="flex justify-between text-[11px] text-zinc-300 mb-1">
+                <span>Vendidos: {deal.sold_units}</span>
+                <span className="font-semibold text-amber-300">{stockLeft} restantes</span>
+              </div>
+              <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-red-500 transition-all duration-700"
+                  style={{ width: `${stockProgress}%` }}
+                />
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          {/* PAINEL DIREITO — IMAGEM */}
+          <div className="relative flex items-center justify-center p-4 md:p-8 order-1 md:order-2 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.20),transparent_60%)]" />
+            <img
+              src={imageUrl || '/placeholder.svg'}
+              alt={deal.product.name}
+              className="relative z-10 max-h-48 md:max-h-64 object-contain drop-shadow-[0_10px_25px_rgba(0,0,0,0.45)] animate-float"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              width={400}
+              height={300}
+            />
+          </div>
+        </div>
+
+        {/* Dots de navegação (só se houver múltiplos deals) */}
+        {deals.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+            {deals.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveIdx(i)}
+                aria-label={`Oferta ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIdx ? 'w-6 bg-amber-400' : 'w-1.5 bg-white/40 hover:bg-white/60'}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
   )
 }
 

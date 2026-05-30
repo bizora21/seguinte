@@ -20,6 +20,15 @@
   animation-play-state: paused;
 }
 
+@keyframes flashdeal-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: flashdeal-float 3s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     /* Neutras */
