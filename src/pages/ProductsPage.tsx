@@ -103,15 +103,25 @@ const ProductsPage = () => {
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos para performance
   })
 
-  const categories = [
+  // Categorias vêm da tabela `categories` no Supabase (mesma fonte do drawer mobile).
+  // Garante que o slug do URL bate sempre com uma opção do Select.
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([
     { value: 'all', label: 'Todas as Categorias' },
-    { value: 'eletronicos', label: 'Eletrônicos' },
-    { value: 'moda', label: 'Moda' },
-    { value: 'casa', label: 'Casa e Decoração' },
-    { value: 'esportes', label: 'Esportes' },
-    { value: 'acessorios', label: 'Acessórios' },
-    { value: 'beleza', label: 'Beleza' },
-  ]
+  ])
+
+  useEffect(() => {
+    supabase
+      .from('categories')
+      .select('name, slug')
+      .order('name')
+      .then(({ data, error }) => {
+        if (error) { console.error('ProductsPage: erro a buscar categorias -', error.message); return }
+        setCategories([
+          { value: 'all', label: 'Todas as Categorias' },
+          ...(data || []).map(c => ({ value: c.slug, label: c.name })),
+        ])
+      })
+  }, [])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -227,8 +237,16 @@ const ProductsPage = () => {
         ) : (
           <div className="text-center p-16 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900">Nenhum produto encontrado</h3>
-            <p className="text-gray-500 mt-2">Tente ajustar seus filtros ou buscar por um termo diferente.</p>
+            <h3 className="text-xl font-semibold text-gray-900">
+              {category !== 'all'
+                ? `Sem produtos em "${categories.find(c => c.value === category)?.label || category}" por agora`
+                : 'Nenhum produto encontrado'}
+            </h3>
+            <p className="text-gray-500 mt-2">
+              {category !== 'all'
+                ? 'Ainda não há vendedores com produtos nesta categoria. Tenta outra ou explora todas.'
+                : 'Tente ajustar seus filtros ou buscar por um termo diferente.'}
+            </p>
             <Button 
               variant="outline" 
               className="mt-6"
