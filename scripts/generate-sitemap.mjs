@@ -32,25 +32,34 @@ if (SUPABASE_URL && SUPABASE_KEY) {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-    const [{ data: articles }, { data: products }, { data: stores }] = await Promise.all([
+    const [articlesRes, productsRes, storesRes] = await Promise.all([
       supabase.from('published_articles').select('slug, updated_at').eq('status', 'published').order('updated_at', { ascending: false }),
-      supabase.from('products').select('id, updated_at').not('image_url', 'is', null).limit(500),
+      // Nota: products não tem coluna updated_at — usa created_at.
+      supabase.from('products').select('id, created_at').not('image_url', 'is', null).limit(500),
       supabase.from('profiles').select('id, updated_at').eq('role', 'vendedor'),
     ])
 
-    for (const article of (articles || [])) {
+    if (articlesRes.error) console.error('Sitemap: erro a buscar articles -', articlesRes.error.message)
+    if (productsRes.error) console.error('Sitemap: erro a buscar products -', productsRes.error.message)
+    if (storesRes.error)   console.error('Sitemap: erro a buscar stores -',   storesRes.error.message)
+
+    const articles = articlesRes.data || []
+    const products = productsRes.data || []
+    const stores   = storesRes.data   || []
+
+    for (const article of articles) {
       const lastmod = article.updated_at?.split('T')[0] || today
       urls.push(urlEntry(BASE + '/blog/' + article.slug, lastmod, 'weekly', '0.8'))
     }
-    for (const product of (products || [])) {
-      const lastmod = product.updated_at?.split('T')[0] || today
+    for (const product of products) {
+      const lastmod = product.created_at?.split('T')[0] || today
       urls.push(urlEntry(BASE + '/produto/' + product.id, lastmod, 'weekly', '0.7'))
     }
-    for (const store of (stores || [])) {
+    for (const store of stores) {
       const lastmod = store.updated_at?.split('T')[0] || today
       urls.push(urlEntry(BASE + '/loja/' + store.id, lastmod, 'weekly', '0.6'))
     }
-    console.log('Sitemap dinamico: artigos=' + (articles?.length||0) + ' produtos=' + (products?.length||0) + ' lojas=' + (stores?.length||0))
+    console.log('Sitemap dinamico: artigos=' + articles.length + ' produtos=' + products.length + ' lojas=' + stores.length)
   } catch(e) {
     console.log('Aviso: dados dinamicos nao carregados -', e.message)
   }
