@@ -49,9 +49,14 @@ const corsHeaders = {
 // ---- Helpers --------------------------------------------------------------
 
 function escapeXml(value: unknown): string {
-  return String(value ?? '').replace(/[<>&"']/g, (c) => ({
-    '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;',
-  }[c] as string))
+  return String(value ?? '')
+    .replace(/[<>&"']/g, (c) => ({
+      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;',
+    }[c] as string))
+    // Converte qualquer char não-ASCII (acentos, em-dash, etc.) em entidades
+    // numéricas. Output 100% ASCII → impossível de ser mal interpretado por
+    // viewers Latin-1/Windows-1252. Parsers XML decodificam para Unicode.
+    .replace(new RegExp('[\u0080-\uFFFF]', 'g'), (c) => `&#${c.charCodeAt(0)};`)
 }
 
 function stripHtml(html: string | null | undefined): string {
@@ -135,12 +140,19 @@ serve(async (req: Request) => {
       .filter(Boolean)
       .join('\n')
 
+    // Texto estatico do canal tambem passa por escapeXml -> entidades numericas
+    // (garante 100% ASCII no output, imune a problemas de encoding em viewers).
+    const channelTitle = escapeXml('LojaRápida — Catálogo de Produtos')
+    const channelDesc = escapeXml(
+      'Catálogo de produtos disponíveis na LojaRápida — marketplace de Moçambique com pagamento na entrega.'
+    )
+
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>LojaRápida — Catálogo de Produtos</title>
+    <title>${channelTitle}</title>
     <link>${SITE_URL}</link>
-    <description>Catálogo de produtos disponíveis na LojaRápida — marketplace de Moçambique com pagamento na entrega.</description>
+    <description>${channelDesc}</description>
     <language>pt-PT</language>
 ${items}
   </channel>
