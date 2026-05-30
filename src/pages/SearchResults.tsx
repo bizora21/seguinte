@@ -29,14 +29,13 @@ const SearchResults = () => {
   const fetchProducts = async () => {
     setLoading(true)
     try {
+      // Nota: `products.category` é uma coluna TEXT (slug guardado como string),
+      // não um FK para a tabela `categories`. Por isso filtramos directamente
+      // por products.category, sem embed/JOIN.
       let supabaseQuery = supabase
         .from('products')
         .select(`
           *,
-          category:categories (
-            name,
-            slug
-          ),
           seller:profiles!products_seller_id_fkey(id, store_name)
         `)
 
@@ -48,7 +47,7 @@ const SearchResults = () => {
       }
 
       if (category !== 'todos') {
-        supabaseQuery = supabaseQuery.eq('categories.slug', category)
+        supabaseQuery = supabaseQuery.eq('category', category)
       }
 
       if (maxPrice) {
