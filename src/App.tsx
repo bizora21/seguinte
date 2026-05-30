@@ -12,7 +12,6 @@ import Footer from "./components/Footer";
 import PaymentBanner from "./components/PaymentBanner";
 import ProductTickerBanner from "./components/ProductTickerBanner";
 import BackToHomeButton from "./components/BackToHomeButton";
-import FloatingAppButton from "./components/FloatingAppButton";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -24,7 +23,6 @@ import { useAuth } from "./contexts/AuthContext"
 // Lazy: componentes não-críticos para o primeiro paint — só carregam após
 // o resto da página estar interactiva.
 const Chatbot = React.lazy(() => import("./components/Chatbot"))
-const LeadCapturePopup = React.lazy(() => import("./components/LeadCapturePopup"))
 const GroupInviteModal = React.lazy(() =>
   import("./components/ui/GroupInviteModal").then(m => ({ default: m.GroupInviteModal }))
 )
@@ -265,9 +263,7 @@ const App = () => (
                 <BackToHomeButton />
                 <Suspense fallback={null}>
                   <Chatbot />
-                  <LeadCapturePopup />
                 </Suspense>
-                <FloatingAppButton />
                 <AppContent />
               </div>
               <Toaster />

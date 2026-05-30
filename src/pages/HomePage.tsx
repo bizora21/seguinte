@@ -199,7 +199,12 @@ const HomePage: React.FC = () => {
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Quer comprar algo incrível?</h3>
                   <p className="text-blue-100 mb-8 max-w-md">Explore milhares de produtos únicos. Moda, eletrônicos, casa e muito mais.</p>
-                  <Button onClick={() => navigate('/produtos')} className="w-full sm:w-auto bg-white text-blue-900 hover:bg-blue-50 font-bold">
+                  <Button
+                    onClick={() => navigate('/produtos')}
+                    size="lg"
+                    className="w-full sm:w-auto bg-white text-blue-900 hover:bg-blue-50 font-bold shadow-md transition-all hover:scale-105"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
                     Ver Catálogo
                   </Button>
                 </div>
@@ -214,7 +219,12 @@ const HomePage: React.FC = () => {
                   </div>
                   <h3 className="text-3xl font-bold mb-4">Quer vender rápido?</h3>
                   <p className="text-gray-400 mb-8 max-w-md">Crie sua loja digital em minutos. Sem custos de adesão. Alcance todo o país.</p>
-                  <Button onClick={() => navigate('/register')} className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 font-bold">
+                  <Button
+                    onClick={() => navigate('/register')}
+                    size="lg"
+                    className="w-full sm:w-auto bg-green-500 text-white hover:bg-green-600 font-bold shadow-md transition-all hover:scale-105"
+                  >
+                    <Rocket className="w-5 h-5" />
                     Criar Minha Loja
                   </Button>
                 </div>
@@ -277,7 +287,7 @@ const HomePage: React.FC = () => {
                             </p>
                             <Button
                               size="sm"
-                              className="w-full bg-[#0A2540] hover:bg-gray-800 text-white text-xs"
+                              className="w-full bg-[#0A2540] hover:bg-gray-800 text-white"
                               onClick={e => { e.stopPropagation(); navigate(`/produto/${product.id}`) }}
                             >
                               Ver produto
@@ -294,7 +304,11 @@ const HomePage: React.FC = () => {
             )}
 
             <div className="text-center mt-8 md:mt-12">
-              <Button onClick={() => navigate('/produtos')} className="bg-[#0A2540] hover:bg-gray-800 text-white px-8">
+              <Button
+                onClick={() => navigate('/produtos')}
+                size="lg"
+                className="bg-[#0A2540] hover:bg-gray-800 text-white px-8 shadow-md transition-all hover:scale-105"
+              >
                 Ver Todos os Produtos <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -337,22 +351,28 @@ const HomePage: React.FC = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-                <a
-                  href="https://play.google.com/store/apps/details?id=com.app.github"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center bg-white text-[#0A2540] hover:bg-gray-100 font-bold py-3 px-6 rounded-lg transition-all hover:scale-105"
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full sm:w-auto bg-white text-[#0A2540] hover:bg-gray-100 font-bold shadow-md transition-all hover:scale-105"
                 >
-                  <svg className="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
-                  </svg>
-                  Google Play
-                </a>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.app.github"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.92 20.16,13.19L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
+                    </svg>
+                    Google Play
+                  </a>
+                </Button>
                 <Button
                   onClick={() => navigate('/produtos')}
                   size="lg"
-                  className="bg-green-500 hover:bg-green-600 text-white font-bold"
+                  className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold shadow-md transition-all hover:scale-105"
                 >
+                  <ShoppingBag className="w-5 h-5" />
                   Continuar no Navegador
                 </Button>
               </div>
