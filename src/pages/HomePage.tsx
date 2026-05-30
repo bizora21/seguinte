@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { SEO, generateWebSiteSchema, generateLocalBusinessSchema, generateMobileAppSchema } from '../components/SEO'
 import FlashDealBanner from '../components/FlashDealBanner' // IMPORT NOVO
+import PayOnDeliveryTrust from '../components/PayOnDeliveryTrust'
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
@@ -78,7 +79,14 @@ const HomePage: React.FC = () => {
       />
       
       <div className="min-h-screen bg-white font-sans">
-        
+
+        {/* --- TRUST: Pagamento na entrega (primeiro elemento visível) --- */}
+        <section className="bg-white pt-4 pb-2 md:pt-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <PayOnDeliveryTrust />
+          </div>
+        </section>
+
         {/* --- HERO SECTION --- */}
         <section className="relative overflow-hidden bg-[#0A2540] text-white pb-10 pt-14 md:pb-20 md:pt-24 lg:pt-32">
           {/* Background Pattern Suave */}

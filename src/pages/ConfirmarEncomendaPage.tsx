@@ -13,6 +13,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '../utils/toas
 import { sendTemplatedEmail } from '../utils/email'
 import LoadingSpinner from '../components/LoadingSpinner'
 import { notifyAdmin } from '../utils/notifyAdmin'
+import PayOnDeliveryTrust from '../components/PayOnDeliveryTrust'
 
 interface OrderFormData {
   fullName: string
@@ -318,6 +319,8 @@ const ConfirmarEncomendaPage = () => {
             Preencha seus dados para finalizar a encomenda
           </p>
         </div>
+
+        <PayOnDeliveryTrust className="mb-6" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Formulário */}

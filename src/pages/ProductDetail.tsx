@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Star, Shield, Truck, Maximize, MapPin, Store, ClipboardList } from 'lucide-react';
+import { Star, Truck, Maximize, MapPin, Store, ClipboardList } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
@@ -12,6 +12,7 @@ import ProductDetailSkeleton from '../components/ProductDetailSkeleton';
 import ProductChat from '../components/ProductChat';
 import ProductReviews from '../components/ProductReviews'; // NOVO IMPORT
 import ReviewForm from '../components/ReviewForm'; // NOVO IMPORT
+import PayOnDeliveryTrust from '../components/PayOnDeliveryTrust';
 import { Card, CardContent } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { motion } from 'framer-motion';
@@ -365,14 +366,12 @@ const ProductDetail = () => {
                     )}
                   </div>
 
+                  <PayOnDeliveryTrust compact className="mb-2" />
+
                   <Button onClick={handleEncomendar} className="w-full h-12 text-lg font-bold uppercase tracking-wide bg-primary hover:bg-green-700" size="lg" disabled={product.stock === 0}>
                     <ClipboardList className="w-6 h-6 mr-2" />
                     {product.stock === 0 ? 'Fora de Estoque' : 'Encomendar Agora'}
                   </Button>
-                  
-                  <p className="text-xs text-center text-gray-500 flex items-center justify-center">
-                    <Shield className="w-3 h-3 mr-1" /> Pagamento seguro na entrega
-                  </p>
                 </CardContent>
               </Card>
               
